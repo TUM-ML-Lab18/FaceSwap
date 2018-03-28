@@ -1,0 +1,42 @@
+name: face9
+channels:
+  - defaults
+dependencies:
+  - ca-certificates=2017.08.26=h1d4fec5_0
+  - certifi=2018.1.18=py36_0
+  - libedit=3.1=heed3624_0
+  - libffi=3.2.1=hd88cf55_4
+  - libgcc-ng=7.2.0=hdf63c60_3
+  - libstdcxx-ng=7.2.0=hdf63c60_3
+  - ncurses=6.0=h9df7e31_2
+  - openssl=1.0.2n=hb7f436b_0
+  - pip=9.0.1=py36_5
+  - python=3.6.4=hc3d631a_3
+  - readline=7.0=ha6073c6_4
+  - setuptools=38.5.1=py36_0
+  - sqlite=3.22.0=h1bed415_0
+  - tk=8.6.7=hc745277_3
+  - wheel=0.30.0=py36hfd4bba0_1
+  - xz=5.2.3=h55aa19d_2
+  - zlib=1.2.11=ha838bed_2
+  - pip:
+    - absl-py==0.1.12
+    - astor==0.6.2
+    - bleach==1.5.0
+    - gast==0.2.0
+    - grpcio==1.10.0
+    - html5lib==0.9999999
+    - keras==2.1.5
+    - markdown==2.6.11
+    - numpy==1.14.2
+    - opencv-contrib-python==3.4.0.12
+    - protobuf==3.5.2.post1
+    - pyyaml==3.12
+    - scipy==1.0.0
+    - six==1.11.0
+    - tensorboard==1.6.0
+    - tensorflow-gpu==1.6.0
+    - termcolor==1.1.0
+    - werkzeug==0.14.1
+prefix: /home/fellner/miniconda3/envs/face9
+
