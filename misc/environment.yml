@@ -38,5 +38,5 @@ dependencies:
     - tensorflow-gpu==1.6.0
     - termcolor==1.1.0
     - werkzeug==0.14.1
-prefix: /home/fellner/miniconda3/envs/face9
+prefix: ~/miniconda3/envs/face9
 
