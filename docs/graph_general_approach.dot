@@ -1,0 +1,26 @@
+digraph general_approach{
+  // Create nodes
+  node[fontsize=15, color = black, shape = box3d, width=2, height=1] ;
+  FaceExtr[color=blue, label="FaceRecognition"];
+  FaceMerge[color=blue, label="Merge Face on Image"];
+
+  node[fontsize=15, color = black, shape = invtrapezium, width=2, height=1] ;
+  Enc[color=green, label="Encoder", orientation=90];
+  Dec[color=green, label="Decoder", orientation=270]; 
+
+  node[fontsize=15, color = black, shape = rect, width=1, height=1] ;
+  ImgOrig[color=black, label="Original Image"]
+  ImgExtrFace[color=black, label="Image Extracted Face"]
+  ImgLatSpc[color=black, label="Latent Space Representation", height=0.5]
+  ImgAnoFace[color=black, label="Image Anonymized Face"]
+  ImgOrigAno[color=black, label="Original Image\n with Anonymized Face"]
+
+  // Sort nodes
+  rankdir=TB;
+  {rank=min; ImgOrig ImgOrigAno}
+  {rank=same; FaceExtr FaceMerge}
+  {rank=max; ImgExtrFace -> Enc -> ImgLatSpc -> Dec -> ImgAnoFace}
+  
+  ImgOrig -> FaceExtr -> ImgExtrFace
+  ImgAnoFace -> FaceMerge -> ImgOrigAno
+}
