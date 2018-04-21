@@ -20,6 +20,9 @@ model.add(Dense(64, activation='relu'))
 model.add(Dropout(0.5))
 model.add(Dense(10, activation='softmax'))
 
+tensorboard_cb = keras.callbacks.TensorBoard(histogram_freq=0, batch_size=128, write_graph=True, write_grads=True, write_images=True, embeddings_freq=0, embeddings_layer_names=None, embeddings_metadata=None)
+
+
 sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
 model.compile(loss='categorical_crossentropy',
               optimizer=sgd,
@@ -27,5 +30,5 @@ model.compile(loss='categorical_crossentropy',
 
 model.fit(x_train, y_train,
           epochs=2000,
-          batch_size=128)
+          batch_size=128, callbacks=[tensorboard_cb])
 score = model.evaluate(x_test, y_test, batch_size=128)
