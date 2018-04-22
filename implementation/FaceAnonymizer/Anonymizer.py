@@ -13,28 +13,48 @@ from .models import Autoencoder, Encoder, Decoder
 class Anonymizer:
 
     def __init__(self, data1, data2, batch_size=50, epochs=500, learning_rate=1e-4):
-        self.autoencoder = Autoencoder(Encoder(), Decoder(), Decoder())
+        """
+        Initialize a new Anonymizer.
+
+        Inputs:
+        - data1: dataset of pictures of first face
+        - data2: dataset of pictures of second face
+        - batch_size: batch size
+        - epochs: number of training epochs
+        - learning_rate: learning rate
+        """
+        self.encoder = Encoder()
+        self.decoder1 = Decoder()
+        self.decoder2 = Decoder()
+
+        self.autoencoder1 = Autoencoder(self.encoder, self.decoder1)
+        self.autoencoder2 = Autoencoder(self.encoder, self.decoder2)
+
         self.lossfn = torch.nn.MSELoss(size_average=False)
         self.dataLoader1 = DataLoader(data1, batch_size, shuffle=True, num_workers=4)
         self.dataLoader2 = DataLoader(data2, batch_size, shuffle=True, num_workers=4)
         self.epochs = epochs
 
     def train(self):
-        optimizer = Adam(self.autoencoder.parameters())
+        optimizer1 = Adam(self.autoencoder1.parameters())
+        optimizer2 = Adam(self.autoencoder2.parameters())
 
         for i_epoch in range(self.epochs):
             for face1, face2 in zip(self.dataLoader1, self.dataLoader2):
                 # face1 and face2 contain a batch of images of the first and second face, respectively
-
                 face1, face2 = Variable(face1), Variable(face2)
 
-                output = self.autoencoder(face1)
-                loss = self.lossfn(output, face1)
-                loss.backward()
-                optimizer.step()
+                output1 = self.autoencoder1(face1)
+                loss1 = self.lossfn(output1, face1)
+                loss1.backward()
+                optimizer1.step()
 
-                #TODO: Do this for face2 and distinguish them in Autoencoder
+                output2 = self.autoencoder2(face2)
+                loss2 = self.lossfn(output2, face2)
+                loss2.backward()
+                optimizer2.step()
 
+            print("[Epoch {0}] loss1: {2:.5f}, loss2: {3:.5f}".format(i_epoch, loss1, loss2), end='\n')
 
 
     def optimize(self):
