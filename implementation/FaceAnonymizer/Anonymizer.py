@@ -40,6 +40,7 @@ class Anonymizer:
         optimizer2 = Adam(self.autoencoder2.parameters())
 
         for i_epoch in range(self.epochs):
+            loss1, loss2 = 0, 0
             for face1, face2 in zip(self.dataLoader1, self.dataLoader2):
                 # face1 and face2 contain a batch of images of the first and second face, respectively
                 face1, face2 = Variable(face1), Variable(face2)
