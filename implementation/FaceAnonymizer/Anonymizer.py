@@ -59,12 +59,14 @@ class Anonymizer:
 
             print("[Epoch {0}] loss1: {2:.5f}, loss2: {3:.5f}".format(i_epoch, loss1, loss2), end='\n')
 
+    def anonymize(self, x):
+        return self.autoencoder2(x)
 
-    def optimize(self):
-        pass
+    def save_model(self, path):
+        data = {'ae1': self.autoencoder1.state_dict(), 'ae2': self.autoencoder2.state_dict()}
+        torch.save(data, path)
 
-    def save_model(self):
-        pass
-
-    def load_model(self):
-        pass
+    def load_model(self, path):
+        data = torch.load(path)
+        self.autoencoder1.load_state_dict(data['ae1'])
+        self.autoencoder2.load_state_dict(data['ae2'])
