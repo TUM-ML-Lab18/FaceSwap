@@ -44,6 +44,8 @@ class Anonymizer:
             for face1, face2 in zip(self.dataLoader1, self.dataLoader2):
                 # face1 and face2 contain a batch of images of the first and second face, respectively
                 face1, face2 = Variable(face1), Variable(face2)
+                optimizer1.zero_grad()
+                optimizer2.zero_grad()
 
                 output1 = self.autoencoder1(face1)
                 loss1 = self.lossfn(output1, face1)
