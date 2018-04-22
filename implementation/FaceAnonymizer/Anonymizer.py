@@ -7,7 +7,7 @@ import torch
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torch.optim import Adam
-from models import Autoencoder, Encoder, Decoder
+from .models import Autoencoder, Encoder, Decoder
 
 
 class Anonymizer:
