@@ -3,4 +3,4 @@
 # Author: Alexander Becker
 #
 
-from .Anonymizer import Anonymizer
+#from .Anonymizer import Anonymizer

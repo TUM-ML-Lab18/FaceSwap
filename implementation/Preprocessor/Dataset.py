@@ -2,6 +2,7 @@ import torch
 
 import cv2
 import os
+import numpy as np
 
 import face_recognition
 from torch.utils.data import Dataset
@@ -36,7 +37,7 @@ class DatasetPerson(Dataset):
         # load all images into ram
         for idx, img_name in enumerate(self.file_names):
             path2img = os.path.join(self.root_dir, img_name)
-            img = cv2.imread(path2img, cv2.COLOR_RGB2BGR)
+            img = cv2.imread(path2img, cv2.COLOR_RGB2BGR).astype(np.float32)
             if detect_faces:
                 face_location = face_recognition.face_locations(img, model='hog')
 

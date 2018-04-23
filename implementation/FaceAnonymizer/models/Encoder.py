@@ -1,29 +1,46 @@
+import numpy as np
 import torch
 import torch.nn as nn
+from torch.autograd import Variable
 
 
 class Encoder(nn.Module):
-    def __init__(self, input_dim, encoder_dim):
+    # todo is there a nicer solution for the batchsize?
+    def __init__(self, input_dim, latent_dim, batch_size):
         """
         Initialize a new encoder network.
 
         Inputs:
         - input_dim: Tuple (C, H, W) giving size of input data.
-        - encoder_dim: Int giving the size of the latent space
+        - latent_dim: Int giving the size of the latent space.
+        - batch_size: size of one batch.
         """
         super(Encoder, self).__init__()
         C, H, W = input_dim
-        self.conv_block_1 = ConvBlock(C, 128)
-        self.conv_block_2 = ConvBlock(128, 256)
-        self.conv_block_3 = ConvBlock(256, 512)
-        self.conv_block_4 = ConvBlock(512, 1024)
+        self.conv = nn.Sequential(
+            ConvBlock(C, 128),
+            ConvBlock(128, 256),
+            ConvBlock(256, 512),
+            ConvBlock(512, 1024)
+        )
         self.flat = Flatten()
-        self.fc_1 = nn.Linear(in_features=H*W*1024,
-                              out_features=encoder_dim)
-        self.fc_2 = nn.Linear(in_features=encoder_dim,
-                              out_features=4*4*1024)
-        self.view = View(4,4,1024)
+        # todo the convolutions are not size preserving (padding should depend on the input size?)
+        self.fc_1 = nn.Linear(self._get_conv_out(input_dim),
+                              out_features=latent_dim)
+        self.fc_2 = nn.Linear(in_features=latent_dim,
+                              out_features=4 * 4 * 1024)
+        self.view = View(batch_size, 1024, 4, 4)
         self.upscale = UpscaleBlock(1024, 512)
+
+    def _get_conv_out(self, shape):
+        """
+        Calculate output size of the conv-layers
+
+        Inputs:
+        - shape: Shape of sample input for the network.
+        """
+        o = self.conv(Variable(torch.zeros(1, *shape)))
+        return int(np.prod(o.size()))
 
     def forward(self, x):
         """
@@ -33,10 +50,7 @@ class Encoder(nn.Module):
         Inputs:
         - x: PyTorch input Variable
         """
-        x = self.conv_block_1(x)
-        x = self.conv_block_2(x)
-        x = self.conv_block_3(x)
-        x = self.conv_block_4(x)
+        x = self.conv(x)
         x = self.flat(x)
         x = self.fc_1(x)
         x = self.fc_2(x)
@@ -79,6 +93,7 @@ class Encoder(nn.Module):
 # TODO: own file for utils
 class ConvBlock(nn.Module):
     """Convolution followed by a LeakyReLU"""
+
     def __init__(self,
                  in_channels,
                  out_channels,
@@ -99,7 +114,7 @@ class ConvBlock(nn.Module):
                               out_channels=out_channels,
                               kernel_size=kernel_size,
                               stride=stride,
-                              padding=(kernel_size+stride-1)//2)
+                              padding=(kernel_size + stride - 1) // 2)
         self.leaky = nn.LeakyReLU(negative_slope=0.1,
                                   inplace=True)
 
@@ -119,6 +134,7 @@ class ConvBlock(nn.Module):
 
 class UpscaleBlock(nn.Module):
     """Scales image up"""
+
     def __init__(self,
                  in_channels,
                  out_channels,
@@ -138,10 +154,10 @@ class UpscaleBlock(nn.Module):
                               out_channels=out_channels,
                               kernel_size=kernel_size,
                               stride=stride,
-                              padding=(kernel_size+stride-1)//2)
+                              padding=(kernel_size + stride - 1) // 2)
         self.leaky = nn.LeakyReLU(negative_slope=0.1,
                                   inplace=True)
-        self.pixel_shuffle = nn.PixelShuffle(2) # TODO: Compare pixelshuffle from FaceSwap to the one from PyTorch
+        self.pixel_shuffle = nn.PixelShuffle(2)  # TODO: Compare pixelshuffle from FaceSwap to the one from PyTorch
 
     def forward(self, x):
         """
@@ -159,6 +175,7 @@ class UpscaleBlock(nn.Module):
 
 class Flatten(nn.Module):
     """Flatten images"""
+
     def forward(self, input):
         return input.view(input.size(0), -1)
 
@@ -168,6 +185,7 @@ class View(nn.Module):
     Reshape tensor
     https://discuss.pytorch.org/t/equivalent-of-np-reshape-in-pytorch/144/5
     """
+
     def __init__(self, *shape):
         super(View, self).__init__()
         self.shape = shape

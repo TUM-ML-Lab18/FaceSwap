@@ -1,14 +1,39 @@
 import torch
 import torch.nn as nn
 
+from FaceAnonymizer.models.Encoder import UpscaleBlock
+
 
 class Decoder(nn.Module):
-    def __init__(self):
-        super(Decoder, self).__init__()
-        pass
+    def __init__(self, latent_dim):
+        """
+        Initialize a new decoder network.
 
-    def forward(self):
-        pass
+        Inputs:
+        - latent_dim: dimension of the latent space.
+        """
+        super(Decoder, self).__init__()
+        self.upscale_1 = UpscaleBlock(latent_dim, 256)
+        self.upscale_2 = UpscaleBlock(256, 128)
+        self.upscale_3 = UpscaleBlock(128, 64)
+        self.conv = nn.Conv2d(64, 3, 5)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        """
+        Forward pass of the encoder network. Should not be called
+        manually but by calling a model instance directly.
+
+        Inputs:
+        - x: PyTorch input Variable
+        """
+        x = self.upscale_1(x)
+        x = self.upscale_2(x)
+        x = self.upscale_3(x)
+        x = self.conv(x)
+        x = self.sigmoid(x)
+
+        return x
 
     @property
     def is_cuda(self):
