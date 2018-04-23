@@ -4,6 +4,8 @@
 #
 
 import torch
+import torchvision.utils as vutils
+from tensorboardX import SummaryWriter
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torch.optim import Adam
@@ -36,6 +38,8 @@ class Anonymizer:
         self.epochs = epochs
 
     def train(self):
+        writer = SummaryWriter("./logs")
+
         optimizer1 = Adam(self.autoencoder1.parameters())
         optimizer2 = Adam(self.autoencoder2.parameters())
 
@@ -56,7 +60,9 @@ class Anonymizer:
                 loss2 = self.lossfn(output2, face2)
                 loss2.backward()
                 optimizer2.step()
-
+            writer.add_scalar("loss/A", loss1, i_epoch)
+            writer.add_scalar("loss/B", loss2, i_epoch)
+            log_images_histograms(self.autoencoder1, writer, i_epoch)
             print("[Epoch {0}] loss1: {2:.5f}, loss2: {3:.5f}".format(i_epoch, loss1, loss2), end='\n')
 
     def anonymize(self, x):
@@ -70,3 +76,11 @@ class Anonymizer:
         data = torch.load(path)
         self.autoencoder1.load_state_dict(data['ae1'])
         self.autoencoder2.load_state_dict(data['ae2'])
+
+
+def log_images_histograms(net, writer, frame_idx):
+    q = vutils.make_grid(torch.cat(torch.split(next(net.parameters()).data.cpu(), 1, 1), 0), normalize=True,
+                         scale_each=True)
+    writer.add_image('conv_layers/encoder', q, frame_idx)
+    for name, param in net.named_parameters():
+        writer.add_histogram(name, param.clone().cpu().data.numpy(), frame_idx)
