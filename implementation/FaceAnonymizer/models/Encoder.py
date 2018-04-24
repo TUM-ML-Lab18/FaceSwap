@@ -30,7 +30,7 @@ class Encoder(nn.Module):
         self.fc_2 = nn.Linear(in_features=latent_dim,
                               out_features=4 * 4 * 1024)
         self.view = View(batch_size, 1024, 4, 4)
-        self.upscale = UpscaleBlock(1024, 512)
+        self.upscale = UpscaleBlock(1024, 2048)
 
     def _get_conv_out(self, shape):
         """
@@ -114,7 +114,7 @@ class ConvBlock(nn.Module):
                               out_channels=out_channels,
                               kernel_size=kernel_size,
                               stride=stride,
-                              padding=(kernel_size + stride - 1) // 2)
+                              padding=(kernel_size - 1) // 2)
         self.leaky = nn.LeakyReLU(negative_slope=0.1,
                                   inplace=True)
 
@@ -154,7 +154,7 @@ class UpscaleBlock(nn.Module):
                               out_channels=out_channels,
                               kernel_size=kernel_size,
                               stride=stride,
-                              padding=(kernel_size + stride - 1) // 2)
+                              padding=(kernel_size - 1) // 2)
         self.leaky = nn.LeakyReLU(negative_slope=0.1,
                                   inplace=True)
         self.pixel_shuffle = nn.PixelShuffle(2)  # TODO: Compare pixelshuffle from FaceSwap to the one from PyTorch
