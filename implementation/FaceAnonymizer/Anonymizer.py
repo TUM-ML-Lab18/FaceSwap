@@ -29,14 +29,14 @@ class Anonymizer:
         - epochs: number of training epochs
         - learning_rate: learning rate
         """
-        self.encoder = Encoder((3, 64, 64), 1024, batch_size).cuda()
+        self.encoder = Encoder((3, 64, 64), 1024).cuda()
         self.decoder1 = Decoder(512).cuda()
         self.decoder2 = Decoder(512).cuda()
 
         self.autoencoder1 = AutoEncoder(self.encoder, self.decoder1).cuda()
         self.autoencoder2 = AutoEncoder(self.encoder, self.decoder2).cuda()
 
-        self.lossfn = torch.nn.MSELoss(size_average=False).cuda()
+        self.lossfn = torch.nn.L1Loss(size_average=True).cuda()
         self.dataLoader1 = DataLoader(data1, batch_size, shuffle=True, num_workers=4, drop_last=True)
         self.dataLoader2 = DataLoader(data2, batch_size, shuffle=True, num_workers=4, drop_last=True)
         self.epochs = epochs
@@ -72,6 +72,7 @@ class Anonymizer:
     def anonymize(self, x):
         return self.autoencoder2(x)
 
+    # TODO: Use save & load functions from models -> memory independent (RAM vs GPU)
     def save_model(self, path):
         data = {'ae1': self.autoencoder1.state_dict(), 'ae2': self.autoencoder2.state_dict()}
         torch.save(data, path)
