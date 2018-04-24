@@ -1,17 +1,13 @@
-from torch.autograd import Variable
 from torchvision.transforms import transforms
 
-from FaceAnonymizer.models.Encoder import Encoder
-from FaceAnonymizer.models.Decoder import Decoder
-from Preprocessor import Dataset
-from Preprocessor.Dataset import DatasetPerson, Resize, ToTensor
+from FaceAnonymizer.Anonymizer import Anonymizer
+from Preprocessor.Dataset import DatasetPerson, Resize, ToTensor, PROCESSED_IMAGES_FOLDER
 
 if __name__ == '__main__':
-    d = DatasetPerson(Dataset.PROCESSED_IMAGES_FOLDER, transform=transforms.Compose([Resize((64, 64)), ToTensor()]))
-    img = Variable(d[0].unsqueeze(0))
-    print(img.shape)
-    e = Encoder((3, 64, 64), 1024, 1)
-    d = Decoder(512)
-    x = e(img)
-    x = d(x)
-    print(x.size())
+    trump = DatasetPerson(PROCESSED_IMAGES_FOLDER + "/trump",
+                          transform=transforms.Compose([Resize((64, 64)), ToTensor()]), detect_faces=False)
+    cage = DatasetPerson(PROCESSED_IMAGES_FOLDER + "/cage",
+                         transform=transforms.Compose([Resize((64, 64)), ToTensor()]), detect_faces=False)
+
+    a = Anonymizer(trump, cage)
+    a.train()

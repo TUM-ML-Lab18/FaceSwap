@@ -1,7 +1,7 @@
 from torch.nn import Module
 
 
-class Autoencoder(Module):
+class AutoEncoder(Module):
 
     def __init__(self, encoder, decoder):
         super().__init__()

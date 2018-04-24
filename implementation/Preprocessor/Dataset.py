@@ -16,6 +16,8 @@ CAGE = TRUMP_CAGE_BASE + "/cage"
 
 PROCESSED_IMAGES_FOLDER = "/nfs/students/summer-term-2018/project_2/projects/faceswap/processed_images"
 
+EXPERIMENTS = "/nfs/students/summer-term-2018/project_2/projects/faceswap/experiments"
+
 
 class DatasetPerson(Dataset):
     """Dataset containing images from only one person without face detection"""
@@ -36,10 +38,12 @@ class DatasetPerson(Dataset):
 
         # load all images into ram
         for idx, img_name in enumerate(self.file_names):
+            if img_name.__contains__(".json"):
+                continue
             path2img = os.path.join(self.root_dir, img_name)
             img = cv2.imread(path2img, cv2.COLOR_RGB2BGR).astype(np.float32)
             if detect_faces:
-                face_location = face_recognition.face_locations(img, model='hog')
+                face_location = face_recognition.face_locations(img.astype(np.uint8), model='hog')
 
                 # ignore if 2 faces detected because in most cases they originate not form the same person
                 if face_location and len(face_location) == 1:
@@ -107,9 +111,13 @@ def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=
 
 
 if __name__ == '__main__':
-    dataset = DatasetPerson(TRUMP, transform=transforms.Compose([Resize((64, 64)), ToTensor()]), detect_faces=True)
-    dataset.save_processed_images(PROCESSED_IMAGES_FOLDER)
+    # dataset = DatasetPerson(TRUMP, transform=transforms.Compose([Resize((64, 64)), ToTensor()]), detect_faces=True)
+    # dataset.save_processed_images(PROCESSED_IMAGES_FOLDER)
 
-    # dataset = DatasetPerson(CAGE, transform=transforms.Compose([Resize((64, 64)), ToTensor()]), detect_faces=True)
-    # zero = dataset.__getitem__(0)
-    # print(zero)
+    dataset = DatasetPerson(CAGE, transform=transforms.Compose([Resize((64, 64)), ToTensor()]), detect_faces=True)
+    dataset.save_processed_images(PROCESSED_IMAGES_FOLDER+"/cage")
+    #zero = dataset.__getitem__(0)
+    #print(zero)
+    #dataset = DatasetPerson(EXPERIMENTS + "/input", transform=transforms.Compose([Resize((64, 64)), ToTensor()]),
+    #                        detect_faces=True)
+    #dataset.save_processed_images(EXPERIMENTS + "/hog")
