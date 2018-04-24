@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from FaceAnonymizer.models.Encoder import UpscaleBlock
+from FaceAnonymizer.models.ModelUtils import UpscaleBlock
 
 
 class Decoder(nn.Module):
@@ -13,9 +13,9 @@ class Decoder(nn.Module):
         - latent_dim: dimension of the latent space.
         """
         super(Decoder, self).__init__()
-        self.upscale_1 = UpscaleBlock(latent_dim, 1024)
-        self.upscale_2 = UpscaleBlock(256, 512)
-        self.upscale_3 = UpscaleBlock(128, 256)
+        self.upscale_1 = UpscaleBlock(latent_dim, 256)
+        self.upscale_2 = UpscaleBlock(256, 128)
+        self.upscale_3 = UpscaleBlock(128, 64)
         self.conv = nn.Conv2d(64, 3, kernel_size=5, padding=2)
         self.sigmoid = nn.Sigmoid()
 
