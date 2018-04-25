@@ -54,12 +54,13 @@ class Anonymizer:
                 face1, face2 = Variable(face1).cuda(), Variable(face2).cuda()
                 face1_warped, face2_warped = Variable(face1_warped).cuda(), Variable(face2_warped).cuda()
                 optimizer1.zero_grad()
-                optimizer2.zero_grad()
 
                 output1 = self.autoencoder1(face1_warped)
                 loss1 = self.lossfn(output1, face1)
                 loss1.backward()
                 optimizer1.step()
+
+                optimizer2.zero_grad()
 
                 output2 = self.autoencoder2(face2_warped)
                 loss2 = self.lossfn(output2, face2)
