@@ -49,18 +49,19 @@ class Anonymizer:
 
         for i_epoch in range(self.epochs):
             loss1, loss2 = 0, 0
-            for face1, face2 in zip(self.dataLoader1, self.dataLoader2):
+            for (face1_warped, face1), (face2_warped, face2) in zip(self.dataLoader1, self.dataLoader2):
                 # face1 and face2 contain a batch of images of the first and second face, respectively
                 face1, face2 = Variable(face1).cuda(), Variable(face2).cuda()
+                face1_warped, face2_warped = Variable(face1_warped).cuda(), Variable(face2_warped).cuda()
                 optimizer1.zero_grad()
                 optimizer2.zero_grad()
 
-                output1 = self.autoencoder1(face1)
+                output1 = self.autoencoder1(face1_warped)
                 loss1 = self.lossfn(output1, face1)
                 loss1.backward()
                 optimizer1.step()
 
-                output2 = self.autoencoder2(face2)
+                output2 = self.autoencoder2(face2_warped)
                 loss2 = self.lossfn(output2, face2)
                 loss2.backward()
                 optimizer2.step()

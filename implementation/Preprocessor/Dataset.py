@@ -4,6 +4,7 @@ import cv2
 import os
 import numpy as np
 import numpy.random as random
+from Preprocessor.lib import umeyama
 
 import face_recognition
 from torch.utils.data import Dataset
@@ -73,9 +74,8 @@ class DatasetPerson(Dataset):
         # perform random warp operation on face
         image = cv2.resize(self.images[idx], (256, 256))
         image = self.random_transform(image)
-        #warped_image, target_image = self.warp(image)
-        #return warped_image, target_image
-        return image
+        warped_image, target_image = self.warp(image)
+        return warped_image, target_image
 
     def random_transform(self, image):
         rotation = random.uniform(-self.rotation_range, self.rotation_range)
@@ -87,8 +87,30 @@ class DatasetPerson(Dataset):
         trans[:, 2] += (x_shift, y_shift)
         return cv2.warpAffine(image, trans, (256, 256), borderMode=cv2.BORDER_REPLICATE)
 
-    def warp(self):
-        pass
+    def warp(self, image):
+        #This function was taken from deepfakes/faceswap
+        coverage = 160
+        scale = 5
+        zoom = 1
+        range_ = np.linspace(128 - coverage // 2, 128 + coverage // 2, 5)
+        mapx = np.broadcast_to(range_, (5, 5))
+        mapy = mapx.T
+
+        mapx = mapx + np.random.normal(size=(5, 5), scale=scale)
+        mapy = mapy + np.random.normal(size=(5, 5), scale=scale)
+
+        interp_mapx = cv2.resize(mapx, (80 * zoom, 80 * zoom))[8 * zoom:72 * zoom, 8 * zoom:72 * zoom].astype('float32')
+        interp_mapy = cv2.resize(mapy, (80 * zoom, 80 * zoom))[8 * zoom:72 * zoom, 8 * zoom:72 * zoom].astype('float32')
+
+        warped_image = cv2.remap(image, interp_mapx, interp_mapy, cv2.INTER_LINEAR)
+
+        src_points = np.stack([mapx.ravel(), mapy.ravel()], axis=-1)
+        dst_points = np.mgrid[0:65 * zoom:16 * zoom, 0:65 * zoom:16 * zoom].T.reshape(-1, 2)
+        mat = umeyama(src_points, dst_points, True)[0:2]
+
+        target_image = cv2.warpAffine(image, mat, (64 * zoom, 64 * zoom))
+
+        return warped_image, target_image
 
     def save_processed_images(self, path):
         for idx, img in enumerate(self.images):
