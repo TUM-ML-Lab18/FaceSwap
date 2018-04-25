@@ -3,6 +3,7 @@ import torch
 import cv2
 import os
 import numpy as np
+import numpy.random as random
 
 import face_recognition
 from torch.utils.data import Dataset
@@ -22,13 +23,21 @@ EXPERIMENTS = "/nfs/students/summer-term-2018/project_2/projects/faceswap/experi
 class DatasetPerson(Dataset):
     """Dataset containing images from only one person without face detection"""
 
-    def __init__(self, root_dir, transform=None, detect_faces=False):
+    def __init__(self, root_dir, transform=None, detect_faces=False, warp_faces=True, rotation_range = 10, zoom_range = 0.05, shift_range = 0.05):
         """
         :param root_dir: Directory with the images.
         :param transform: Transformations applied to the images.
         :param detect_faces: Detect images with the face_locations module.
+        :param warp_faces: Warp faces before supplying them to a DataLoader
+        :param rotation_range: Range within the image gets rotated randomly
+        :param zoom_range: Range within the image gets zoomed randomly
+        :param shift_range: Range within the image gets shifted randomly
         """
         self.transform = transform
+        self.warp_faces = warp_faces
+        self.rotation_range = rotation_range
+        self.zoom_range = zoom_range
+        self.shift_range = shift_range
         self.root_dir = root_dir
         self.file_names = os.listdir(self.root_dir)
         self.images = []
@@ -61,7 +70,25 @@ class DatasetPerson(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        return self.images[idx]
+        # perform random warp operation on face
+        image = cv2.resize(self.images[idx], (256, 256))
+        image = self.random_transform(image)
+        #warped_image, target_image = self.warp(image)
+        #return warped_image, target_image
+        return image
+
+    def random_transform(self, image):
+        rotation = random.uniform(-self.rotation_range, self.rotation_range)
+        scale = random.uniform(1 - self.zoom_range, 1 + self.zoom_range)
+        x_shift = random.uniform(-self.shift_range, self.shift_range) * 256
+        y_shift = random.uniform(-self.shift_range, self.shift_range) * 256
+
+        trans = cv2.getRotationMatrix2D((256 // 2, 256 // 2), rotation, scale)
+        trans[:, 2] += (x_shift, y_shift)
+        return cv2.warpAffine(image, trans, (256, 256), borderMode=cv2.BORDER_REPLICATE)
+
+    def warp(self):
+        pass
 
     def save_processed_images(self, path):
         for idx, img in enumerate(self.images):

@@ -64,10 +64,11 @@ class Anonymizer:
                 loss2 = self.lossfn(output2, face2)
                 loss2.backward()
                 optimizer2.step()
+
             writer.add_scalar("loss/A", loss1, i_epoch)
             writer.add_scalar("loss/B", loss2, i_epoch)
             log_images_histograms(self.autoencoder1, writer, i_epoch)
-            print(f"[Epoch {i_epoch}] loss1: {loss1}, loss2: {loss2}", end='\n')
+            print("[Epoch {i_epoch}] loss1: {loss1}, loss2: {loss2}", end='\n')
 
     def anonymize(self, x):
         return self.autoencoder2(x)
