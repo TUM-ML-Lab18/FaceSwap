@@ -24,7 +24,8 @@ EXPERIMENTS = "/nfs/students/summer-term-2018/project_2/projects/faceswap/experi
 class DatasetPerson(Dataset):
     """Dataset containing images from only one person without face detection"""
 
-    def __init__(self, root_dir, transform=None, detect_faces=False, warp_faces=True, rotation_range = 10, zoom_range = 0.05, shift_range = 0.05):
+    def __init__(self, root_dir, transform=None, detect_faces=False, warp_faces=True, rotation_range=10,
+                 zoom_range=0.05, shift_range=0.05):
         """
         :param root_dir: Directory with the images.
         :param transform: Transformations applied to the images.
@@ -55,14 +56,12 @@ class DatasetPerson(Dataset):
             if detect_faces:
                 face_location = face_recognition.face_locations(img.astype(np.uint8), model='hog')
 
-                # ignore if 2 faces detected because in most cases they originate not form the same person
+                # ignore if 2 faces detected because in most cases they don't originate form the same person
                 if face_location and len(face_location) == 1:
                     top, right, bottom, left = face_location[0]
                     img = img[top:bottom, left:right]
                 else:
                     continue
-            if self.transform:
-                img = self.transform(img)
             self.images.append(img)
 
             printProgressBar(idx + 1, l, prefix='Progress:', suffix='Complete', length=50)
@@ -75,6 +74,9 @@ class DatasetPerson(Dataset):
         image = cv2.resize(self.images[idx], (256, 256))
         image = self.random_transform(image)
         warped_image, target_image = self.warp(image)
+        if self.transform:
+            warped_image = self.transform(warped_image)
+            target_image = self.transform(target_image)
         return warped_image, target_image
 
     def random_transform(self, image):
@@ -88,7 +90,7 @@ class DatasetPerson(Dataset):
         return cv2.warpAffine(image, trans, (256, 256), borderMode=cv2.BORDER_REPLICATE)
 
     def warp(self, image):
-        #This function was taken from deepfakes/faceswap
+        # This function was taken from deepfakes/faceswap
         coverage = 160
         scale = 5
         zoom = 1
@@ -110,7 +112,7 @@ class DatasetPerson(Dataset):
 
         target_image = cv2.warpAffine(image, mat, (64 * zoom, 64 * zoom))
 
-        return warped_image, target_image
+        return warped_image / 255.0, target_image / 255.0
 
     def save_processed_images(self, path):
         for idx, img in enumerate(self.images):
@@ -127,7 +129,7 @@ class Resize:
     def __call__(self, img):
         return cv2.resize(img, self.resolution)
 
-
+# todo make sure the input is dtype=np.float32
 class ToTensor:
     """Convert ndarrays in sample to Tensors."""
 
@@ -164,9 +166,9 @@ if __name__ == '__main__':
     # dataset.save_processed_images(PROCESSED_IMAGES_FOLDER)
 
     dataset = DatasetPerson(CAGE, transform=transforms.Compose([Resize((64, 64)), ToTensor()]), detect_faces=True)
-    dataset.save_processed_images(PROCESSED_IMAGES_FOLDER+"/cage")
-    #zero = dataset.__getitem__(0)
-    #print(zero)
-    #dataset = DatasetPerson(EXPERIMENTS + "/input", transform=transforms.Compose([Resize((64, 64)), ToTensor()]),
+    dataset.save_processed_images(PROCESSED_IMAGES_FOLDER + "/cage")
+    # zero = dataset.__getitem__(0)
+    # print(zero)
+    # dataset = DatasetPerson(EXPERIMENTS + "/input", transform=transforms.Compose([Resize((64, 64)), ToTensor()]),
     #                        detect_faces=True)
-    #dataset.save_processed_images(EXPERIMENTS + "/hog")
+    # dataset.save_processed_images(EXPERIMENTS + "/hog")

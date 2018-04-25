@@ -5,15 +5,16 @@
 import datetime
 
 import torch
-import torchvision.utils as vutils
 from tensorboardX import SummaryWriter
 from torch.autograd import Variable
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torch.optim import Adam
 
 from FaceAnonymizer.models.Decoder import Decoder
 from FaceAnonymizer.models.Encoder import Encoder
 from FaceAnonymizer.models.Autoencoder import AutoEncoder
+from Logging.LoggingUtils import log_first_layer, Logger
 
 
 class Anonymizer:
@@ -29,6 +30,8 @@ class Anonymizer:
         - epochs: number of training epochs
         - learning_rate: learning rate
         """
+        self.learning_rate = learning_rate
+
         self.encoder = Encoder((3, 64, 64), 1024).cuda()
         self.decoder1 = Decoder(512).cuda()
         self.decoder2 = Decoder(512).cuda()
@@ -42,35 +45,37 @@ class Anonymizer:
         self.epochs = epochs
 
     def train(self):
-        writer = SummaryWriter("./logs/" + str(datetime.datetime.now()))
+        logger = Logger()
 
-        optimizer1 = Adam(self.autoencoder1.parameters())
-        optimizer2 = Adam(self.autoencoder2.parameters())
+        optimizer1 = Adam(self.autoencoder1.parameters(), lr=self.learning_rate)
+        scheduler1 = ReduceLROnPlateau(optimizer1, 'min', verbose=True)
+        optimizer2 = Adam(self.autoencoder2.parameters(), lr=self.learning_rate)
+        scheduler2 = ReduceLROnPlateau(optimizer2, 'min', verbose=True)
 
         for i_epoch in range(self.epochs):
             loss1, loss2 = 0, 0
+            face1 = None
+            face1_warped = None
+            output1 = None
             for (face1_warped, face1), (face2_warped, face2) in zip(self.dataLoader1, self.dataLoader2):
                 # face1 and face2 contain a batch of images of the first and second face, respectively
                 face1, face2 = Variable(face1).cuda(), Variable(face2).cuda()
                 face1_warped, face2_warped = Variable(face1_warped).cuda(), Variable(face2_warped).cuda()
-                optimizer1.zero_grad()
 
+                optimizer1.zero_grad()
                 output1 = self.autoencoder1(face1_warped)
                 loss1 = self.lossfn(output1, face1)
                 loss1.backward()
                 optimizer1.step()
+                scheduler1.step(loss1.cpu().data.numpy())
 
                 optimizer2.zero_grad()
-
                 output2 = self.autoencoder2(face2_warped)
                 loss2 = self.lossfn(output2, face2)
                 loss2.backward()
                 optimizer2.step()
-
-            writer.add_scalar("loss/A", loss1, i_epoch)
-            writer.add_scalar("loss/B", loss2, i_epoch)
-            log_images_histograms(self.autoencoder1, writer, i_epoch)
-            print("[Epoch {i_epoch}] loss1: {loss1}, loss2: {loss2}", end='\n')
+                scheduler2.step(loss2.cpu().data.numpy())
+            logger.log(i_epoch, loss1, loss2, self.autoencoder1, face1_warped, output1, face1)
 
     def anonymize(self, x):
         return self.autoencoder2(x)
@@ -84,11 +89,3 @@ class Anonymizer:
         data = torch.load(path)
         self.autoencoder1.load_state_dict(data['ae1'])
         self.autoencoder2.load_state_dict(data['ae2'])
-
-
-def log_images_histograms(net, writer, frame_idx):
-    q = vutils.make_grid(torch.cat(torch.split(next(net.parameters()).data.cpu(), 1, 1), 0), normalize=True,
-                         scale_each=True)
-    writer.add_image('conv_layers/encoder', q, frame_idx)
-    for name, param in net.named_parameters():
-        writer.add_histogram(name, param.clone().cpu().data.numpy(), frame_idx)
