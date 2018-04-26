@@ -25,7 +25,7 @@ class DatasetPerson(Dataset):
     """Dataset containing images from only one person without face detection"""
 
     def __init__(self, root_dir, transform=None, detect_faces=False, warp_faces=True, rotation_range=10,
-                 zoom_range=0.05, shift_range=0.05):
+                 zoom_range=0.05, shift_range=0.05, size_multiplicator=10):
         """
         :param root_dir: Directory with the images.
         :param transform: Transformations applied to the images.
@@ -34,12 +34,14 @@ class DatasetPerson(Dataset):
         :param rotation_range: Range within the image gets rotated randomly
         :param zoom_range: Range within the image gets zoomed randomly
         :param shift_range: Range within the image gets shifted randomly
+        :param size_multiplicator: Enlarges the dataset virtually times this factor
         """
         self.transform = transform
         self.warp_faces = warp_faces
         self.rotation_range = rotation_range
         self.zoom_range = zoom_range
         self.shift_range = shift_range
+        self.size_multiplicator = size_multiplicator
         self.root_dir = root_dir
         self.file_names = os.listdir(self.root_dir)
         self.images = []
@@ -67,11 +69,11 @@ class DatasetPerson(Dataset):
             printProgressBar(idx + 1, l, prefix='Progress:', suffix='Complete', length=50)
 
     def __len__(self):
-        return len(self.images)
+        return len(self.images) * self.size_multiplicator
 
     def __getitem__(self, idx):
         # perform random warp operation on face
-        image = cv2.resize(self.images[idx], (256, 256))
+        image = cv2.resize(self.images[idx % self.size_multiplicator], (256, 256))
         image = self.random_transform(image)
         warped_image, target_image = self.warp(image)
         if self.transform:
@@ -128,6 +130,7 @@ class Resize:
 
     def __call__(self, img):
         return cv2.resize(img, self.resolution)
+
 
 # todo make sure the input is dtype=np.float32
 class ToTensor:
