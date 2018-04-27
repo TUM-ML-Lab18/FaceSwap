@@ -78,7 +78,11 @@ class DatasetPerson(Dataset):
         # perform random warp operation on face
         image = cv2.resize(self.images[idx % self.size_multiplicator], (256, 256))
         image = self.random_transform(image)
-        warped_image, target_image = self.warp(image)
+        warped_image, target_image = None, None
+        if self.warp_faces:
+            warped_image, target_image = self.warp(image)
+        else:
+            warped_image, target_image = image, image
         warped_image = warped_image.transpose((2, 0, 1))
         target_image = target_image.transpose((2, 0, 1))
         return warped_image, target_image

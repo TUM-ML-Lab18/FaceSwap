@@ -51,10 +51,8 @@ class Anonymizer:
             data2.size_multiplicator *= torch.cuda.device_count()
 
         self.lossfn = torch.nn.L1Loss(size_average=True).cuda()
-        self.dataLoader1 = DataLoader(data1, self.batch_size, shuffle=True, num_workers=6, drop_last=True,
-                                      pin_memory=True)
-        self.dataLoader2 = DataLoader(data2, self.batch_size, shuffle=True, num_workers=6, drop_last=True,
-                                      pin_memory=True)
+        self.dataLoader1 = DataLoader(data1, self.batch_size, shuffle=True, num_workers=6, drop_last=True, pin_memory=True)
+        self.dataLoader2 = DataLoader(data2, self.batch_size, shuffle=True, num_workers=6, drop_last=True, pin_memory=True)
         self.epochs = epochs
 
     def train(self):
