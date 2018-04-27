@@ -7,7 +7,8 @@ import torch
 from torch.autograd import Variable
 from torch.nn import DataParallel
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.data import DataLoader
+from fastai.dataloader import DataLoader # todo decide which dataloader we want to use
+# from torch.utils.data import DataLoader
 from torch.optim import Adam
 
 from FaceAnonymizer.models.Decoder import Decoder
@@ -18,7 +19,7 @@ from Logging.LoggingUtils import Logger
 
 class Anonymizer:
 
-    def __init__(self, data1, data2, batch_size=1024, epochs=50000, learning_rate=1e-4):
+    def __init__(self, data1, data2, batch_size=64, epochs=5000, learning_rate=1e-4):
         """
         Initialize a new Anonymizer.
 
@@ -29,6 +30,7 @@ class Anonymizer:
         - epochs: number of training epochs
         - learning_rate: learning rate
         """
+        self.batch_size = batch_size
         self.learning_rate = learning_rate
 
         self.encoder = Encoder((3, 64, 64), 1024).cuda()
@@ -42,20 +44,24 @@ class Anonymizer:
         if torch.cuda.device_count() > 1:
             self.autoencoder1 = DataParallel(self.autoencoder1)
             self.autoencoder2 = DataParallel(self.autoencoder2)
-            batch_size *= torch.cuda.device_count()
+            self.batch_size *= torch.cuda.device_count()
+            data1.size_multiplicator *= torch.cuda.device_count()
+            data2.size_multiplicator *= torch.cuda.device_count()
 
         self.lossfn = torch.nn.L1Loss(size_average=True).cuda()
-        self.dataLoader1 = DataLoader(data1, batch_size, shuffle=True, num_workers=4, drop_last=True)
-        self.dataLoader2 = DataLoader(data2, batch_size, shuffle=True, num_workers=4, drop_last=True)
+        self.dataLoader1 = DataLoader(data1, self.batch_size, shuffle=True, num_workers=6, drop_last=True,
+                                      pin_memory=True)
+        self.dataLoader2 = DataLoader(data2, self.batch_size, shuffle=True, num_workers=6, drop_last=True,
+                                      pin_memory=True)
         self.epochs = epochs
 
     def train(self):
-        logger = Logger()
+        logger = Logger(self.batch_size)
 
         optimizer1 = Adam(self.autoencoder1.parameters(), lr=self.learning_rate)
-        scheduler1 = ReduceLROnPlateau(optimizer1, 'min', verbose=True, threshold=1e-2, patience=10)
+        scheduler1 = ReduceLROnPlateau(optimizer1, 'min', verbose=True, patience=100)
         optimizer2 = Adam(self.autoencoder2.parameters(), lr=self.learning_rate)
-        scheduler2 = ReduceLROnPlateau(optimizer2, 'min', verbose=True, threshold=1e-2, patience=10)
+        scheduler2 = ReduceLROnPlateau(optimizer2, 'min', verbose=True, patience=100)
 
         for i_epoch in range(self.epochs):
             loss1_mean, loss2_mean = 0, 0
@@ -66,6 +72,7 @@ class Anonymizer:
             face2_warped = None
             output2 = None
             iterations = 0
+
             for (face1_warped, face1), (face2_warped, face2) in zip(self.dataLoader1, self.dataLoader2):
                 # face1 and face2 contain a batch of images of the first and second face, respectively
                 face1, face2 = Variable(face1).cuda(), Variable(face2).cuda()
@@ -89,9 +96,10 @@ class Anonymizer:
 
             loss1_mean /= iterations
             loss2_mean /= iterations
-
-            # scheduler1.step(loss1_mean.cpu().data.numpy(), i_epoch)
-            # scheduler2.step(loss2_mean.cpu().data.numpy(), i_epoch)
+            loss1_mean = loss1_mean.cpu().data.numpy()
+            loss2_mean = loss2_mean.cpu().data.numpy()
+            scheduler1.step(loss1_mean, i_epoch)
+            scheduler2.step(loss2_mean, i_epoch)
             logger.log(i_epoch, loss1_mean, loss2_mean, self.autoencoder1,
                        images=[face1_warped, output1, face1, face2_warped, output2, face2])
 

@@ -24,12 +24,15 @@ def tensor2img(output):
 
 
 class Logger:
-    def __init__(self):
+    def __init__(self, steps_per_epoch):
         self.writer = SummaryWriter("./logs/" + str(datetime.datetime.now()))
+        self.steps_per_epoch = steps_per_epoch
+        self.t = datetime.datetime.now()
 
     def log(self, i, loss1, loss2, autoencoder, images):
-        loss1 = loss1.cpu().data.numpy()
-        loss2 = loss2.cpu().data.numpy()
+        new_time = datetime.datetime.now()
+        self.writer.add_scalar("fps", self.steps_per_epoch * 1.0 / (new_time - self.t).total_seconds(), i)
+        self.t = new_time
 
         self.writer.add_scalars("loss", {'lossA': loss1, 'lossB': loss2}, i)
 
