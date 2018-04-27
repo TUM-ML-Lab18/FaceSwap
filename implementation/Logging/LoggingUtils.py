@@ -16,14 +16,14 @@ def log_first_layer(net, writer, frame_idx):
     # for name, param in net.named_parameters():
     #    writer.add_histogram(name, param.clone().cpu().data.numpy(), frame_idx)
 
-
+# TODO: Rename function -> no tensor to image...
 def tensor2img(output):
     output = output.cpu()[0] * 255.0
-    index = torch.LongTensor([2, 0, 1])
-    output[index] = output
+    #index = torch.LongTensor([2, 0, 1])
+    #output[index] = output
     return output
     # TODO: Define exactly what is input -> Variable / Tensor /Dimensions
-    #output = output[0].detach().cpu().numpy() # Shift from to CPU into a Numpy array
+    #output = output[0].data.cpu().numpy() # Shift from to CPU into a Numpy array
     #output = (output*255.0).astype(np.uint8) # Transform back into valid image range
     #output = output.transpose(1, 2, 0) # Resort dimension channels: CHW -> HWC
     #output = output[:,:,::-1] # Resort color channels: BGR -> RGB
@@ -48,8 +48,10 @@ class Logger:
         if images and i % 100 == 0:
             for idx, img in enumerate(images):
                 images[idx] = tensor2img(img)
-            stacked = torch.cat(images)
-            grid = vutils.make_grid(stacked.data, normalize=True, scale_each=True, nrow=3)
+            # TODO: Why stack
+            # stacked = torch.cat(images)
+            # grid = vutils.make_grid(stacked.data, normalize=True, scale_each=True, nrow=3)
+            grid = vutils.make_grid(images, normalize=True, scale_each=True, nrow=3)
             self.writer.add_image("sample_input", grid, i)
 
         print(f"[Epoch {i}] loss1: {loss1}, loss2: {loss2}", end='\n')

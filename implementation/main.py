@@ -2,6 +2,8 @@ from FaceAnonymizer.Anonymizer import Anonymizer
 from Preprocessor.Dataset import DatasetPerson, ToTensor
 from config import PROCESSED_IMAGES_FOLDER, TRUMP, CAGE, TRUMP_CAGE_BASE
 
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 def process_trump_cage_images():
     dataset = DatasetPerson(TRUMP_CAGE_BASE + CAGE, detect_faces=True)

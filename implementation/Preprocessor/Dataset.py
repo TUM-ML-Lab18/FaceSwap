@@ -52,7 +52,7 @@ class DatasetPerson(Dataset):
             if not img_name.__contains__(".jpg"):
                 continue
             path2img = os.path.join(self.root_dir, img_name)
-            img = cv2.imread(path2img, cv2.COLOR_RGB2BGR).astype(np.float32)
+            img = cv2.cvtColor(cv2.imread(path2img), cv2.COLOR_RGB2BGR)
             if detect_faces:
                 # Cut face region via minimum bounding box of facial landmarks
                 face_landmarks = face_recognition.face_landmarks(img.astype(np.uint8))
@@ -76,7 +76,7 @@ class DatasetPerson(Dataset):
 
                 else:
                     continue
-            self.images.append(img)
+            self.images.append(img.astype(np.float32))
 
             printProgressBar(idx + 1, l, prefix='Progress:', suffix='Complete', length=50)
 
