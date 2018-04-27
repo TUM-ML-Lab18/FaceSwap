@@ -9,6 +9,8 @@ from torch.nn import DataParallel
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torch.optim import Adam
+from datetime import datetime
+from pathlib import Path
 
 from FaceAnonymizer.models.Decoder import Decoder
 from FaceAnonymizer.models.Encoder import Encoder
@@ -18,7 +20,7 @@ from Logging.LoggingUtils import Logger
 
 class Anonymizer:
 
-    def __init__(self, data1, data2, batch_size=1024, epochs=50000, learning_rate=1e-4):
+    def __init__(self, data1, data2, batch_size=64, epochs=50000, learning_rate=1e-4):
         """
         Initialize a new Anonymizer.
 
@@ -100,10 +102,18 @@ class Anonymizer:
 
     # TODO: Use save & load functions from models -> memory independent (RAM vs GPU)
     def save_model(self, path):
-        data = {'ae1': self.autoencoder1.state_dict(), 'ae2': self.autoencoder2.state_dict()}
-        torch.save(data, path)
+        # Create subfolder for models
+        path = Path(path)
+        subfolder = datetime.now().strftime('model__%Y%m%d_%H%M%S')
+        path = path / subfolder
+        path.mkdir(parents=True)
+        self.encoder.save(path/'encoder.model')
+        self.decoder1.save(path/'decoder1.model')
+        self.decoder2.save(path/'decoder2.model')
+
 
     def load_model(self, path):
-        data = torch.load(path)
-        self.autoencoder1.load_state_dict(data['ae1'])
-        self.autoencoder2.load_state_dict(data['ae2'])
+        path = Path(path)
+        self.encoder.load(path/'encoder.model')
+        self.decoder1.load(path/'decoder1.model')
+        self.decoder2.load(path/'decoder2.model')

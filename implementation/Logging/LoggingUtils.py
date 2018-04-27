@@ -1,6 +1,7 @@
 import datetime
 
 import torch
+import numpy as np
 from tensorboardX import SummaryWriter
 from torchvision import utils as vutils
 
@@ -17,9 +18,10 @@ def log_first_layer(net, writer, frame_idx):
 
 
 def tensor2img(output):
-    output = output.cpu()[0] * 255.0
-    index = torch.LongTensor([2, 0, 1])
-    output[index] = output
+    output = output[0].cpu().numpy() # Shift from to CPU into a Numpy array
+    output = (output*255.0).astype(np.uint8) # Transform back into valid image range
+    output = output.transpose(1, 2, 0) # Resort dimension channels: CHW -> HWC
+    output = output[:,:,::-1] # Resort color channels: BGR -> RGB
     return output
 
 
@@ -37,7 +39,7 @@ class Logger:
 
         if images and i % 100 == 0:
             for idx, img in enumerate(images):
-                images[idx] = torch.unsqueeze(tensor2img(img), 0)
+                images[idx] = tensor2img(img)
             stacked = torch.cat(images)
             grid = vutils.make_grid(stacked.data, normalize=True, scale_each=True, nrow=3)
             self.writer.add_image("sample_input", grid, i)

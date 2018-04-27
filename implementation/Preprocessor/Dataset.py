@@ -51,17 +51,31 @@ class DatasetPerson(Dataset):
 
         # load all images into ram
         for idx, img_name in enumerate(self.file_names):
-            if img_name.__contains__(".json"):
+            if not img_name.__contains__(".jpg"):
                 continue
             path2img = os.path.join(self.root_dir, img_name)
             img = cv2.imread(path2img, cv2.COLOR_RGB2BGR).astype(np.float32)
             if detect_faces:
-                face_location = face_recognition.face_locations(img.astype(np.uint8), model='hog')
+                # Cut face region via minimum bounding box of facial landmarks
+                face_landmarks = face_recognition.face_landmarks(img.astype(np.uint8))
 
                 # ignore if 2 faces detected because in most cases they don't originate form the same person
-                if face_location and len(face_location) == 1:
-                    top, right, bottom, left = face_location[0]
+                if face_landmarks and len(face_landmarks) == 1:
+                    # Extract coordinates from landmarks dict via list comprehension
+                    face_landmarks_coordinates = [coordinate for feature in list(face_landmarks[0].values()) for
+                                                  coordinate in feature]
+                    # Determine bounding box
+                    left, top = np.min(face_landmarks_coordinates, axis=0)
+                    right, bottom = np.max(face_landmarks_coordinates, axis=0)
+                    # => landmarks can lie outside of the image
+                    # Min & max values are the borders of an image (0,0) & img.shape
+                    left = 0 if left<0 else left
+                    top = 0 if top<0 else top
+                    right = img.shape[1]-1 if right>=img.shape[1] else right
+                    bottom = img.shape[0]-1 if bottom>=img.shape[0] else bottom
+                    # Extract face
                     img = img[top:bottom, left:right]
+
                 else:
                     continue
             self.images.append(img)
