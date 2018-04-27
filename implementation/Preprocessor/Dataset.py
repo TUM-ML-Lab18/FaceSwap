@@ -1,5 +1,3 @@
-import torch
-
 import cv2
 import os
 import numpy as np
@@ -8,17 +6,8 @@ from Preprocessor.lib import umeyama
 
 import face_recognition
 from torch.utils.data import Dataset
-from torchvision.transforms import transforms
 
 """inspired by http://pytorch.org/tutorials/beginner/data_loading_tutorial.html"""
-
-TRUMP_CAGE_BASE = "/nfs/students/summer-term-2018/project_2/data/FaceSwap/data"
-TRUMP = TRUMP_CAGE_BASE + "/trump"
-CAGE = TRUMP_CAGE_BASE + "/cage"
-
-PROCESSED_IMAGES_FOLDER = "/nfs/students/summer-term-2018/project_2/projects/faceswap/processed_images"
-
-EXPERIMENTS = "/nfs/students/summer-term-2018/project_2/projects/faceswap/experiments"
 
 
 class DatasetPerson(Dataset):
@@ -90,9 +79,8 @@ class DatasetPerson(Dataset):
         image = cv2.resize(self.images[idx % self.size_multiplicator], (256, 256))
         image = self.random_transform(image)
         warped_image, target_image = self.warp(image)
-        if self.transform:
-            warped_image = self.transform(warped_image)
-            target_image = self.transform(target_image)
+        warped_image = warped_image.transpose((2, 0, 1))
+        target_image = target_image.transpose((2, 0, 1))
         return warped_image, target_image
 
     def random_transform(self, image):
@@ -132,7 +120,6 @@ class DatasetPerson(Dataset):
 
     def save_processed_images(self, path):
         for idx, img in enumerate(self.images):
-            img = img.numpy().transpose((1, 2, 0))
             cv2.imwrite(os.path.join(path, str(idx) + ".jpg"), img)
 
 
@@ -153,7 +140,7 @@ class ToTensor:
     def __call__(self, img):
         # switch dimensions
         img = img.transpose((2, 0, 1))
-        return torch.from_numpy(img)
+        return img#torch.from_numpy(img)
 
 
 def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):
@@ -176,16 +163,3 @@ def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=
     # Print New Line on Complete
     if iteration == total:
         print()
-
-
-if __name__ == '__main__':
-    # dataset = DatasetPerson(TRUMP, transform=transforms.Compose([Resize((64, 64)), ToTensor()]), detect_faces=True)
-    # dataset.save_processed_images(PROCESSED_IMAGES_FOLDER)
-
-    dataset = DatasetPerson(CAGE, transform=transforms.Compose([Resize((64, 64)), ToTensor()]), detect_faces=True)
-    dataset.save_processed_images(PROCESSED_IMAGES_FOLDER + "/cage")
-    # zero = dataset.__getitem__(0)
-    # print(zero)
-    # dataset = DatasetPerson(EXPERIMENTS + "/input", transform=transforms.Compose([Resize((64, 64)), ToTensor()]),
-    #                        detect_faces=True)
-    # dataset.save_processed_images(EXPERIMENTS + "/hog")

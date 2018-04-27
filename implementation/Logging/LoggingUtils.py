@@ -18,20 +18,28 @@ def log_first_layer(net, writer, frame_idx):
 
 
 def tensor2img(output):
-    output = output[0].cpu().numpy() # Shift from to CPU into a Numpy array
-    output = (output*255.0).astype(np.uint8) # Transform back into valid image range
-    output = output.transpose(1, 2, 0) # Resort dimension channels: CHW -> HWC
-    output = output[:,:,::-1] # Resort color channels: BGR -> RGB
+    output = output.cpu()[0] * 255.0
+    index = torch.LongTensor([2, 0, 1])
+    output[index] = output
     return output
+    # TODO: Define exactly what is input -> Variable / Tensor /Dimensions
+    #output = output[0].detach().cpu().numpy() # Shift from to CPU into a Numpy array
+    #output = (output*255.0).astype(np.uint8) # Transform back into valid image range
+    #output = output.transpose(1, 2, 0) # Resort dimension channels: CHW -> HWC
+    #output = output[:,:,::-1] # Resort color channels: BGR -> RGB
+    #return output
 
 
 class Logger:
-    def __init__(self):
+    def __init__(self, steps_per_epoch):
         self.writer = SummaryWriter("./logs/" + str(datetime.datetime.now()))
+        self.steps_per_epoch = steps_per_epoch
+        self.t = datetime.datetime.now()
 
     def log(self, i, loss1, loss2, autoencoder, images):
-        loss1 = loss1.cpu().data.numpy()
-        loss2 = loss2.cpu().data.numpy()
+        new_time = datetime.datetime.now()
+        self.writer.add_scalar("fps", self.steps_per_epoch * 1.0 / (new_time - self.t).total_seconds(), i)
+        self.t = new_time
 
         self.writer.add_scalars("loss", {'lossA': loss1, 'lossB': loss2}, i)
 
