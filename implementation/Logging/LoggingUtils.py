@@ -1,6 +1,5 @@
 import datetime
 
-import torch
 from tensorboardX import SummaryWriter
 from torchvision import utils as vutils
 
@@ -14,13 +13,6 @@ def log_first_layer(net, writer, frame_idx):
     # this seems to be pretty slow
     # for name, param in net.named_parameters():
     #    writer.add_histogram(name, param.clone().cpu().data.numpy(), frame_idx)
-
-# TODO: Rename function -> no tensor to image...
-def tensor2img(output):
-    output = output.cpu()[0] * 255.0
-    inv_idx = torch.arange(output.size(0) - 1, -1, -1).long()
-    output = output[inv_idx]
-    return output
 
 
 class Logger:
@@ -37,7 +29,7 @@ class Logger:
         self.writer.add_scalars("loss", {'lossA': loss1, 'lossB': loss2}, i)
 
         if images and i % 20 == 0:
-            images = list(map(tensor2img, images))
+            images = list(map(lambda x: x.cpu()[0]*255.0, images))
             grid = vutils.make_grid(images, normalize=True, scale_each=True, nrow=3)
             self.writer.add_image("sample_input", grid, i)
 
