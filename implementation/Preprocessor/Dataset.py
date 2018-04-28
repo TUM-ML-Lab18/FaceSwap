@@ -24,7 +24,7 @@ class DatasetPerson(Dataset):
         :param size_multiplicator: Enlarges the dataset virtually times this factor
         """
         self.preprocessor = preprocessor
-        self.transform = transform # TODO: Unused member
+        self.transform = transform  # TODO: Unused member
         self.warp_faces = warp_faces
         self.size_multiplicator = size_multiplicator
         self.root_dir = root_dir
@@ -67,14 +67,13 @@ class DatasetPerson(Dataset):
         else:
             warped_image, target_image = image, image
         # Resize input and output for training
-        warped_image = self.preprocessor.resize(warped_image, (64,64))
-        target_image = self.preprocessor.resize(target_image, (64,64))
+        warped_image = self.preprocessor.resize(warped_image, (64, 64))
+        target_image = self.preprocessor.resize(target_image, (64, 64))
         # Transform images into Tensors
-        warped_image = ToTensor()(warped_image)
-        target_image = ToTensor()(target_image)
+        warped_image = ToTensor()(warped_image)/255.0
+        target_image = ToTensor()(target_image)/255.0
         return warped_image, target_image
 
     def save_processed_images(self, path):
         for idx, img in enumerate(self.images):
             cv2.imwrite(os.path.join(path, str(idx) + ".jpg"), img)
-

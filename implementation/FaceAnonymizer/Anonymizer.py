@@ -57,7 +57,7 @@ class Anonymizer:
         self.epochs = epochs
 
     def train(self):
-        logger = Logger(self.batch_size)
+        logger = Logger(self.batch_size, self)
 
         optimizer1 = Adam(self.autoencoder1.parameters(), lr=self.learning_rate)
         scheduler1 = ReduceLROnPlateau(optimizer1, 'min', verbose=True, patience=25, cooldown=50)

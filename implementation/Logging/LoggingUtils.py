@@ -17,10 +17,13 @@ def log_first_layer(net, writer, frame_idx):
 
 
 class Logger:
-    def __init__(self, steps_per_epoch):
-        self.writer = SummaryWriter("./logs/" + str(datetime.datetime.now()))
+    def __init__(self, steps_per_epoch, anonymizer, save_model_every_nth=100):
+        self.loggin_path = "./logs/" + str(datetime.datetime.now())
+        self.writer = SummaryWriter(self.loggin_path)
         self.steps_per_epoch = steps_per_epoch
         self.t = datetime.datetime.now()
+        self.anonymizer = anonymizer
+        self.save_model_every_nth = save_model_every_nth
 
     def log(self, epoch, loss1, loss2, images):
         new_time = datetime.datetime.now()
@@ -35,11 +38,14 @@ class Logger:
             for i in range(rows):
                 rand = randint(0, len(images[0]) - 1)
                 for j in range(3):
-                    processed_images.append(images[i*3+j].cpu()[rand]*255.0)
+                    processed_images.append(images[i * 3 + j].cpu()[rand] * 255.0)
             grid = vutils.make_grid(processed_images, normalize=True, scale_each=True, nrow=3)
             self.writer.add_image("sample_input", grid, epoch)
 
         print(f"[Epoch {epoch}] loss1: {loss1}, loss2: {loss2}", end='\n')
+
+        if epoch % self.save_model_every_nth == 0 and epoch > 0:
+            self.anonymizer.save_model(self.loggin_path)
 
 
 def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):
