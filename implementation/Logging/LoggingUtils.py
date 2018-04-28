@@ -45,7 +45,7 @@ class Logger:
 
         # log_first_layer(autoencoder, self.writer, i)
 
-        if images and i % 100 == 0:
+        if images and i % 20 == 0:
             for idx, img in enumerate(images):
                 images[idx] = tensor2img(img)
             stacked = torch.cat(images)

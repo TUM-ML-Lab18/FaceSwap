@@ -7,7 +7,7 @@ import torch
 from torch.autograd import Variable
 from torch.nn import DataParallel
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-#from fastai.dataloader import DataLoader # todo decide which dataloader we want to use
+# from fastai.dataloader import DataLoader # todo decide which dataloader we want to use
 from torch.utils.data import DataLoader
 from torch.optim import Adam
 from datetime import datetime
@@ -51,17 +51,19 @@ class Anonymizer:
             data2.size_multiplicator *= torch.cuda.device_count()
 
         self.lossfn = torch.nn.L1Loss(size_average=True).cuda()
-        self.dataLoader1 = DataLoader(data1, self.batch_size, shuffle=True, num_workers=6, drop_last=True, pin_memory=True)
-        self.dataLoader2 = DataLoader(data2, self.batch_size, shuffle=True, num_workers=6, drop_last=True, pin_memory=True)
+        self.dataLoader1 = DataLoader(data1, self.batch_size, shuffle=True, num_workers=6, drop_last=True,
+                                      pin_memory=True)
+        self.dataLoader2 = DataLoader(data2, self.batch_size, shuffle=True, num_workers=6, drop_last=True,
+                                      pin_memory=True)
         self.epochs = epochs
 
     def train(self):
         logger = Logger(self.batch_size)
 
         optimizer1 = Adam(self.autoencoder1.parameters(), lr=self.learning_rate)
-        scheduler1 = ReduceLROnPlateau(optimizer1, 'min', verbose=True, patience=100)
+        scheduler1 = ReduceLROnPlateau(optimizer1, 'min', verbose=True, patience=25, cooldown=50)
         optimizer2 = Adam(self.autoencoder2.parameters(), lr=self.learning_rate)
-        scheduler2 = ReduceLROnPlateau(optimizer2, 'min', verbose=True, patience=100)
+        scheduler2 = ReduceLROnPlateau(optimizer2, 'min', verbose=True, patience=25, cooldown=50)
 
         for i_epoch in range(self.epochs):
             loss1_mean, loss2_mean = 0, 0
@@ -113,13 +115,12 @@ class Anonymizer:
         subfolder = datetime.now().strftime('model__%Y%m%d_%H%M%S')
         path = path / subfolder
         path.mkdir(parents=True)
-        self.encoder.save(path/'encoder.model')
-        self.decoder1.save(path/'decoder1.model')
-        self.decoder2.save(path/'decoder2.model')
-
+        self.encoder.save(path / 'encoder.model')
+        self.decoder1.save(path / 'decoder1.model')
+        self.decoder2.save(path / 'decoder2.model')
 
     def load_model(self, path):
         path = Path(path)
-        self.encoder.load(path/'encoder.model')
-        self.decoder1.load(path/'decoder1.model')
-        self.decoder2.load(path/'decoder2.model')
+        self.encoder.load(path / 'encoder.model')
+        self.decoder1.load(path / 'decoder1.model')
+        self.decoder2.load(path / 'decoder2.model')
