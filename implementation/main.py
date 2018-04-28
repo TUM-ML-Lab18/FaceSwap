@@ -1,5 +1,5 @@
 from FaceAnonymizer.Anonymizer import Anonymizer
-from Preprocessor.Dataset import DatasetPerson, ToTensor
+from Preprocessor.Dataset import DatasetPerson
 from config import PROCESSED_IMAGES_FOLDER, TRUMP, CAGE, TRUMP_CAGE_BASE
 
 
@@ -11,6 +11,8 @@ def process_trump_cage_images():
 
 
 if __name__ == '__main__':
+    #process_trump_cage_images()
+
     trump = DatasetPerson(PROCESSED_IMAGES_FOLDER + TRUMP, detect_faces=False)
     cage = DatasetPerson(PROCESSED_IMAGES_FOLDER + CAGE, detect_faces=False)
 

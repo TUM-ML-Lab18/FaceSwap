@@ -43,7 +43,10 @@ class DatasetPerson(Dataset):
             if not img_name.__contains__(".jpg"):
                 continue
             path2img = os.path.join(self.root_dir, img_name)
-            img = cv2.imread(path2img, cv2.COLOR_RGB2BGR).astype(np.float32)
+            try:
+                img = cv2.imread(path2img, cv2.COLOR_RGB2BGR).astype(np.float32)
+            except Exception as e:
+                print(path2img, '\n', e)
             if detect_faces:
                 # Cut face region via minimum bounding box of facial landmarks
                 face_landmarks = face_recognition.face_landmarks(img.astype(np.uint8))
@@ -58,10 +61,10 @@ class DatasetPerson(Dataset):
                     right, bottom = np.max(face_landmarks_coordinates, axis=0)
                     # => landmarks can lie outside of the image
                     # Min & max values are the borders of an image (0,0) & img.shape
-                    left = 0 if left<0 else left
-                    top = 0 if top<0 else top
-                    right = img.shape[1]-1 if right>=img.shape[1] else right
-                    bottom = img.shape[0]-1 if bottom>=img.shape[0] else bottom
+                    left = 0 if left < 0 else left
+                    top = 0 if top < 0 else top
+                    right = img.shape[1] - 1 if right >= img.shape[1] else right
+                    bottom = img.shape[0] - 1 if bottom >= img.shape[0] else bottom
                     # Extract face
                     img = img[top:bottom, left:right]
 
@@ -144,7 +147,7 @@ class ToTensor:
     def __call__(self, img):
         # switch dimensions
         img = img.transpose((2, 0, 1))
-        return img#torch.from_numpy(img)
+        return img  # torch.from_numpy(img)
 
 
 def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):

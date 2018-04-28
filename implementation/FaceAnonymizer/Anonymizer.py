@@ -4,7 +4,6 @@
 #
 
 import torch
-from torch.autograd import Variable
 from torch.nn import DataParallel
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 # from fastai.dataloader import DataLoader # todo decide which dataloader we want to use
@@ -77,8 +76,8 @@ class Anonymizer:
 
             for (face1_warped, face1), (face2_warped, face2) in zip(self.dataLoader1, self.dataLoader2):
                 # face1 and face2 contain a batch of images of the first and second face, respectively
-                face1, face2 = Variable(face1).cuda(), Variable(face2).cuda()
-                face1_warped, face2_warped = Variable(face1_warped).cuda(), Variable(face2_warped).cuda()
+                face1, face2 = face1.cuda(), face2.cuda()
+                face1_warped, face2_warped = face1_warped.cuda(), face2_warped.cuda()
 
                 optimizer1.zero_grad()
                 output1 = self.autoencoder1(face1_warped)
