@@ -1,7 +1,6 @@
 import datetime
 
 import torch
-import numpy as np
 from tensorboardX import SummaryWriter
 from torchvision import utils as vutils
 
@@ -30,20 +29,15 @@ class Logger:
         self.steps_per_epoch = steps_per_epoch
         self.t = datetime.datetime.now()
 
-    def log(self, i, loss1, loss2, autoencoder, images):
+    def log(self, i, loss1, loss2, images):
         new_time = datetime.datetime.now()
         self.writer.add_scalar("fps", self.steps_per_epoch * 1.0 / (new_time - self.t).total_seconds(), i)
         self.t = new_time
 
         self.writer.add_scalars("loss", {'lossA': loss1, 'lossB': loss2}, i)
 
-        # log_first_layer(autoencoder, self.writer, i)
-
         if images and i % 20 == 0:
             images = list(map(tensor2img, images))
-            # for idx, img in enumerate(images):
-            #    images[idx] = tensor2img(img)
-            # stacked = torch.cat(images)
             grid = vutils.make_grid(images, normalize=True, scale_each=True, nrow=3)
             self.writer.add_image("sample_input", grid, i)
 

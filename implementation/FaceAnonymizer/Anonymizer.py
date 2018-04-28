@@ -101,7 +101,7 @@ class Anonymizer:
             loss2_mean = loss2_mean.cpu().data.numpy()
             scheduler1.step(loss1_mean, i_epoch)
             scheduler2.step(loss2_mean, i_epoch)
-            logger.log(i_epoch, loss1_mean, loss2_mean, self.autoencoder1,
+            logger.log(i_epoch, loss1_mean, loss2_mean,
                        images=[face1_warped, output1, face1, face2_warped, output2, face2])
 
     def anonymize(self, x):
