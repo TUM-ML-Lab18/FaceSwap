@@ -22,14 +22,14 @@ class Logger:
         self.steps_per_epoch = steps_per_epoch
         self.t = datetime.datetime.now()
 
-    def log(self, i, loss1, loss2, images):
+    def log(self, epoch, loss1, loss2, images):
         new_time = datetime.datetime.now()
-        self.writer.add_scalar("fps", self.steps_per_epoch * 1.0 / (new_time - self.t).total_seconds(), i)
+        self.writer.add_scalar("fps", self.steps_per_epoch * 1.0 / (new_time - self.t).total_seconds(), epoch)
         self.t = new_time
 
-        self.writer.add_scalars("loss", {'lossA': loss1, 'lossB': loss2}, i)
+        self.writer.add_scalars("loss", {'lossA': loss1, 'lossB': loss2}, epoch)
 
-        if images and i % 20 == 0:
+        if images and epoch % 20 == 0:
             rows = int(len(images) / 3)
             processed_images = []
             for i in range(rows):
@@ -37,6 +37,6 @@ class Logger:
                 for j in range(3):
                     processed_images.append(images[i*3+j].cpu()[rand]*255.0)
             grid = vutils.make_grid(processed_images, normalize=True, scale_each=True, nrow=3)
-            self.writer.add_image("sample_input", grid, i)
+            self.writer.add_image("sample_input", grid, epoch)
 
         print(f"[Epoch {i}] loss1: {loss1}, loss2: {loss2}", end='\n')
