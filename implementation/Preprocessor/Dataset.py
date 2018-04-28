@@ -14,7 +14,8 @@ class DatasetPerson(Dataset):
     """Dataset containing images from only one person without face detection"""
 
     def __init__(self, root_dir, transform=None, detect_faces=False, warp_faces=True, rotation_range=10,
-                 zoom_range=0.05, shift_range=0.05, size_multiplicator=10):
+                 zoom_range=0.05, shift_range=0.05, hue_range=7, saturation_range=0.2, brightness_range=80,
+                 flip_probability=0.4, size_multiplicator=10):
         """
         :param root_dir: Directory with the images.
         :param transform: Transformations applied to the images.
@@ -23,6 +24,10 @@ class DatasetPerson(Dataset):
         :param rotation_range: Range within the image gets rotated randomly
         :param zoom_range: Range within the image gets zoomed randomly
         :param shift_range: Range within the image gets shifted randomly
+        :param hue_range: Range within the image's hue gets shifted randomly
+        :param saturation_range: Range within the image's saturation gets shifted randomly
+        :param brightness_range: Range within the image's brightness gets shifted randomly
+        :param flip_probability: Probability of a random flip of the image
         :param size_multiplicator: Enlarges the dataset virtually times this factor
         """
         self.transform = transform
@@ -30,6 +35,10 @@ class DatasetPerson(Dataset):
         self.rotation_range = rotation_range
         self.zoom_range = zoom_range
         self.shift_range = shift_range
+        self.hue_range = hue_range
+        self.saturation_range = saturation_range
+        self.brightness_range = brightness_range
+        self.flip_probability = flip_probability
         self.size_multiplicator = size_multiplicator
         self.root_dir = root_dir
         self.file_names = os.listdir(self.root_dir)
@@ -44,7 +53,7 @@ class DatasetPerson(Dataset):
                 continue
             path2img = os.path.join(self.root_dir, img_name)
             try:
-                img = cv2.imread(path2img, cv2.COLOR_RGB2BGR).astype(np.float32)
+                img = img = cv2.cvtColor(cv2.imread(path2img), cv2.COLOR_RGB2BGR).astype(np.float32)
             except Exception as e:
                 print(path2img, '\n', e)
             if detect_faces:
@@ -98,7 +107,18 @@ class DatasetPerson(Dataset):
 
         trans = cv2.getRotationMatrix2D((256 // 2, 256 // 2), rotation, scale)
         trans[:, 2] += (x_shift, y_shift)
-        return cv2.warpAffine(image, trans, (256, 256), borderMode=cv2.BORDER_REPLICATE)
+        image = cv2.warpAffine(image, trans, (256, 256), borderMode=cv2.BORDER_REPLICATE)
+
+        if random.random() < self.flip_probability:
+            image = image[:, ::-1]
+
+        h, s, v = cv2.split(cv2.cvtColor(image, cv2.COLOR_BGR2HSV))
+
+        h += random.uniform(-self.hue_range, self.hue_range)
+        s += random.uniform(-self.saturation_range, self.saturation_range)
+        v += random.uniform(-self.brightness_range, self.brightness_range)
+
+        return cv2.cvtColor(cv2.merge((h, s, v)), cv2.COLOR_HSV2BGR)
 
     def warp(self, image):
         # This function was taken from deepfakes/faceswap

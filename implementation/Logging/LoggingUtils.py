@@ -15,7 +15,7 @@ def log_first_layer(net, writer, frame_idx):
     # for name, param in net.named_parameters():
     #    writer.add_histogram(name, param.clone().cpu().data.numpy(), frame_idx)
 
-
+# TODO: Rename function -> no tensor to image...
 def tensor2img(output):
     output = output.cpu()[0] * 255.0
     inv_idx = torch.arange(output.size(0) - 1, -1, -1).long()
