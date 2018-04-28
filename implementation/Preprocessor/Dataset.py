@@ -95,6 +95,8 @@ class DatasetPerson(Dataset):
             warped_image, target_image = self.warp(image)
         else:
             warped_image, target_image = image, image
+        warped_image = cv2.resize(warped_image, (64,64))
+        target_image = cv2.resize(target_image, (64,64))
         warped_image = warped_image.transpose((2, 0, 1))
         target_image = target_image.transpose((2, 0, 1))
         return self.img_normalize(warped_image), self.img_normalize(target_image)
@@ -120,36 +122,37 @@ class DatasetPerson(Dataset):
 
         return cv2.cvtColor(cv2.merge((h, s, v)), cv2.COLOR_HSV2BGR)
 
-    def warp(self, image, output_resolution=64, warp_factor=5):
+    def warp(image, warp_factor=5):
         H, W, C = image.shape
-        scale = output_resolution // 64
 
+        # Generate warped image
         # Create coarse mapping with the size of the image
-        grid = (5,5)
-        range_x = np.linspace(0, W, 5)
-        range_y = np.linspace(0, H, 5)
+        grid = (5, 5)
+        range_x = np.linspace(0, W, grid_size)
+        range_y = np.linspace(0, H, grid_size)
         mapx, mapy = np.meshgrid(range_x, range_y)
-
         # Add randomness to the mapping -> warps image
-        mapx = mapx + np.random.normal(size=grid, scale=warp_factor)
-        mapy = mapy + np.random.normal(size=grid, scale=warp_factor)
-
-        # Warping makes border regions almost completely black
-        # Create mapping larger than image and cut border regions
-        interp_mapx = cv2.resize(mapx, (80*scale, 80*scale))[8*scale:72*scale, 8*scale:72*scale].astype('float32')
-        interp_mapy = cv2.resize(mapy, (80*scale, 80*scale))[8*scale:72*scale, 8*scale:72*scale].astype('float32')
-
+        warp_mapx = mapx + np.random.normal(size=grid, scale=warp_factor)
+        warp_mapy = mapy + np.random.normal(size=grid, scale=warp_factor)
+        # Scale coarse mapping to fine mapping
+        interp_mapx = cv2.resize(warp_mapx, (H, W)).astype('float32')
+        interp_mapy = cv2.resize(warp_mapy, (H, W)).astype('float32')
         # Apply warping
         warped_image = cv2.remap(image, interp_mapx, interp_mapy, cv2.INTER_LINEAR)
 
+        # Generate target image
         # Define points correspondences between warped source map and linear destination map
-        src_points = np.stack([mapx.ravel(), mapy.ravel()], axis=-1)
-        dst_points = np.mgrid[0:65*scale:16*scale, 0:65*scale:16*scale].T.reshape(-1, 2)
+        src_points = np.vstack([warp_mapx.ravel(), warp_mapy.ravel()]).T
+        dst_points = np.vstack([mapx.ravel(), mapy.ravel()]).T
         # Umeyama transformation: Calculate affine mapping between two sets of point correspondences
         mat = umeyama(src_points, dst_points, True)[0:2]
-
         # Apply Umeyama transformation
-        target_image = cv2.warpAffine(image, mat, (64 * scale, 64 * scale))
+        target_image = cv2.warpAffine(image, mat, (W, H))
+
+        # Warping makes border regions almost completely black
+        # Create mapping larger than image and cut border regions (outer 10% of the image)
+        warped_image = warped_image[W // 10:W // 10 * 9, H // 10:H // 10 * 9]
+        target_image = target_image[W // 10:W // 10 * 9, H // 10:H // 10 * 9]
 
         return warped_image, target_image
 
