@@ -39,4 +39,4 @@ class Logger:
             grid = vutils.make_grid(processed_images, normalize=True, scale_each=True, nrow=3)
             self.writer.add_image("sample_input", grid, epoch)
 
-        print(f"[Epoch {i}] loss1: {loss1}, loss2: {loss2}", end='\n')
+        print(f"[Epoch {epoch}] loss1: {loss1}, loss2: {loss2}", end='\n')
