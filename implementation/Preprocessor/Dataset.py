@@ -11,7 +11,7 @@ from torch.utils.data import Dataset
 
 
 class DatasetPerson(Dataset):
-    """Dataset containing images from only one person without face detection"""
+    """Dataset containing images from only one person"""
 
     def __init__(self, root_dir, transform=None, detect_faces=False, warp_faces=True, rotation_range=10,
                  zoom_range=0.05, shift_range=0.05, hue_range=7, saturation_range=0.2, brightness_range=80,
@@ -153,7 +153,7 @@ class DatasetPerson(Dataset):
         # Warping makes border regions almost completely black
         # Create mapping larger than image and cut border regions (outer 10% of the image)
         warped_image = warped_image[W // 10:W // 10 * 9, H // 10:H // 10 * 9]
-        target_image = target_image[W // 10:W // 10 * 9, H // 10:H // 10 * 9]
+        #target_image = target_image[W // 10:W // 10 * 9, H // 10:H // 10 * 9]
 
         return warped_image, target_image
 

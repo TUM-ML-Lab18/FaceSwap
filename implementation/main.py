@@ -2,8 +2,6 @@ from FaceAnonymizer.Anonymizer import Anonymizer
 from Preprocessor.Dataset import DatasetPerson
 from config import PROCESSED_IMAGES_FOLDER, TRUMP, CAGE, TRUMP_CAGE_BASE
 
-import os
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 def process_trump_cage_images():
     dataset = DatasetPerson(TRUMP_CAGE_BASE + CAGE, detect_faces=True)
@@ -13,7 +11,7 @@ def process_trump_cage_images():
 
 
 if __name__ == '__main__':
-    #process_trump_cage_images()
+    # process_trump_cage_images()
 
     trump = DatasetPerson(PROCESSED_IMAGES_FOLDER + TRUMP, detect_faces=False)
     cage = DatasetPerson(PROCESSED_IMAGES_FOLDER + CAGE, detect_faces=False)
