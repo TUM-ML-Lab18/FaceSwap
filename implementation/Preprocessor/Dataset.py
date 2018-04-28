@@ -53,7 +53,7 @@ class DatasetPerson(Dataset):
                 continue
             path2img = os.path.join(self.root_dir, img_name)
             try:
-                img = img = cv2.cvtColor(cv2.imread(path2img), cv2.COLOR_RGB2BGR).astype(np.float32)
+                img = img = cv2.cvtColor(cv2.imread(path2img), cv2.COLOR_BGR2RGB).astype(np.float32)
             except Exception as e:
                 print(path2img, '\n', e)
             if detect_faces:
