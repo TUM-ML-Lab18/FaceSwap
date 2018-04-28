@@ -122,7 +122,7 @@ class DatasetPerson(Dataset):
 
         return cv2.cvtColor(cv2.merge((h, s, v)), cv2.COLOR_HSV2BGR)
 
-    def warp(image, warp_factor=5):
+    def warp(self, image, warp_factor=5):
         H, W, C = image.shape
 
         # Generate warped image
