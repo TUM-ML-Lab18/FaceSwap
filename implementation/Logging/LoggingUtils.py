@@ -1,4 +1,5 @@
 import datetime
+from random import randint
 
 from tensorboardX import SummaryWriter
 from torchvision import utils as vutils
@@ -29,8 +30,13 @@ class Logger:
         self.writer.add_scalars("loss", {'lossA': loss1, 'lossB': loss2}, i)
 
         if images and i % 20 == 0:
-            images = list(map(lambda x: x.cpu()[0]*255.0, images))
-            grid = vutils.make_grid(images, normalize=True, scale_each=True, nrow=3)
+            rows = int(len(images) / 3)
+            processed_images = []
+            for i in range(rows):
+                rand = randint(0, len(images[0]) - 1)
+                for j in range(3):
+                    processed_images.append(images[i*3+j].cpu()[rand]*255.0)
+            grid = vutils.make_grid(processed_images, normalize=True, scale_each=True, nrow=3)
             self.writer.add_image("sample_input", grid, i)
 
         print(f"[Epoch {i}] loss1: {loss1}, loss2: {loss2}", end='\n')
