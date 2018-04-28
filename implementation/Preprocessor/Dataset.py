@@ -127,7 +127,8 @@ class DatasetPerson(Dataset):
 
         # Generate warped image
         # Create coarse mapping with the size of the image
-        grid = (5, 5)
+        grid_size = 5
+        grid = (grid_size, grid_size)
         range_x = np.linspace(0, W, grid_size)
         range_y = np.linspace(0, H, grid_size)
         mapx, mapy = np.meshgrid(range_x, range_y)
