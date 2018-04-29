@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-import lib.umeyama as umeyama
+from lib.umeyama import umeyama
 
 
 class RandomTransform(object):
