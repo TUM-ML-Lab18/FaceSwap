@@ -3,6 +3,7 @@ import numpy as np
 import face_recognition
 from Preprocessor.lib import umeyama
 
+
 class Preprocessor(object):
 
     def __init__(self, rotation_range=10, zoom_range=0.05, shift_range=0.05,
@@ -80,9 +81,10 @@ class Preprocessor(object):
 
         return warped_image, target_image
 
-    def extract_faces(self, image):
+    def extract_faces(self, image, return_borders=False):
         # Cut face region via minimum bounding box of facial landmarks
         face_landmarks = face_recognition.face_landmarks(image.astype(np.uint8))
+        left, top, right, bottom = 0, 0, 0, 0
 
         # ignore if 2 faces detected because in most cases they don't originate form the same person
         if face_landmarks and len(face_landmarks) == 1:
@@ -93,8 +95,8 @@ class Preprocessor(object):
             left, top = np.min(face_landmarks_coordinates, axis=0)
             right, bottom = np.max(face_landmarks_coordinates, axis=0)
             # Enlarge bounding box by 5 percent (// 20) on every side
-            height = bottom-top
-            width = right-left
+            height = bottom - top
+            width = right - left
             left -= width // 20
             top -= height // 20
             right += width // 20
@@ -110,7 +112,8 @@ class Preprocessor(object):
             face_detected = True
         else:
             face_detected = False
-
+        if return_borders:
+            return image, face_detected, [left, top, right, bottom]
         return image, face_detected
 
     def BGR2RGB(self, image):

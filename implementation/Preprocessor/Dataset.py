@@ -14,7 +14,7 @@ class DatasetPerson(Dataset):
     """Dataset containing images from only one person"""
 
     def __init__(self, root_dir, preprocessor,
-                 transform=True, detect_faces=False, warp_faces=True, size_multiplicator=10):
+                 transform=True, detect_faces=False, warp_faces=True, size_multiplicator=10, convertion_dataset=False):
         """
         :param root_dir: Directory with the images.
         :param preprocessor: Preprocessor object
@@ -30,6 +30,8 @@ class DatasetPerson(Dataset):
         self.root_dir = root_dir
         self.file_names = os.listdir(self.root_dir)
         self.images = []
+        self.borders = []
+        self.real_images = []
 
         l = len(self.file_names)
         printProgressBar(0, l, prefix='Progress:', suffix='Complete', length=50)
@@ -43,11 +45,20 @@ class DatasetPerson(Dataset):
                 img = cv2.cvtColor(cv2.imread(path2img), cv2.COLOR_BGR2RGB).astype(np.float32)
             except Exception as e:
                 print(path2img, '\n', e)
-            if detect_faces:
-                img, face_detected = self.preprocessor.extract_faces(img)
+            if detect_faces or convertion_dataset:
+                if convertion_dataset:
+                    #img = img[:, :, ::-1]
+                    self.real_images.append(img)
+                    img, face_detected, borders = self.preprocessor.extract_faces(img, return_borders=True)
+                else:
+                    img, face_detected = self.preprocessor.extract_faces(img)
                 if not face_detected:
+                    if convertion_dataset:
+                        self.real_images.pop(len(self.real_images) - 1)
                     continue
             self.images.append(img)
+            if convertion_dataset:
+                self.borders.append(borders)
 
             printProgressBar(idx + 1, l, prefix='Progress:', suffix='Complete', length=50)
 
@@ -55,7 +66,6 @@ class DatasetPerson(Dataset):
         return len(self.images) * self.size_multiplicator
 
     def __getitem__(self, idx):
-        image = self.images[idx % self.size_multiplicator]
         # Resize on 256x256 for faster processing
         image = cv2.resize(self.images[idx % self.size_multiplicator], (256, 256))
         # Apply random transformations to augment dataset
@@ -70,8 +80,8 @@ class DatasetPerson(Dataset):
         warped_image = self.preprocessor.resize(warped_image, (64, 64))
         target_image = self.preprocessor.resize(target_image, (64, 64))
         # Transform images into Tensors
-        warped_image = ToTensor()(warped_image)/255.0
-        target_image = ToTensor()(target_image)/255.0
+        warped_image = ToTensor()(warped_image) / 255.0
+        target_image = ToTensor()(target_image) / 255.0
         return warped_image, target_image
 
     def save_processed_images(self, path):
