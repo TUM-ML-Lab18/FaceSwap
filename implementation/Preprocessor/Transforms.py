@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 from lib.umeyama import umeyama
+from PIL import Image
+import torchvision.transforms as transforms
 
 
 class RandomTransform(object):
@@ -87,3 +89,48 @@ class RandomWarp(object):
         warped_image = warped_image[W // 10:W // 10 * 9, H // 10:H // 10 * 9]
 
         return warped_image, target_image
+
+
+class Resize(object):
+
+    def __init__(self, resolution=(256,256)):
+        """
+        :param resolution: Resolution to scale the image to
+        """
+        self.resolution = resolution
+
+    def __call__(self, image):
+        return cv2.resize(image, self.resolution)
+
+
+class ResizeTuple(object):
+
+    def __init__(self, resolution=(256,256)):
+        """
+        :param resolution: Resolution to scale the image to
+        """
+        self.resolution = resolution
+
+    def __call__(self, image_tuple):
+        return cv2.resize(image_tuple[0], self.resolution), cv2.resize(image_tuple[1], self.resolution)
+
+
+class ToTensor(object):
+
+    def __init__(self):
+        self.toTensor = transforms.ToTensor()
+
+    def __call__(self, image_tuple):
+        return self.toTensor(image_tuple[0]), self.toTensor(image_tuple[1])
+
+
+class ToPIL(object):
+
+    def __call__(self, image):
+        return Image.fromarray(image.astype(np.uint8))
+
+
+class FromPIL(object):
+
+    def __call__(self, image):
+        return np.asarray(image).astype(np.float32)
