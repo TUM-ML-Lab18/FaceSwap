@@ -6,10 +6,10 @@ import cv2
 import numpy as np
 from torchvision.transforms import ToTensor
 
-from FaceAnonymizer.Anonymizer import Anonymizer
+from FaceAnonymizer.Trainer import Trainer
 from Preprocessor.Dataset import DatasetPerson
 from Preprocessor.Preprocessor import Preprocessor
-from config import TRUMP_CAGE_BASE, TEST
+from config import TRUMP_CAGE_BASE, CONVERTER_INPUT
 
 
 def tensor2img(output):
@@ -23,7 +23,7 @@ class Converter:
         self.folder = images_folder
         self.data = DatasetPerson(self.folder, Preprocessor(), transform=False, warp_faces=False,
                                   size_multiplicator=1, convertion_dataset=True)
-        self.model = Anonymizer(None, None)
+        self.model = Trainer(None, None)
         self.model.load_model(model_folder)
 
     def convert_images(self):
@@ -51,5 +51,5 @@ class Converter:
 
 
 if __name__ == '__main__':
-    c = Converter(TRUMP_CAGE_BASE + TEST, "./logs/2018-04-28 17:17:02.447529/model__20180428_224553")
+    c = Converter(TRUMP_CAGE_BASE + CONVERTER_INPUT, "./logs/2018-04-28 17:17:02.447529/model__20180428_224553")
     c.convert_images()
