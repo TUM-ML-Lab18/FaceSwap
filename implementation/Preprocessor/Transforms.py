@@ -37,7 +37,7 @@ class RandomTransform(object):
         image = cv2.warpAffine(image, trans, (256, 256), borderMode=cv2.BORDER_REPLICATE)
 
         if np.random.random() < self.flip_probability:
-                image = image[:, ::-1]
+            image = image[:, ::-1]
 
         h, s, v = cv2.split(cv2.cvtColor(image, cv2.COLOR_BGR2HSV))
 
@@ -93,7 +93,7 @@ class RandomWarp(object):
 
 class Resize(object):
 
-    def __init__(self, resolution=(256,256)):
+    def __init__(self, resolution=(256, 256)):
         """
         :param resolution: Resolution to scale the image to
         """
@@ -105,7 +105,7 @@ class Resize(object):
 
 class ResizeTuple(object):
 
-    def __init__(self, resolution=(256,256)):
+    def __init__(self, resolution=(256, 256)):
         """
         :param resolution: Resolution to scale the image to
         """
@@ -126,8 +126,8 @@ class ToTensor(object):
 
 class ToPIL(object):
 
-    def __call__(self, image):
-        return Image.fromarray(image.astype(np.uint8))
+    def __call__(self, images):
+        return tuple(map(lambda x: Image.fromarray(x.astype(np.uint8)), images))
 
 
 class FromPIL(object):

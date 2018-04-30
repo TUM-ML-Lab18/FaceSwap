@@ -20,7 +20,7 @@ from Logging.LoggingUtils import Logger
 
 class Trainer:
 
-    def __init__(self, data1, data2, batch_size=64, epochs=5000, learning_rate=1e-4):
+    def __init__(self, data, batch_size=64, epochs=5000, learning_rate=1e-4):
         """
         Initialize a new Trainer.
 
@@ -46,14 +46,11 @@ class Trainer:
             self.autoencoder1 = DataParallel(self.autoencoder1)
             self.autoencoder2 = DataParallel(self.autoencoder2)
             self.batch_size *= torch.cuda.device_count()
-            data1.size_multiplicator *= torch.cuda.device_count()
-            data2.size_multiplicator *= torch.cuda.device_count()
+            data.size_multiplicator *= torch.cuda.device_count()
 
         self.lossfn = torch.nn.L1Loss(size_average=True).cuda()
-        self.dataLoader1 = DataLoader(data1, self.batch_size, shuffle=True, num_workers=6, drop_last=True,
-                                      pin_memory=True)
-        self.dataLoader2 = DataLoader(data2, self.batch_size, shuffle=True, num_workers=6, drop_last=True,
-                                      pin_memory=True)
+        self.dataLoader = DataLoader(data, self.batch_size, shuffle=True, num_workers=12, drop_last=True,
+                                     pin_memory=True)
         self.epochs = epochs
 
     def train(self):
@@ -74,7 +71,7 @@ class Trainer:
             output2 = None
             iterations = 0
 
-            for (face1_warped, face1), (face2_warped, face2) in zip(self.dataLoader1, self.dataLoader2):
+            for (face1_warped, face1), (face2_warped, face2) in self.dataLoader:
                 # face1 and face2 contain a batch of images of the first and second face, respectively
                 face1, face2 = face1.cuda(), face2.cuda()
                 face1_warped, face2_warped = face1_warped.cuda(), face2_warped.cuda()
