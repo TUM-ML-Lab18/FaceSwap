@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 import face_recognition
 from collections import namedtuple
 
@@ -6,11 +7,13 @@ BoundingBox = namedtuple('BoundingBox', ('left', 'right', 'top', 'bottom'))
 ExtractedFace = namedtuple('ExtractedFace', ('image', 'bounding_box', 'face_landmarks'))
 
 class FaceExtractor(object):
-    def __init__(self, margin=5):
+    def __init__(self, output_resolution=(64,64), margin=5):
         """
         Initializer for a FaceExtractor object
+        :param output_resolution: Specify the resolution of the extracted face
         :param margin: Specify the margin between the bounding box and the landmarks in percent
         """
+        self.output_resolution = output_resolution
         self.margin = margin
 
     def __call__(self, image):
@@ -25,7 +28,10 @@ class FaceExtractor(object):
         if face_landmarks is not None:
             bounding_box = self.calculate_bounding_box(face_landmarks)
             image_face = self.crop(image, bounding_box)
+            if self.output_resolution:
+                cv2.resize(image_face, self.output_resolution)
             extracted_face = ExtractedFace(image=image_face, bounding_box=bounding_box, face_landmarks=face_landmarks)
+
         return extracted_face
 
     def extract_face_landmarks(self, image):
