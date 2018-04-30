@@ -6,8 +6,9 @@ from collections import namedtuple
 BoundingBox = namedtuple('BoundingBox', ('left', 'right', 'top', 'bottom'))
 ExtractedFace = namedtuple('ExtractedFace', ('image', 'bounding_box', 'face_landmarks'))
 
+
 class FaceExtractor(object):
-    def __init__(self, output_resolution=(64,64), margin=5):
+    def __init__(self, output_resolution=(64, 64), margin=5):
         """
         Initializer for a FaceExtractor object
         :param output_resolution: Specify the resolution of the extracted face

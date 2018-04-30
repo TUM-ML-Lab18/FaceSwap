@@ -1,50 +1,65 @@
-import cv2
+import os
+from pathlib import Path
+
 import numpy as np
-import face_recognition
+from PIL import Image
+
+from FaceExtractor import FaceExtractor
+from Logging.LoggingUtils import print_progress_bar
+from Preprocessor.ImageDataset import ImageDataset
 
 
-class Preprocessor(object):
+class Preprocessor:
+    RAW = "raw"
+    PREPROCESSED = "preprocessed"
 
-    def __init__(self):
-        pass
+    def __init__(self, root_folder: str):
+        self.root_folder = Path(root_folder)
+        self.raw_folder = self.root_folder / Preprocessor.RAW
+        self.processed_folder = self.root_folder / Preprocessor.PREPROCESSED
+        self.extractor = FaceExtractor()
 
-    def extract_faces(self, image, return_borders=False):
-        # Cut face region via minimum bounding box of facial landmarks
-        face_landmarks = face_recognition.face_landmarks(image.astype(np.uint8))
-        left, top, right, bottom = 0, 0, 0, 0
+    @property
+    def processed_folder_exists(self):
+        """
+        Checks if the processed folder exists.
+        :return: Bool.
+        """
+        return self.processed_folder.exists()
 
-        # ignore if 2 faces detected because in most cases they don't originate form the same person
-        if face_landmarks and len(face_landmarks) == 1:
-            # Extract coordinates from landmarks dict via list comprehension
-            face_landmarks_coordinates = [coordinate for feature in list(face_landmarks[0].values()) for
-                                          coordinate in feature]
-            # Determine bounding box
-            left, top = np.min(face_landmarks_coordinates, axis=0)
-            right, bottom = np.max(face_landmarks_coordinates, axis=0)
-            # Enlarge bounding box by 5 percent (// 20) on every side
-            height = bottom - top
-            width = right - left
-            left -= width // 20
-            top -= height // 20
-            right += width // 20
-            bottom += height // 20
-            # => landmarks can lie outside of the image
-            # Min & max values are the borders of an image (0,0) & img.shape
-            left = 0 if left < 0 else left
-            top = 0 if top < 0 else top
-            right = image.shape[1] - 1 if right >= image.shape[1] else right
-            bottom = image.shape[0] - 1 if bottom >= image.shape[0] else bottom
-            # Extract face
-            image = image[top:bottom, left:right]
-            face_detected = True
-        else:
-            face_detected = False
-        if return_borders:
-            return image, face_detected, [left, top, right, bottom]
-        return image, face_detected
+    def process_images(self):
+        """
+        Processes all image classes in the raw folder and saves the results to the processed folder.
+        """
+        self.processed_folder.mkdir()
+        for person_dir in self.raw_folder.iterdir():
+            if person_dir.is_dir():
+                # log progress
+                images_count = len([f for f in os.listdir(person_dir) if os.path.isfile(os.path.join(person_dir, f))])
+                print_progress_bar(0, images_count)
 
-    def BGR2RGB(self, image):
-        return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                processed_person_dir = self.processed_folder / person_dir.parts[-1]
+                processed_person_dir.mkdir()
+                # iterate over every image of the person
+                for idx, image_path in enumerate(person_dir.iterdir()):
+                    # open image and extract facial region
+                    img = Image.open(image_path)
+                    extracted_information = self.extractor(np.asarray(img).astype(np.uint8))
+                    # if there was an face save the extracted part now in the processed folder
+                    if extracted_information is not None:
+                        extracted_image = Image.fromarray(extracted_information.image)
+                        extracted_image.save(processed_person_dir / image_path.parts[-1])
 
-    def resize(self, image, resolution):
-        return cv2.resize(image, resolution)
+                    print_progress_bar(idx, images_count)
+                print()
+
+    @property
+    def get_dataset(self):
+        """
+        This function returns the preprocessed images for a dataset. If the images of this dataset are not preprocessed
+        it will apply the necessary step.
+        :return: ImageDataset containing the image classes from the dataset.
+        """
+        if not self.processed_folder_exists:
+            self.process_images()
+        return ImageDataset(self.processed_folder.__str__())
