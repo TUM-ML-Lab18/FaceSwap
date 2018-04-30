@@ -29,7 +29,7 @@ class FaceExtractor(object):
             bounding_box = self.calculate_bounding_box(face_landmarks)
             image_face = self.crop(image, bounding_box)
             if self.output_resolution:
-                cv2.resize(image_face, self.output_resolution)
+                image_face = cv2.resize(image_face, self.output_resolution)
             extracted_face = ExtractedFace(image=image_face, bounding_box=bounding_box, face_landmarks=face_landmarks)
 
         return extracted_face
