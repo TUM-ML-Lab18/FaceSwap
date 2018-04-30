@@ -51,5 +51,5 @@ class Converter:
 
 
 if __name__ == '__main__':
-    c = Converter(TRUMP_CAGE_BASE + CONVERTER_INPUT, "./logs/2018-04-28 17:17:02.447529/model__20180428_224553")
+    c = Converter(TRUMP_CAGE_BASE + CONVERTER_INPUT, "./logs/2018-04-30 13:12:20.310413/model__20180430_143854")
     c.convert_images()

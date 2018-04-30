@@ -6,7 +6,7 @@ from PIL import Image
 
 from FaceExtractor import FaceExtractor
 from Logging.LoggingUtils import print_progress_bar
-from Preprocessor.ImageDataset import ImageDataset, ImageDatesetCombined
+from Preprocessor.ImageDataset import ImageDatesetCombined
 
 
 class Preprocessor:

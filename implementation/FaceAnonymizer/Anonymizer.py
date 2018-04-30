@@ -26,7 +26,7 @@ class Anonymizer:
 
         # load dataset with ImagesFolder class -> PIL images
         self.image_dataset = ImageFolder(self.images_folder.__str__())
-        self.model = Trainer(None, None)
+        self.model = Trainer(None)
         self.model.load_model(self.model_folder)
 
         # use extractor und transform later get correct input for network
