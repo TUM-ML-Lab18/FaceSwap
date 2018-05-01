@@ -7,18 +7,14 @@ from PIL import Image
 from Preprocessor.FaceExtractor import FaceExtractor
 from Logging.LoggingUtils import print_progress_bar
 from Preprocessor.ImageDataset import ImageDatesetCombined
+from config import *
 
 
 class Preprocessor:
-    RAW = "raw"
-    A = "A"
-    B = "B"
-    PREPROCESSED = "preprocessed"
-
     def __init__(self, root_folder: str):
         self.root_folder = Path(root_folder)
-        self.raw_folder = self.root_folder / Preprocessor.RAW
-        self.processed_folder = self.root_folder / Preprocessor.PREPROCESSED
+        self.raw_folder = self.root_folder / RAW
+        self.processed_folder = self.root_folder / PREPROCESSED
         self.extractor = FaceExtractor()
 
     @property
@@ -36,19 +32,19 @@ class Preprocessor:
         self.processed_folder.mkdir()
 
         # dataset A
-        dataset_a = self.raw_folder / Preprocessor.A
+        dataset_a = self.raw_folder / A
 
         # should be only one
         for person_dir in dataset_a.iterdir():
-            target_dir = self.processed_folder / Preprocessor.A / person_dir.parts[-1]
+            target_dir = self.processed_folder / A / person_dir.parts[-1]
             self.process_person_folder(person_dir, target_dir)
 
         # and all the other person in dataset B
-        dataset_b = self.raw_folder / Preprocessor.B
+        dataset_b = self.raw_folder / B
 
         # should be only one
         for person_dir in dataset_b.iterdir():
-            target_dir = self.processed_folder / Preprocessor.B / person_dir.parts[-1]
+            target_dir = self.processed_folder / B / person_dir.parts[-1]
             self.process_person_folder(person_dir, target_dir)
 
     def process_person_folder(self, source, target):
@@ -60,7 +56,6 @@ class Preprocessor:
             target.mkdir(parents=True)
             for idx, image_path in enumerate(source.iterdir()):
                 # open image and extract facial region
-                img = None
                 try:
                     img = Image.open(image_path)
                 except OSError:
@@ -83,5 +78,5 @@ class Preprocessor:
         """
         if not self.processed_folder_exists:
             self.process_images()
-        return ImageDatesetCombined((self.processed_folder / Preprocessor.A).__str__(),
-                                    (self.processed_folder / Preprocessor.B).__str__())
+        return ImageDatesetCombined((self.processed_folder / A).__str__(),
+                                    (self.processed_folder / B).__str__())

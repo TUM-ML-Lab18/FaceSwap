@@ -1,8 +1,11 @@
 import _thread
 import datetime
 
+import random
 from tensorboardX import SummaryWriter
 from torchvision import utils as vutils
+
+from config import MOST_RECENT_MODEL
 
 
 def log_first_layer(net, writer, frame_idx):
@@ -25,10 +28,10 @@ class Logger:
         self.anonymizer = anonymizer
         self.save_model_every_nth = save_model_every_nth
 
-    def log(self, epoch, loss1, loss2, images):
-        _thread.start_new_thread(self.log_threaded, (self, epoch, loss1, loss2, images))
+    # def log(self, epoch, loss1, loss2, images):
+    #    _thread.start_new_thread(self.log_threaded, (epoch, loss1, loss2, images))
 
-    def log_threaded(self, epoch, loss1, loss2, images):
+    def log(self, epoch, loss1, loss2, images):
         new_time = datetime.datetime.now()
         self.writer.add_scalar("fps", self.steps_per_epoch * 1.0 / (new_time - self.t).total_seconds(), epoch)
         self.t = new_time
@@ -38,7 +41,7 @@ class Logger:
         if images and epoch % 20 == 0:
             examples = int(len(images[0]))
 
-            example_indices = range(examples)  # random.sample(range(0, examples - 1), 3)  #
+            example_indices = random.sample(range(0, examples - 1), 5)  # range(examples)  #
 
             trump = []
             cage = []
@@ -56,6 +59,7 @@ class Logger:
 
         if epoch % self.save_model_every_nth == 0 and epoch > 0:
             self.anonymizer.save_model(self.loggin_path)
+            self.anonymizer.save_model(MOST_RECENT_MODEL)
 
 
 def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):

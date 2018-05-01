@@ -108,9 +108,9 @@ class Trainer:
     def save_model(self, path):
         # Create subfolder for models
         path = Path(path)
-        subfolder = datetime.now().strftime('model__%Y%m%d_%H%M%S')
+        subfolder = "model"  # "#datetime.now().strftime('model__%Y%m%d_%H%M%S')
         path = path / subfolder
-        path.mkdir(parents=True)
+        path.mkdir(parents=True, exist_ok=True)
         self.encoder.save(path / 'encoder.model')
         self.decoder1.save(path / 'decoder1.model')
         self.decoder2.save(path / 'decoder2.model')
