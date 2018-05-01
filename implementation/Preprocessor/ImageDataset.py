@@ -13,7 +13,7 @@ class ImageDatesetCombined(Dataset):
 
         self.random_transforms = transforms.Compose([
             transforms.RandomAffine(degrees=(-10,10), translate=(0.05,0.05), scale=(0.95,1.05), shear=(-5,5)),
-            transforms.ColorJitter(brightness=0.25, contrast=0.25, saturation=0.1, hue=0.1),
+            transforms.ColorJitter(brightness=0.25, contrast=0.25, saturation=0.1, hue=0.05),
             transforms.RandomHorizontalFlip(),
         ])
         self.transforms = transforms.Compose([

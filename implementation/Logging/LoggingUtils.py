@@ -1,5 +1,5 @@
 import datetime
-from random import randint
+import random
 
 from tensorboardX import SummaryWriter
 from torchvision import utils as vutils
@@ -33,14 +33,21 @@ class Logger:
         self.writer.add_scalars("loss", {'lossA': loss1, 'lossB': loss2}, epoch)
 
         if images and epoch % 20 == 0:
-            rows = int(len(images) / 3)
-            processed_images = []
-            for i in range(rows):
-                rand = randint(0, len(images[0]) - 1)
+            examples = int(len(images[0]))
+
+            example_indices = range(examples)  # random.sample(range(0, examples - 1), 3)  #
+
+            trump = []
+            cage = []
+            for i in example_indices:
                 for j in range(3):
-                    processed_images.append(images[i * 3 + j].cpu()[rand] * 255.0)
-            grid = vutils.make_grid(processed_images, normalize=True, scale_each=True, nrow=3)
-            self.writer.add_image("sample_input", grid, epoch)
+                    trump.append(images[j].cpu()[i] * 255.00)
+                    cage.append(images[3 + j].cpu()[i] * 255.00)
+
+            trump_grid = vutils.make_grid(trump, normalize=True, scale_each=True, nrow=3)
+            cage_grid = vutils.make_grid(cage, normalize=True, scale_each=True, nrow=3)
+            self.writer.add_image("sample_input/trump", trump_grid, epoch)
+            self.writer.add_image("sample_input/cage", cage_grid, epoch)
 
         print(f"[Epoch {epoch}] loss1: {loss1}, loss2: {loss2}", end='\n')
 
