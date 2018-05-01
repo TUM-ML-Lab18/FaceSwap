@@ -4,51 +4,10 @@ from lib.umeyama import umeyama
 from PIL import Image
 import torchvision.transforms as transforms
 
-
-class RandomTransform(object):
-
-    def __init__(self, rotation_range=10, zoom_range=0.05, shift_range=0.05, hue_range=7, saturation_range=0.2,
-                 brightness_range=80, flip_probability=0.5):
-        """
-        :param rotation_range: Range within the image gets rotated randomly
-        :param zoom_range: Range within the image gets zoomed randomly
-        :param shift_range: Range within the image gets shifted randomly
-        :param hue_range: Range within the image's hue gets shifted randomly
-        :param saturation_range: Range within the image's saturation gets shifted randomly
-        :param brightness_range: Range within the image's brightness gets shifted randomly
-        :param flip_probability: Probability of a random flip of the image
-        """
-        self.rotation_range = rotation_range
-        self.zoom_range = zoom_range
-        self.shift_range = shift_range
-        self.hue_range = hue_range
-        self.saturation_range = saturation_range
-        self.brightness_range = brightness_range
-        self.flip_probability = flip_probability
-
-    def __call__(self, image):
-        rotation = np.random.uniform(-self.rotation_range, self.rotation_range)
-        scale = np.random.uniform(1 - self.zoom_range, 1 + self.zoom_range)
-        x_shift = np.random.uniform(-self.shift_range, self.shift_range) * 256
-        y_shift = np.random.uniform(-self.shift_range, self.shift_range) * 256
-
-        trans = cv2.getRotationMatrix2D((256 // 2, 256 // 2), rotation, scale)
-        trans[:, 2] += (x_shift, y_shift)
-        image = cv2.warpAffine(image, trans, (256, 256), borderMode=cv2.BORDER_REPLICATE)
-
-        if np.random.random() < self.flip_probability:
-            image = image[:, ::-1]
-
-        h, s, v = cv2.split(cv2.cvtColor(image, cv2.COLOR_BGR2HSV))
-
-        h += np.random.uniform(-self.hue_range, self.hue_range)
-        s += np.random.uniform(-self.saturation_range, self.saturation_range)
-        v += np.random.uniform(-self.brightness_range, self.brightness_range)
-
-        return cv2.cvtColor(cv2.merge((h, s, v)), cv2.COLOR_HSV2BGR)
-
-
 class RandomWarp(object):
+    """
+    Class to apply random warps on PIL images
+    """
 
     def __init__(self, warp_factor=5):
         """
@@ -57,6 +16,16 @@ class RandomWarp(object):
         self.warp_factor = warp_factor
 
     def __call__(self, image):
+        """
+        Warps an PIL Image
+        :param image: Image to be warped
+        :return: PIL Image: Randomly warped image
+                 PIL Image: Affine transformed target (Umeyama)
+        """
+
+        # Convert PIL image into np.array
+        image = np.array(image)
+
         H, W, C = image.shape
 
         # Generate warped image
@@ -70,8 +39,8 @@ class RandomWarp(object):
         warp_mapx = mapx + np.random.normal(size=grid, scale=self.warp_factor)
         warp_mapy = mapy + np.random.normal(size=grid, scale=self.warp_factor)
         # Scale coarse mapping to fine mapping
-        interp_mapx = cv2.resize(warp_mapx, (H, W)).astype('float32')
-        interp_mapy = cv2.resize(warp_mapy, (H, W)).astype('float32')
+        interp_mapx = cv2.resize(warp_mapx, (W, H)).astype('float32')
+        interp_mapy = cv2.resize(warp_mapy, (W, H)).astype('float32')
         # Apply warping
         warped_image = cv2.remap(image, interp_mapx, interp_mapy, cv2.INTER_LINEAR)
 
@@ -86,51 +55,51 @@ class RandomWarp(object):
 
         # Warping makes border regions almost completely black
         # Create mapping larger than image and cut border regions (outer 10% of the image)
-        warped_image = warped_image[W // 10:W // 10 * 9, H // 10:H // 10 * 9]
+        warped_image = warped_image[H // 10:H // 10 * 9, W // 10:W // 10 * 9]
+
+        # Resize target on same size as cutted warped image
+        target_image = cv2.resize(target_image, warped_image.shape[:2])
+
+        # Convert np.arrays into PIL images
+        warped_image = Image.fromarray(warped_image.astype(np.uint8))
+        target_image = Image.fromarray(target_image.astype(np.uint8))
 
         return warped_image, target_image
 
-
-class Resize(object):
-
+class TupleResize(object):
+    """
+    Class to resize a tuple of images
+    """
     def __init__(self, resolution=(256, 256)):
         """
-        :param resolution: Resolution to scale the image to
+        :param resolution: Resolution to scale the tuple of images to
         """
         self.resolution = resolution
-
-    def __call__(self, image):
-        return cv2.resize(image, self.resolution)
-
-
-class ResizeTuple(object):
-
-    def __init__(self, resolution=(256, 256)):
-        """
-        :param resolution: Resolution to scale the image to
-        """
-        self.resolution = resolution
+        self.resize = transforms.Resize(self.resolution)
 
     def __call__(self, image_tuple):
-        return cv2.resize(image_tuple[0], self.resolution), cv2.resize(image_tuple[1], self.resolution)
+        """
+
+        :param image_tuple: Images to be resized
+        :return: Tuple of resized images
+        """
+        return self.resize(image_tuple[0]), self.resize(image_tuple[1])
 
 
-class ToTensor(object):
-
+class TupleToTensor(object):
+    """
+    Class to convert tuples of images into tensors
+    """
     def __init__(self):
+        """
+        Initializer for TupleToTensor class
+        """
         self.toTensor = transforms.ToTensor()
 
     def __call__(self, image_tuple):
+        """
+
+        :param image_tuple: Images to be converted in tensors
+        :return: Tuple of tensors
+        """
         return self.toTensor(image_tuple[0]), self.toTensor(image_tuple[1])
-
-
-class ToPIL(object):
-
-    def __call__(self, images):
-        return tuple(map(lambda x: Image.fromarray(x.astype(np.uint8)), images))
-
-
-class FromPIL(object):
-
-    def __call__(self, image):
-        return np.asarray(image).astype(np.float32)
