@@ -8,7 +8,7 @@ from torchvision.datasets import ImageFolder
 from torchvision.transforms import ToTensor, Resize, Compose, ToPILImage
 
 from FaceAnonymizer.Trainer import Trainer
-from FaceExtractor import FaceExtractor
+from Preprocessor.FaceExtractor import FaceExtractor
 
 
 class Anonymizer:

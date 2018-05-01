@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from FaceExtractor import FaceExtractor
+from Preprocessor.FaceExtractor import FaceExtractor
 from Logging.LoggingUtils import print_progress_bar
 from Preprocessor.ImageDataset import ImageDatesetCombined
 
@@ -60,12 +60,16 @@ class Preprocessor:
             target.mkdir(parents=True)
             for idx, image_path in enumerate(source.iterdir()):
                 # open image and extract facial region
-                img = Image.open(image_path)
+                img = None
+                try:
+                    img = Image.open(image_path)
+                except OSError:
+                    continue
                 extracted_information = self.extractor(np.asarray(img).astype(np.uint8))
                 # if there was an face save the extracted part now in the processed folder
                 if extracted_information is not None:
                     extracted_image = Image.fromarray(extracted_information.image)
-                    extracted_image.save(target / image_path.parts[-1])
+                    extracted_image.save(target / image_path.parts[-1], format='JPEG')
 
                 print_progress_bar(idx, images_count)
             print()

@@ -11,6 +11,8 @@ CONVERTER_OUTPUT = "/converter_output"
 
 PROCESSED_IMAGES = TRUMP_CAGE_BASE + "/" + Preprocessor.PREPROCESSED
 
+IMAGE_DOWNLOADER = "/nfs/students/summer-term-2018/project_2/data/ImageDownloader"
+
 SAMPLE_MODEL = "./logs/2018-04-30 19:17:57.111530/model__20180430_201412"
 
 

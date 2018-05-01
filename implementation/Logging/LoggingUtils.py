@@ -1,5 +1,5 @@
+import _thread
 import datetime
-import random
 
 from tensorboardX import SummaryWriter
 from torchvision import utils as vutils
@@ -26,6 +26,9 @@ class Logger:
         self.save_model_every_nth = save_model_every_nth
 
     def log(self, epoch, loss1, loss2, images):
+        _thread.start_new_thread(self.log_threaded, (self, epoch, loss1, loss2, images))
+
+    def log_threaded(self, epoch, loss1, loss2, images):
         new_time = datetime.datetime.now()
         self.writer.add_scalar("fps", self.steps_per_epoch * 1.0 / (new_time - self.t).total_seconds(), epoch)
         self.t = new_time
