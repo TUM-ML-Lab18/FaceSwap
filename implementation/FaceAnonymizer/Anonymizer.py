@@ -41,9 +41,9 @@ class Anonymizer:
         """
         for idx, (oringinal_img, _) in enumerate(self.image_dataset):
             # extract information from image
-            extracted_information = self.extractor(np.array(oringinal_img))
+            extracted_information = self.extractor(oringinal_img)
 
-            network_input = Image.fromarray(extracted_information.image)
+            network_input = extracted_information.image
             network_input.save(self.output_folder.__str__() + "/" + str(idx) + "_network_input.jpg", "JPEG")
             border = extracted_information.bounding_box
             network_input = self.to_tensor(network_input)
