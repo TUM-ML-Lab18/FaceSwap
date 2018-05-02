@@ -5,17 +5,19 @@ from collections import namedtuple
 from PIL import Image
 
 BoundingBox = namedtuple('BoundingBox', ('left', 'right', 'top', 'bottom'))
-ExtractedFace = namedtuple('ExtractedFace', ('image', 'bounding_box', 'face_landmarks'))
+ExtractedFace = namedtuple('ExtractedFace', ('image', 'bounding_box', 'face_landmarks', 'rotation_matrix'))
 
 
 class FaceExtractor(object):
-    def __init__(self, padding=True, margin=5):
+    def __init__(self, padding=True, alignment=True, margin=5):
         """
         Initializer for a FaceExtractor object
         :param padding: Boolean flag if image is padded to square image
+        :param alignment: Boolean flag if image is aligned with the positions of the eyes
         :param margin: Specify the margin between the bounding box and the landmarks in percent
         """
         self.padding = padding
+        self.alignment = alignment
         self.margin = margin
 
     def __call__(self, image):
@@ -25,19 +27,32 @@ class FaceExtractor(object):
         :return: Extracted PIL image, bounding box, face landmarks as named tuple
                  None if no face is detected
         """
+        image_face = None
+        bounding_box = None
+        face_landmarks = None
+        R = None
+
         # Convert PIL image into np.array
         image = np.array(image)
-        extracted_face = None
         face_landmarks = self.extract_face_landmarks(image)
         if face_landmarks is not None:
+            if self.alignment:
+                R = self.calculcate_rotation(face_landmarks)
+                image = self.rotate_image(image, R)
+                rotated_landmarks = self.rotate_landmarks(face_landmarks, R)
+                # Recalculate face landmarks on aligned image
+                face_landmarks = self.extract_face_landmarks(image)
+                # If no face landmarks could be extracted from the aligned image => use transformed landmarks
+                if face_landmarks is None:
+                    face_landmarks = rotated_landmarks
             bounding_box = self.calculate_bounding_box(face_landmarks)
             image_face = self.crop(image, bounding_box)
             if self.padding:
                 image_face = self.pad(image_face)
             image_face = Image.fromarray(image_face)
-            extracted_face = ExtractedFace(image=image_face, bounding_box=bounding_box, face_landmarks=face_landmarks)
 
-        return extracted_face
+        return ExtractedFace(image=image_face, bounding_box=bounding_box, face_landmarks=face_landmarks,
+                                           rotation_matrix=R)
 
     def extract_face_landmarks(self, image):
         """
@@ -51,7 +66,7 @@ class FaceExtractor(object):
     def calculate_bounding_box(self, face_landmarks):
         """
         Calculate the bounding box with a margin for the given landmarks
-        :param face_landmarks: Coordinates of the facial landmarks
+        :param face_landmarks: Coordinates of the facial landmarks (dict)
         :return: BoundingBox as named tuple with left, right, bottom, top
         """
         # Extract coordinates from landmarks dict via list comprehension
@@ -121,3 +136,61 @@ class FaceExtractor(object):
                                     value=color)
 
         return image
+
+    def calculcate_rotation(self, face_landmarks):
+        """
+        Calculates the rotation matrix to align the face from eye coordinates
+        :param face_landmarks: Coordinates of the facial landmarks (dict)
+        :return: cv2 rotation matrix
+        """
+        """ DEPRECATED: Alignment with PCA
+        # Extract the coordinates of the eyes
+        coords_eyes = np.array(face_landmarks['left_eye'] + face_landmarks['right_eye'])
+        # Center of eye coordinates as rotation center
+        center = np.mean(coords_eyes, axis=0)
+        # PCA
+        cov = np.cov((coords_eyes-center).T)
+        eig_vals, eig_vecs = np.linalg.eig(cov)
+        # Select eigenvector corresponding to largest eigenvalue
+        x,y = eig_vecs[:, np.argmax(eig_vals)]
+        """
+        # Calculcate centers of the eyes
+        center_right_eye = np.mean(face_landmarks['right_eye'], axis=0)
+        center_left_eye = np.mean(face_landmarks['left_eye'], axis=0)
+        # Components of the vector between both eyes
+        x, y = center_right_eye - center_left_eye
+        # Calculate rotation angle with x & y component of the vector
+        angle = np.rad2deg(np.arctan2(y, x))
+        return cv2.getRotationMatrix2D(tuple(center_left_eye), angle, 1.0)
+
+    def rotate_image(self, image, R):
+        """
+        Rotates an image with the given rotation matrix
+        :param image: np.array / cv2 image
+        :param R: cv2 rotation matrix
+        :return: Rotated image
+        """
+        H, W, C = image.shape
+        return cv2.warpAffine(image, R, (W,H))
+
+    def rotate_landmarks(self, face_landmarks, R):
+        """
+        :param landmarks: Coordinates of the facial landmarks (dict)
+        :param R: cv2 rotation matrix
+        :return: Dict with rotated landmarks
+        """
+        rotated_landmarks = {}
+        for feature in face_landmarks:
+            n = len(face_landmarks[feature])
+            # Stack coordinates into an array
+            coords = np.array(face_landmarks[feature]).T
+            # Augment coordinates with ones -> homogenous coordinates
+            coords = np.vstack((coords, np.ones((1,n))))
+            # Transform via rotation matrix
+            coords = np.dot(R, coords)
+            # Landmarks have to be integers
+            coords = np.round(coords).astype(int)
+            # Resort it again as a list of tuples and store it in the dict
+            rotated_landmarks[feature] = [tuple(coordinate) for coordinate in coords.T]
+
+        return rotated_landmarks
