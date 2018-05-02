@@ -6,5 +6,5 @@ if __name__ == '__main__':
     p = Preprocessor(TRUMP_CAGE_BASE)
     data = p.dataset
 
-    model = Trainer(data)
+    model = Trainer(data, batch_size=64)
     model.train()

@@ -42,15 +42,17 @@ class Logger:
             examples = int(len(images[0]))
 
             example_indices = random.sample(range(0, examples - 1), 5)  # range(examples)  #
+            anonymized_images = self.anonymizer.anonymize(images[2][example_indices])
 
             trump = []
             cage = []
-            for i in example_indices:
+            for idx, i in enumerate(example_indices):
                 for j in range(3):
                     trump.append(images[j].cpu()[i] * 255.00)
                     cage.append(images[3 + j].cpu()[i] * 255.00)
+                trump.append(anonymized_images.cpu()[idx] * 255.00)
 
-            trump_grid = vutils.make_grid(trump, normalize=True, scale_each=True, nrow=3)
+            trump_grid = vutils.make_grid(trump, normalize=True, scale_each=True, nrow=4)
             cage_grid = vutils.make_grid(cage, normalize=True, scale_each=True, nrow=3)
             self.writer.add_image("sample_input/trump", trump_grid, epoch)
             self.writer.add_image("sample_input/cage", cage_grid, epoch)

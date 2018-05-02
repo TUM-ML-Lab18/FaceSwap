@@ -16,6 +16,6 @@ PROCESSED_IMAGES = TRUMP_CAGE_BASE + "/" + PREPROCESSED
 
 IMAGE_DOWNLOADER = "/nfs/students/summer-term-2018/project_2/data/ImageDownloader"
 
-SAMPLE_MODEL = "./logs/2018-04-30 19:17:57.111530/model__20180430_201412"
+SAMPLE_MODEL = "./model"
 
 MOST_RECENT_MODEL = "."
