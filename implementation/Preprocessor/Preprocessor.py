@@ -63,7 +63,7 @@ class Preprocessor:
                 extracted_information = self.extractor(np.asarray(img).astype(np.uint8))
                 # if there was an face save the extracted part now in the processed folder
                 if extracted_information is not None:
-                    extracted_image = Image.fromarray(extracted_information.image)
+                    extracted_image = extracted_information.image
                     extracted_image.save(target / image_path.parts[-1], format='JPEG')
 
                 print_progress_bar(idx, images_count)
