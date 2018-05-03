@@ -4,6 +4,7 @@ import torchvision.transforms as transforms
 from Preprocessor.Transforms import RandomWarp, TupleToTensor, TupleResize
 from PIL.Image import BICUBIC
 
+
 class ImageDatesetCombined(Dataset):
     def __init__(self, dataset_a, dataset_b, size_multiplicator=10):
         """
@@ -28,9 +29,12 @@ class ImageDatesetCombined(Dataset):
         self.dataset_a = ImageFolder(dataset_a, transform=self.transforms)
         self.dataset_b = ImageFolder(dataset_b, transform=self.transforms)
 
+        self.histogram = [0] * min(len(self.dataset_a), len(self.dataset_b))
+
     def __len__(self):
         return min(len(self.dataset_a), len(self.dataset_b)) * self.size_multiplicator
 
     def __getitem__(self, i):
-        i %= self.size_multiplicator
+        i %= min(len(self.dataset_a), len(self.dataset_b))
+        self.histogram[i] += 1
         return self.dataset_a[i][0], self.dataset_b[i][0]
