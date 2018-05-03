@@ -51,6 +51,7 @@ class FaceExtractor(object):
                 if face_landmarks is None:
                     face_landmarks = rotated_landmarks
             bounding_box = calculate_bounding_box(face_landmarks, self.margin)
+            bounding_box = limit_bounding_box(image.shape, bounding_box)
             image_face = crop(image, bounding_box)
             image_face = pad_image(image_face) if self.padding else image_face
             if self.mask:
@@ -105,13 +106,15 @@ def calculate_bounding_box(face_landmarks, margin=5):
 
     return BoundingBox(left=left, right=right, top=top, bottom=bottom)
 
-def limit_bounding_box(image, bounding_box):
+def limit_bounding_box(image_shape, bounding_box):
     """
     Limits the bounding box to the size of the image
-    :param image: np.array / cv2 image
+    :param image_shape: Shape of the image (H,W,C)
     :param bounding_box: named_tuple
     :return: BoundingBox as named tuple with left, right, bottom, top
     """
+    H, W, C = image_shape
+
     left = bounding_box.left
     right = bounding_box.right
     top = bounding_box.top
@@ -119,8 +122,8 @@ def limit_bounding_box(image, bounding_box):
 
     left = 0 if left < 0 else left
     top = 0 if top < 0 else top
-    right = image.shape[1] - 1 if right >= image.shape[1] else right
-    bottom = image.shape[0] - 1 if bottom >= image.shape[0] else bottom
+    right = W - 1 if right >= W else right
+    bottom = H - 1 if bottom >= H else bottom
 
     return BoundingBox(left=left, right=right, top=top, bottom=bottom)
 
@@ -132,7 +135,6 @@ def crop(image, bounding_box):
     :param bounding_box: named tuple with bounding box coordinates
     :return: Cropped region
     """
-    bounding_box = limit_bounding_box(image, bounding_box)
     return image[bounding_box.top:bounding_box.bottom, bounding_box.left:bounding_box.right]
 
 def pad_image(image, color=[0,0,0]):
@@ -286,3 +288,24 @@ def pad_mask(mask):
     mask = mask.astype(dtype)
 
     return mask
+
+def merge_face_image(face, image, mask):
+    """
+    Merges a face on an image corresponding to the mask
+    :param face: PIL image of the generated face
+    :param image: PIL image with the original face
+    :param mask: np.array
+    :return: Image with merged face
+    """
+    # Convert PIL into np.array
+    face = np.array(face)
+    image = np.array(image)
+    # Check type of mask
+    if np.bool == mask.dtype:
+        masked_image = np.where(mask[:,:,None], face, image)
+    if np.float == mask.dtype:
+        masked_image = mask[:,:,None] * face + (1-mask[:,:,None]) * image
+        masked_image = masked_image.astype(np.uint8)
+    # Reconvert np.array into PIL
+    masked_image = Image.fromarray(masked_image)
+    return masked_image
