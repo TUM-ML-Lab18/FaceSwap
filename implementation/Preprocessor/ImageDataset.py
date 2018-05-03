@@ -2,7 +2,7 @@ from torch.utils.data import Dataset
 from torchvision.datasets import ImageFolder
 import torchvision.transforms as transforms
 from Preprocessor.Transforms import RandomWarp, TupleToTensor, TupleResize
-from PIL.Image import BICUBIC
+from PIL.Image import BICUBIC, LANCZOS
 
 class ImageDatesetCombined(Dataset):
     def __init__(self, dataset_a, dataset_b, size_multiplicator=10):
@@ -21,7 +21,7 @@ class ImageDatesetCombined(Dataset):
         self.transforms = transforms.Compose([
             self.random_transforms,
             RandomWarp(),
-            TupleResize((64, 64)),
+            TupleResize((64, 64), resample=LANCZOS),
             TupleToTensor(),
         ])
 
