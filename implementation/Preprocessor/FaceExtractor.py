@@ -51,7 +51,7 @@ class FaceExtractor(object):
                 if face_landmarks is None:
                     face_landmarks = rotated_landmarks
             bounding_box = calculate_bounding_box(face_landmarks, self.margin)
-            bounding_box = limit_bounding_box(image.shape, bounding_box)
+            bounding_box = limit_bounding_box(image.shape[:2], bounding_box)
             image_face = crop(image, bounding_box)
             image_face = pad_image(image_face) if self.padding else image_face
             if self.mask:
@@ -109,11 +109,11 @@ def calculate_bounding_box(face_landmarks, margin=5):
 def limit_bounding_box(image_shape, bounding_box):
     """
     Limits the bounding box to the size of the image
-    :param image_shape: Shape of the image (H,W,C)
+    :param image_shape: Shape of the image (H,W)
     :param bounding_box: named_tuple
     :return: BoundingBox as named tuple with left, right, bottom, top
     """
-    H, W, C = image_shape
+    H, W = image_shape
 
     left = bounding_box.left
     right = bounding_box.right
@@ -145,7 +145,7 @@ def pad_image(image, color=[0,0,0]):
     :param color: list with RGB channels
     :return: Padded image
     """
-    H, W, C = image.shape
+    H, W = image.shape[:2]
 
     output_resolution = max(H,W)
     dH = output_resolution - H
@@ -192,7 +192,7 @@ def rotate_image(image, R):
     :param R: cv2 rotation matrix
     :return: Rotated image
     """
-    H, W, C = image.shape
+    H, W = image.shape[:2]
     return cv2.warpAffine(image, R, (W,H))
 
 def rotate_landmarks(face_landmarks, R):
