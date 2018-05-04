@@ -42,8 +42,13 @@ class Anonymizer:
         face_out = ToPILImage()(face_out.cpu().detach())
         # scale to original resolution
         face_out = face_out.resize(extracted_information.image.size, resample=BICUBIC)
+        # TODO: Clean solution -> no hacks
+        # reduce mask size
+        kernel = np.ones((5, 5), np.uint8)
+        mask_reduced = cv2.erode(extracted_information.mask, kernel, iterations=5)
+        mask_reduced = cv2.GaussianBlur(mask_reduced, (25,25), 0)
         # merge face in original image
-        image = merge_face_image(face_out, extracted_information.image_unmasked, extracted_information.mask)
+        image = merge_face_image(face_out, extracted_information.image_unmasked, mask_reduced)
 
         return image
 
