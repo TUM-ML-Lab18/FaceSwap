@@ -79,7 +79,7 @@ class TupleResize(object):
         :param resolution: Resolution to scale the tuple of images to
         """
         self.resolution = resolution
-        self.resize = transforms.Resize(self.resolution, interpolation=Image.BICUBIC)
+        self.resize = transforms.Resize(self.resolution, interpolation=BICUBIC)
 
     def __call__(self, image_tuple):
         """
