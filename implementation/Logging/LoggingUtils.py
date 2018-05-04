@@ -43,7 +43,7 @@ class Logger:
 
             example_indices = random.sample(range(0, examples - 1), 5)  # range(examples)  #
             anonymized_images_trump = self.anonymizer.anonymize(images[2][example_indices])
-            anonymized_images_cage = self.anonymizer.anonymize(images[5][example_indices])
+            anonymized_images_cage = self.anonymizer.anonymize_2(images[5][example_indices])
 
             trump = []
             cage = []
