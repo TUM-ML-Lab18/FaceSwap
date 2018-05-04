@@ -67,6 +67,9 @@ class Logger:
             self.anonymizer.save_model(self.loggin_path)
             self.anonymizer.save_model(MOST_RECENT_MODEL)
 
+    def log_config(self, config):
+        self.writer.add_text("config", str(config).replace('\n', '\n\t'))
+
 
 def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):
     """

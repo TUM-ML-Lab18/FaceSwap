@@ -6,7 +6,7 @@ from PIL import Image
 from PIL.Image import BICUBIC, LANCZOS
 from torchvision.transforms import ToTensor, ToPILImage
 
-from FaceAnonymizer.Trainer import Trainer
+from FaceAnonymizer.models.DeepFakeOriginal import DeepFakeOriginal
 from Preprocessor.FaceExtractor import FaceExtractor
 
 
@@ -16,7 +16,7 @@ class Anonymizer:
         :param model_folder: Path to models folder.
         """
         self.model_folder = Path(model_folder)
-        self.model = Trainer(None)
+        self.model = DeepFakeOriginal(None)
         self.model.load_model(self.model_folder)
 
         # use extractor and transform later get correct input for network

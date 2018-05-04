@@ -3,4 +3,4 @@
 # Author: Alexander Becker
 #
 
-#from .Trainer import Trainer
+#from .DeepFakeOriginal import DeepFakeOriginal
