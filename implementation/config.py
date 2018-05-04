@@ -11,6 +11,7 @@ CAGE = "/cage"
 SMALL = "_small"
 
 MERKEL_KLUM_BASE = "/nfs/students/summer-term-2018/project_2/data/Merkel_Klum"
+BARDEM_MORGAN_BASE = "/nfs/students/summer-term-2018/project_2/data/Bardem_Morgan"
 
 CONVERTER_BASE = "/nfs/students/summer-term-2018/project_2/data/converter"
 CONVERTER_INPUT = "/test_converter_images"
