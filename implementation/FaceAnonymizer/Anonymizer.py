@@ -8,15 +8,16 @@ from torchvision.transforms import ToTensor, ToPILImage
 
 from FaceAnonymizer.models.DeepFakeOriginal import DeepFakeOriginal
 from Preprocessor.FaceExtractor import FaceExtractor
+from config import deep_fake_config
 
 
 class Anonymizer:
-    def __init__(self, model_folder: str) -> None:
+    def __init__(self, model_folder: str, config=deep_fake_config) -> None:
         """
         :param model_folder: Path to models folder.
         """
         self.model_folder = Path(model_folder)
-        self.model = DeepFakeOriginal(None)
+        self.model = DeepFakeOriginal(None, **config['model_arguments'])
         self.model.load_model(self.model_folder)
 
         # use extractor and transform later get correct input for network
