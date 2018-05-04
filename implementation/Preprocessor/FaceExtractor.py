@@ -5,8 +5,10 @@ from collections import namedtuple
 from PIL import Image
 
 BoundingBox = namedtuple('BoundingBox', ('left', 'right', 'top', 'bottom'))
-ExtractedFace = namedtuple('ExtractedFace', ('image', 'image_unmasked', 'bounding_box', 'face_landmarks', 'rotation', 'mask'))
+ExtractedFace = namedtuple('ExtractedFace',
+                           ('image', 'image_unmasked', 'bounding_box', 'face_landmarks', 'rotation', 'mask'))
 Rotation = namedtuple('Rotation', ('angle', 'center'))
+
 
 class FaceExtractor(object):
     def __init__(self, padding=True, alignment=True, mask=np.float, margin=5):
@@ -76,6 +78,7 @@ def extract_face_landmarks(image):
     face_landmarks = face_recognition.face_landmarks(image)
     return face_landmarks[0] if face_landmarks else None
 
+
 def extract_landmark_coordinates(face_landmarks):
     """
     Extractes the coordinates of the landmarks from the landmarks dictionary
@@ -86,6 +89,7 @@ def extract_landmark_coordinates(face_landmarks):
     face_landmarks_coordinates = [coordinate for feature in list(face_landmarks.values()) for
                                   coordinate in feature]
     return face_landmarks_coordinates
+
 
 def calculate_bounding_box(face_landmarks, margin=5):
     """
@@ -108,6 +112,7 @@ def calculate_bounding_box(face_landmarks, margin=5):
 
     return BoundingBox(left=left, right=right, top=top, bottom=bottom)
 
+
 def limit_bounding_box(image_shape, bounding_box):
     """
     Limits the bounding box to the size of the image
@@ -129,6 +134,7 @@ def limit_bounding_box(image_shape, bounding_box):
 
     return BoundingBox(left=left, right=right, top=top, bottom=bottom)
 
+
 def crop(image, bounding_box):
     """
     Crops region from image by defined bounding box
@@ -139,7 +145,8 @@ def crop(image, bounding_box):
     """
     return image[bounding_box.top:bounding_box.bottom, bounding_box.left:bounding_box.right]
 
-def pad_image(image, color=[0,0,0]):
+
+def pad_image(image, color=[0, 0, 0]):
     """
     Pads image with zeros to be squared
     inspired by https://jdhao.github.io/2017/11/06/resize-image-to-square-with-padding/
@@ -149,7 +156,7 @@ def pad_image(image, color=[0,0,0]):
     """
     H, W = image.shape[:2]
 
-    output_resolution = max(H,W)
+    output_resolution = max(H, W)
     dH = output_resolution - H
     dW = output_resolution - W
 
@@ -157,9 +164,10 @@ def pad_image(image, color=[0,0,0]):
     left, right = dW // 2, dW - (dW // 2)
 
     image = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT,
-                                value=color)
+                               value=color)
 
     return image
+
 
 def calculcate_rotation(face_landmarks):
     """
@@ -187,6 +195,7 @@ def calculcate_rotation(face_landmarks):
     angle = np.rad2deg(np.arctan2(y, x))
     return Rotation(angle=angle, center=tuple(center_left_eye))
 
+
 def rotate_image(image, R):
     """
     Rotates an image with the given rotation matrix
@@ -195,7 +204,8 @@ def rotate_image(image, R):
     :return: Rotated image
     """
     H, W = image.shape[:2]
-    return cv2.warpAffine(image, R, (W,H))
+    return cv2.warpAffine(image, R, (W, H))
+
 
 def rotate_landmarks(face_landmarks, R):
     """
@@ -209,7 +219,7 @@ def rotate_landmarks(face_landmarks, R):
         # Stack coordinates into an array
         coords = np.array(face_landmarks[feature]).T
         # Augment coordinates with ones -> homogenous coordinates
-        coords = np.vstack((coords, np.ones((1,n))))
+        coords = np.vstack((coords, np.ones((1, n))))
         # Transform via rotation matrix
         coords = np.dot(R, coords)
         # Landmarks have to be integers
@@ -219,17 +229,19 @@ def rotate_landmarks(face_landmarks, R):
 
     return rotated_landmarks
 
-def calculate_face_mask(face_landmarks, bounding_box, dtype=np.float):
+
+def calculate_face_mask(face_landmarks, bounding_box, dtype=np.float, margin=15):
     """
     Calculates a mask where in the image the face is located
     :param face_landmarks: Coordinates of the facial landmarks (dict)
     :param bounding_box: named tuple with bounding box coordinates
     :param dtype: Datatype of the created mask
+    :param margin: Margin to increase mask size in percent
     :return: Mask
     """
     H = bounding_box.bottom - bounding_box.top
     W = bounding_box.right - bounding_box.left
-    mask = np.zeros((H,W))
+    mask = np.zeros((H, W))
     face_landmarks_coordinates = np.array(extract_landmark_coordinates(face_landmarks))
     # Calculate relative landmark coordinates inside the bounding box
     face_landmarks_coordinates = face_landmarks_coordinates - [bounding_box.left, bounding_box.top]
@@ -237,6 +249,9 @@ def calculate_face_mask(face_landmarks, bounding_box, dtype=np.float):
     convex_hull = cv2.convexHull(face_landmarks_coordinates)
     # Fill convex hull -> our mask
     mask = cv2.fillConvexPoly(mask, convex_hull, 1)
+    # Dilate our mask -> make it bigger; Kernel size is (H,W) * margin [%]
+    kernel = np.ones((np.int(H * margin / 100), np.int(W * margin / 100)), np.uint8)
+    mask = cv2.dilate(mask, kernel, iterations=1)
 
     if np.bool == dtype:
         # Boolean mask for indexing
@@ -244,12 +259,10 @@ def calculate_face_mask(face_landmarks, bounding_box, dtype=np.float):
     if np.float == dtype:
         # Float mask for indexing allows soft transition
         mask = mask.astype(np.float)
-        # Dilate our mask -> make it bigger
-        kernel = np.ones((5, 5), np.uint8)
-        mask = cv2.dilate(mask, kernel, iterations=2)
         # Blur image to make transitions smooth
-        mask = cv2.GaussianBlur(mask, (25,25), 0)
+        mask = cv2.GaussianBlur(mask, (25, 25), 0)
     return mask
+
 
 def apply_face_mask(image, mask):
     """
@@ -259,11 +272,12 @@ def apply_face_mask(image, mask):
     :return: The masked image
     """
     if np.bool == mask.dtype:
-        masked_image = np.where(mask[:,:,None], image, 0)
+        masked_image = np.where(mask[:, :, None], image, 0)
     if np.float == mask.dtype:
-        masked_image = mask[:,:,None] * image
+        masked_image = mask[:, :, None] * image
         masked_image = masked_image.astype(np.uint8)
     return masked_image
+
 
 def pad_mask(mask):
     """
@@ -284,10 +298,9 @@ def pad_mask(mask):
     dtype = mask.dtype
     mask = mask.astype(np.float)
     # Pad mask manually with zeros
-    mask = np.vstack((np.zeros((top,W)), mask, np.zeros((bottom,W))))
-    mask = np.hstack((np.zeros((H+dH,left)), mask, np.zeros((H+dH,right))))
+    mask = np.vstack((np.zeros((top, W)), mask, np.zeros((bottom, W))))
+    mask = np.hstack((np.zeros((H + dH, left)), mask, np.zeros((H + dH, right))))
     # Restore old datatype
     mask = mask.astype(dtype)
 
     return mask
-
