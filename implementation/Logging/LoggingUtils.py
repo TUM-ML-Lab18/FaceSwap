@@ -57,6 +57,8 @@ class Logger:
             self.writer.add_image("sample_input/trump", trump_grid, epoch)
             self.writer.add_image("sample_input/cage", cage_grid, epoch)
 
+            #self.writer.add_histogram("images_used", self.anonymizer.data.histogram, epoch)
+
         print(f"[Epoch {epoch}] loss1: {loss1}, loss2: {loss2}", end='\n')
 
         if epoch % self.save_model_every_nth == 0 and epoch > 0:

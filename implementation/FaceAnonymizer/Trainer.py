@@ -31,6 +31,7 @@ class Trainer:
         - epochs: number of training epochs
         - learning_rate: learning rate
         """
+        self.data = data
         self.batch_size = batch_size
         self.learning_rate = learning_rate
 
@@ -46,10 +47,10 @@ class Trainer:
             self.autoencoder1 = DataParallel(self.autoencoder1)
             self.autoencoder2 = DataParallel(self.autoencoder2)
             self.batch_size *= torch.cuda.device_count()
-            data.size_multiplicator *= torch.cuda.device_count()
+            self.data.size_multiplicator *= torch.cuda.device_count()
 
         self.lossfn = torch.nn.L1Loss(size_average=True).cuda()
-        self.dataLoader = DataLoader(data, self.batch_size, shuffle=True, num_workers=12, drop_last=True,
+        self.dataLoader = DataLoader(self.data, self.batch_size, shuffle=True, num_workers=12, drop_last=True,
                                      pin_memory=True)
         self.epochs = epochs
 
@@ -57,9 +58,9 @@ class Trainer:
         logger = Logger(self.batch_size, self)
 
         optimizer1 = Adam(self.autoencoder1.parameters(), lr=self.learning_rate)
-        scheduler1 = ReduceLROnPlateau(optimizer1, 'min', verbose=True, patience=25, cooldown=50)
+        scheduler1 = ReduceLROnPlateau(optimizer1, 'min', threshold=1e-6, verbose=True, patience=100, cooldown=50)
         optimizer2 = Adam(self.autoencoder2.parameters(), lr=self.learning_rate)
-        scheduler2 = ReduceLROnPlateau(optimizer2, 'min', verbose=True, patience=25, cooldown=50)
+        scheduler2 = ReduceLROnPlateau(optimizer2, 'min', threshold=1e-6, verbose=True, patience=100, cooldown=50)
 
         for i_epoch in range(self.epochs):
             loss1_mean, loss2_mean = 0, 0
