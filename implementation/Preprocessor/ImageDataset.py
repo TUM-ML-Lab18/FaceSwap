@@ -22,7 +22,7 @@ class ImageDatesetCombined(Dataset):
         self.transforms = transforms.Compose([
             self.random_transforms,
             RandomWarp(),
-            TupleResize((64, 64), resample=LANCZOS),
+            TupleResize((64, 64)),
             TupleToTensor(),
         ])
 
