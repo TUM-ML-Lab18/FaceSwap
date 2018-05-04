@@ -75,4 +75,4 @@ class Preprocessor:
         self.process_images()
         return ImageDatesetCombined((self.processed_folder / A).__str__(),
                                     (self.processed_folder / B).__str__(),
-                                    )#**self.config['dataset_arguments'])
+                                    **self.config['dataset_arguments'])

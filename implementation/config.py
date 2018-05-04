@@ -55,5 +55,6 @@ sebis_config = {'model': DeepFakeOriginal,
                                     'scheduler_arguments': {'threshold': 1e-6, 'verbose': True, 'patience': 100,
                                                             'cooldown': 50},
                                     'optimizer_arguments': {'lr': 1e-4}},
+                'dataset_arguments': {'img_size': (128, 128)},
                 'batch_size': 64,
                 'num_epoch': 5000}
