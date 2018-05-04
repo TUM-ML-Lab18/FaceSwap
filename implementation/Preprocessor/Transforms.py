@@ -5,6 +5,7 @@ from PIL import Image
 from PIL.Image import BICUBIC
 import torchvision.transforms as transforms
 
+
 class RandomWarp(object):
     """
     Class to apply random warps on PIL images
@@ -67,16 +68,18 @@ class RandomWarp(object):
 
         return warped_image, target_image
 
+
 class TupleResize(object):
     """
     Class to resize a tuple of images
     """
+
     def __init__(self, resolution=(256, 256)):
         """
         :param resolution: Resolution to scale the tuple of images to
         """
         self.resolution = resolution
-        self.resize = transforms.Resize(self.resolution, resample=BICUBIC)
+        self.resize = transforms.Resize(self.resolution, interpolation=Image.BICUBIC)
 
     def __call__(self, image_tuple):
         """
@@ -91,6 +94,7 @@ class TupleToTensor(object):
     """
     Class to convert tuples of images into tensors
     """
+
     def __init__(self):
         """
         Initializer for TupleToTensor class

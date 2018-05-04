@@ -9,7 +9,6 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 # from fastai.dataloader import DataLoader # todo decide which dataloader we want to use
 from torch.utils.data import DataLoader
 from torch.optim import Adam
-from datetime import datetime
 from pathlib import Path
 
 from FaceAnonymizer.models.Decoder import Decoder
