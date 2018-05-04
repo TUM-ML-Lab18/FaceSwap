@@ -16,8 +16,7 @@ from FaceAnonymizer.models.Autoencoder import AutoEncoder
 
 
 class DeepFakeOriginal:
-    def __init__(self, data_loader, input_dim=(2, 64, 64), latent_dim=1024, encoder=Encoder,
-                 decoder=Decoder,
+    def __init__(self, data_loader, encoder=Encoder, encoder_arguments=None, decoder=Decoder, decoder_arguments=None,
                  auto_encoder=AutoEncoder, loss_function=torch.nn.L1Loss(size_average=True), scheduler_arguments=None,
                  optimizer_arguments=None):
         """
@@ -31,9 +30,9 @@ class DeepFakeOriginal:
         - learning_rate: learning rate
         """
         self.data_loader = data_loader
-        self.encoder = encoder(input_dim=input_dim, latent_dim=1024).cuda()
-        self.decoder1 = decoder(latent_dim=latent_dim // 2).cuda()
-        self.decoder2 = decoder(latent_dim=latent_dim // 2).cuda()
+        self.encoder = encoder(**encoder_arguments).cuda()
+        self.decoder1 = decoder(**decoder_arguments).cuda()
+        self.decoder2 = decoder(**decoder_arguments).cuda()
 
         self.autoencoder1 = auto_encoder(self.encoder, self.decoder1).cuda()
         self.autoencoder2 = auto_encoder(self.encoder, self.decoder2).cuda()

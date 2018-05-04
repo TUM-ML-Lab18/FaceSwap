@@ -6,7 +6,7 @@ from PIL.Image import BICUBIC, LANCZOS
 
 
 class ImageDatesetCombined(Dataset):
-    def __init__(self, dataset_a, dataset_b, size_multiplicator=10):
+    def __init__(self, dataset_a, dataset_b, size_multiplicator=10, img_size=(64, 64)):
         """
         :param root_dir:
         :param size_multiplicator:
@@ -22,7 +22,7 @@ class ImageDatesetCombined(Dataset):
         self.transforms = transforms.Compose([
             self.random_transforms,
             RandomWarp(),
-            TupleResize((64, 64)),
+            TupleResize(img_size),
             TupleToTensor(),
         ])
 

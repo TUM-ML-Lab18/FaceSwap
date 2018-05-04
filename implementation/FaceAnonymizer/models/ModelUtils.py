@@ -61,7 +61,7 @@ class UpscaleBlock(nn.Module):
         """
         super(UpscaleBlock, self).__init__()
         self.conv = nn.Conv2d(in_channels=in_channels,
-                              out_channels=out_channels*4,  # compensate PixelShuffle dimensionality reduction
+                              out_channels=out_channels * 4,  # compensate PixelShuffle dimensionality reduction
                               kernel_size=kernel_size,
                               stride=stride,
                               padding=(kernel_size - 1) // 2)
@@ -105,5 +105,19 @@ class View(nn.Module):
         return input.view(self.shape)
 
 
+class ConvBlockBlock(nn.Sequential):
+    def __init__(self, channels_in, num_channels_first_layer=128, depth=4):
+        block_list = [ConvBlock(channels_in, num_channels_first_layer)]
+        for i in range(1, depth):
+            block_list.append(
+                ConvBlock(num_channels_first_layer * (2 ** (i - 1)), num_channels_first_layer * (2 ** i)))
+        super().__init__(*block_list)
 
 
+class UpscaleBlockBlock(nn.Sequential):
+    def __init__(self, channels_in, num_channels_first_layer=256, depth=3):
+        block_list = [UpscaleBlock(channels_in, num_channels_first_layer)]
+        for i in range(1, depth):
+            block_list.append(
+                UpscaleBlock(num_channels_first_layer // (2 ** (i - 1)), num_channels_first_layer // (2 ** i)))
+        super().__init__(*block_list)

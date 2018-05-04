@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
 
-from FaceAnonymizer.models.ModelUtils import UpscaleBlock
+from FaceAnonymizer.models.ModelUtils import UpscaleBlock, UpscaleBlockBlock
 
 
 class Decoder(nn.Module):
-    def __init__(self, latent_dim):
+    def __init__(self, input_dim, num_convblocks=3):
         """
         Initialize a new decoder network.
 
@@ -13,10 +13,9 @@ class Decoder(nn.Module):
         - latent_dim: dimension of the latent space.
         """
         super(Decoder, self).__init__()
-        self.upscale_1 = UpscaleBlock(latent_dim, 256)
-        self.upscale_2 = UpscaleBlock(256, 128)
-        self.upscale_3 = UpscaleBlock(128, 64)
-        self.conv = nn.Conv2d(64, 3, kernel_size=5, padding=2)
+        self.upscale = UpscaleBlockBlock(input_dim, 256, num_convblocks)
+        resulting_channels = 256 // (2 ** (num_convblocks - 1))
+        self.conv = nn.Conv2d(resulting_channels, 3, kernel_size=5, padding=2)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
@@ -27,9 +26,7 @@ class Decoder(nn.Module):
         Inputs:
         - x: PyTorch input Variable
         """
-        x = self.upscale_1(x)
-        x = self.upscale_2(x)
-        x = self.upscale_3(x)
+        x = self.upscale(x)
         x = self.conv(x)
         x = self.sigmoid(x)
 

@@ -11,7 +11,8 @@ from config import *
 
 
 class Preprocessor:
-    def __init__(self, root_folder: str):
+    def __init__(self, root_folder: str, config=None):
+        self.config = config
         self.root_folder = Path(root_folder)
         self.raw_folder = self.root_folder / RAW
         self.processed_folder = self.root_folder / PREPROCESSED
@@ -73,4 +74,5 @@ class Preprocessor:
         """
         self.process_images()
         return ImageDatesetCombined((self.processed_folder / A).__str__(),
-                                    (self.processed_folder / B).__str__())
+                                    (self.processed_folder / B).__str__(),
+                                    )#**self.config['dataset_arguments'])

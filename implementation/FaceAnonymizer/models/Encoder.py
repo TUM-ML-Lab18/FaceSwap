@@ -3,10 +3,11 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
-from FaceAnonymizer.models.ModelUtils import ConvBlock, UpscaleBlock, Flatten, View
+from FaceAnonymizer.models.ModelUtils import ConvBlock, UpscaleBlock, Flatten, View, ConvBlockBlock
+
 
 class Encoder(nn.Module):
-    def __init__(self, input_dim, latent_dim):
+    def __init__(self, input_dim, latent_dim, num_convblocks=4):
         """
         Initialize a new encoder network.
 
@@ -16,12 +17,7 @@ class Encoder(nn.Module):
         """
         super(Encoder, self).__init__()
         C, H, W = input_dim
-        self.conv = nn.Sequential(
-            ConvBlock(C, 128),
-            ConvBlock(128, 256),
-            ConvBlock(256, 512),
-            ConvBlock(512, 1024)
-        )
+        self.conv = ConvBlockBlock(C, 128, num_convblocks)
         self.flat = Flatten()
         self.fc_1 = nn.Linear(self._get_conv_out(input_dim),
                               out_features=latent_dim)
@@ -86,3 +82,8 @@ class Encoder(nn.Module):
         """
         print('Loading model... %s' % path)
         self.load_state_dict(torch.load(path, map_location=lambda storage, loc: storage))
+
+
+class SebisEncoder(Encoder):
+    def __init__(self, input_dim, latent_dim):
+        super(SebisEncoder, self).__init__(input_dim, latent_dim)

@@ -30,14 +30,30 @@ SAMPLE_MODEL = "./model"
 MOST_RECENT_MODEL = "."
 
 deep_fake_config = {'model': DeepFakeOriginal,
-                    'model_arguments': {'input_dim': (3, 64, 64),
-                                        'latent_dim': 1024,
-                                        'encoder': Encoder,
+                    'model_arguments': {'encoder': Encoder,
+                                        'encoder_arguments': {'input_dim': (3, 64, 64), 'latent_dim': 1024,
+                                                              'num_convblocks': 4},
                                         'decoder': Decoder,
+                                        'decoder_arguments': {'input_dim': 512, 'num_convblocks': 3},
                                         'auto_encoder': AutoEncoder,
                                         'loss_function': torch.nn.L1Loss(size_average=True),
                                         'scheduler_arguments': {'threshold': 1e-6, 'verbose': True, 'patience': 100,
                                                                 'cooldown': 50},
                                         'optimizer_arguments': {'lr': 1e-4}},
+                    'dataset_arguments': {'img_size': (64, 64)},
                     'batch_size': 64,
                     'num_epoch': 5000}
+
+sebis_config = {'model': DeepFakeOriginal,
+                'model_arguments': {'encoder': Encoder,
+                                    'encoder_arguments': {'input_dim': (3, 128, 128), 'latent_dim': 1024,
+                                                          'num_convblocks': 5},
+                                    'decoder': Decoder,
+                                    'decoder_arguments': {'input_dim': 512, 'num_convblocks': 4},
+                                    'auto_encoder': AutoEncoder,
+                                    'loss_function': torch.nn.L1Loss(size_average=True),
+                                    'scheduler_arguments': {'threshold': 1e-6, 'verbose': True, 'patience': 100,
+                                                            'cooldown': 50},
+                                    'optimizer_arguments': {'lr': 1e-4}},
+                'batch_size': 64,
+                'num_epoch': 5000}
