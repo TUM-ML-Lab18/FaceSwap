@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from lib.umeyama import umeyama
 from PIL import Image
+from PIL.Image import BICUBIC
 import torchvision.transforms as transforms
 
 class RandomWarp(object):
@@ -42,7 +43,7 @@ class RandomWarp(object):
         interp_mapx = cv2.resize(warp_mapx, (W, H)).astype('float32')
         interp_mapy = cv2.resize(warp_mapy, (W, H)).astype('float32')
         # Apply warping
-        warped_image = cv2.remap(image, interp_mapx, interp_mapy, cv2.INTER_LINEAR)
+        warped_image = cv2.remap(image, interp_mapx, interp_mapy, cv2.INTER_CUBIC)
 
         # Generate target image
         # Define points correspondences between warped source map and linear destination map
@@ -58,7 +59,7 @@ class RandomWarp(object):
         warped_image = warped_image[H // 10:H // 10 * 9, W // 10:W // 10 * 9]
 
         # Resize target on same size as cutted warped image
-        target_image = cv2.resize(target_image, warped_image.shape[:2])
+        target_image = cv2.resize(target_image, warped_image.shape[:2], cv2.INTER_CUBIC)
 
         # Convert np.arrays into PIL images
         warped_image = Image.fromarray(warped_image.astype(np.uint8))
@@ -75,7 +76,7 @@ class TupleResize(object):
         :param resolution: Resolution to scale the tuple of images to
         """
         self.resolution = resolution
-        self.resize = transforms.Resize(self.resolution)
+        self.resize = transforms.Resize(self.resolution, resample=BICUBIC)
 
     def __call__(self, image_tuple):
         """

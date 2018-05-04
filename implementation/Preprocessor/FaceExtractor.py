@@ -5,7 +5,7 @@ from collections import namedtuple
 from PIL import Image
 
 BoundingBox = namedtuple('BoundingBox', ('left', 'right', 'top', 'bottom'))
-ExtractedFace = namedtuple('ExtractedFace', ('image', 'bounding_box', 'face_landmarks', 'rotation', 'mask'))
+ExtractedFace = namedtuple('ExtractedFace', ('image', 'image_unmasked', 'bounding_box', 'face_landmarks', 'rotation', 'mask'))
 Rotation = namedtuple('Rotation', ('angle', 'center'))
 
 class FaceExtractor(object):
@@ -30,6 +30,7 @@ class FaceExtractor(object):
                  None if no face is detected
         """
         image_face = None
+        image_unmasked = None
         bounding_box = None
         face_landmarks = None
         rotation = None
@@ -54,6 +55,7 @@ class FaceExtractor(object):
             bounding_box = limit_bounding_box(image.shape[:2], bounding_box)
             image_face = crop(image, bounding_box)
             image_face = pad_image(image_face) if self.padding else image_face
+            image_unmasked = image_face
             if self.mask:
                 # Mask image
                 mask = calculate_face_mask(face_landmarks, bounding_box, self.mask)
@@ -61,8 +63,8 @@ class FaceExtractor(object):
                 image_face = apply_face_mask(image_face, mask)
             image_face = Image.fromarray(image_face)
 
-        return ExtractedFace(image=image_face, bounding_box=bounding_box, face_landmarks=face_landmarks,
-                             rotation=rotation, mask=mask)
+        return ExtractedFace(image=image_face, image_unmasked=image_unmasked, bounding_box=bounding_box,
+                             face_landmarks=face_landmarks, rotation=rotation, mask=mask)
 
 
 def extract_face_landmarks(image):
@@ -289,23 +291,3 @@ def pad_mask(mask):
 
     return mask
 
-def merge_face_image(face, image, mask):
-    """
-    Merges a face on an image corresponding to the mask
-    :param face: PIL image of the generated face
-    :param image: PIL image with the original face
-    :param mask: np.array
-    :return: Image with merged face
-    """
-    # Convert PIL into np.array
-    face = np.array(face)
-    image = np.array(image)
-    # Check type of mask
-    if np.bool == mask.dtype:
-        masked_image = np.where(mask[:,:,None], face, image)
-    if np.float == mask.dtype:
-        masked_image = mask[:,:,None] * face + (1-mask[:,:,None]) * image
-        masked_image = masked_image.astype(np.uint8)
-    # Reconvert np.array into PIL
-    masked_image = Image.fromarray(masked_image)
-    return masked_image
