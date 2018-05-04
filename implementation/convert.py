@@ -1,5 +1,4 @@
 from FaceAnonymizer.Anonymizer import Anonymizer
-from config import CONVERTER_INPUT, SAMPLE_MODEL, CONVERTER_OUTPUT, CONVERTER_BASE
 from PIL import Image
 from pathlib import Path
 

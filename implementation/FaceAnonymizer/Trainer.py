@@ -105,6 +105,9 @@ class Trainer:
     def anonymize(self, x):
         return self.autoencoder2(x)
 
+    def anonymize_2(self, x):
+        return self.autoencoder1(x)
+
     # TODO: Use save & load functions from models -> memory independent (RAM vs GPU)
     def save_model(self, path):
         # Create subfolder for models

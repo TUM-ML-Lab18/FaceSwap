@@ -1,9 +1,9 @@
 from FaceAnonymizer.Trainer import Trainer
 from Preprocessor.Preprocessor import Preprocessor
-from config import TRUMP_CAGE_BASE
+from config import MERKEL_KLUM_BASE
 
 if __name__ == '__main__':
-    p = Preprocessor(TRUMP_CAGE_BASE)
+    p = Preprocessor(MERKEL_KLUM_BASE)
     data = p.dataset
 
     model = Trainer(data, batch_size=64)

@@ -1,5 +1,3 @@
-import cv2
-import shutil
 from pathlib import Path
 
 import numpy as np
