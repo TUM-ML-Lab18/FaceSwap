@@ -33,11 +33,11 @@ class Anonymizer:
         # Cut face
         extracted_information = self.extractor(image)
         # Resize to 64x64
-        face_in = extracted_information.image.resize((64,64), resample=LANCZOS)
+        face_in = extracted_information.image.resize((128,128), resample=LANCZOS)
         # Transform into tensor
         face_in = ToTensor()(face_in)
         # feed into network
-        face_out = self.model.anonymize(face_in.unsqueeze(0).cuda()).squeeze(0)
+        face_out = self.model.anonymize_2(face_in.unsqueeze(0).cuda()).squeeze(0)
         # get it back to the cpu and get the data
         face_out = ToPILImage()(face_out.cpu().detach())
         # scale to original resolution

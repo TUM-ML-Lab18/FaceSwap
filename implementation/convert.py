@@ -2,10 +2,10 @@ from FaceAnonymizer.Anonymizer import Anonymizer
 from PIL import Image
 from pathlib import Path
 
-from config import deep_fake_config
+from config import deep_fake_config, sebis_config
 
 if __name__ == '__main__':
-    anonymizer = Anonymizer(model_folder='./model/', config=deep_fake_config)
+    anonymizer = Anonymizer(model_folder='./logs/2018-05-04 19:53:08.349138/model', config=sebis_config)
     path = Path('/nfs/students/summer-term-2018/project_2/test/')
     path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')
     for image_file in path.iterdir():
