@@ -16,7 +16,7 @@ class Preprocessor:
         self.root_folder = Path(root_folder)
         self.raw_folder = self.root_folder / RAW
         self.processed_folder = self.root_folder / PREPROCESSED
-        self.extractor = FaceExtractor(mask=np.bool, margin=0)
+        self.extractor = FaceExtractor(mask_type=np.bool, margin=0.05)
 
     def process_images(self):
         """
@@ -56,10 +56,9 @@ class Preprocessor:
                     img = Image.open(image_path)
                 except OSError:
                     continue
-                extracted_information = self.extractor(img)  # np.asarray(img).astype(np.uint8))
+                extracted_image, extracted_information = self.extractor(img)
                 # if there was an face save the extracted part now in the processed folder
-                if extracted_information.image is not None:
-                    extracted_image = extracted_information.image
+                if extracted_image is not None:
                     extracted_image.save(target / image_path.parts[-1], format='JPEG')
 
                 print_progress_bar(idx, images_count)
