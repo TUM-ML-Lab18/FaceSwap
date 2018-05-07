@@ -12,6 +12,8 @@ SMALL = "_small"
 
 MERKEL_KLUM_BASE = "/nfs/students/summer-term-2018/project_2/data/Merkel_Klum"
 BARDEM_MORGAN_BASE = "/nfs/students/summer-term-2018/project_2/data/Bardem_Morgan"
+MERKEL_TRUMP_NORMAL_BASE = "/nfs/students/summer-term-2018/project_2/data/Merkel_Trump_normal"
+MERKEL_TRUMP_NO_MASK_BASE = "/nfs/students/summer-term-2018/project_2/data/Merkel_Trump_no_mask"
 
 CONVERTER_BASE = "/nfs/students/summer-term-2018/project_2/data/converter"
 CONVERTER_INPUT = "/test_converter_images"
@@ -42,6 +44,7 @@ deep_fake_config = {'model': DeepFakeOriginal,
                                                                 'cooldown': 50},
                                         'optimizer_arguments': {'lr': 1e-4}},
                     'dataset_arguments': {'img_size': (64, 64)},
+                    'face_extractor_arguments': {'mask_factor': 10},
                     'batch_size': 64,
                     'num_epoch': 5000}
 
@@ -57,5 +60,8 @@ sebis_config = {'model': DeepFakeOriginal,
                                                             'cooldown': 50},
                                     'optimizer_arguments': {'lr': 1e-4}},
                 'dataset_arguments': {'img_size': (128, 128)},
+                'face_extractor_arguments': {'mask_factor': 10},
                 'batch_size': 64,
                 'num_epoch': 5000}
+
+current_config = sebis_config

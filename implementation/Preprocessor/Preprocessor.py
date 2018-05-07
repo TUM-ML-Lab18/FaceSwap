@@ -16,7 +16,8 @@ class Preprocessor:
         self.root_folder = Path(root_folder)
         self.raw_folder = self.root_folder / RAW
         self.processed_folder = self.root_folder / PREPROCESSED
-        self.extractor = FaceExtractor(mask_type=np.bool, margin=0.05)
+        self.extractor = FaceExtractor(mask_factor=config['face_extractor_arguments']['mask_factor'], mask_type=np.bool,
+                                       margin=0.05)
 
     def process_images(self):
         """
