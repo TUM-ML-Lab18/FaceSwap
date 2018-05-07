@@ -1,8 +1,6 @@
-import cv2
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
 from PIL.Image import BICUBIC, LANCZOS
 from torchvision.transforms import ToTensor, ToPILImage
 
@@ -17,13 +15,14 @@ class Anonymizer:
         """
         :param model_folder: Path to models folder.
         """
+        self.config = config
         self.model_folder = Path(model_folder)
         self.model = DeepFakeOriginal(None, **config['model_arguments'])
         self.model.load_model(self.model_folder)
 
         # use extractor and transform later get correct input for network
         self.extractor = FaceExtractor(mask_type=np.float, margin=0.05, mask_factor=10)
-        self.reconstructor = FaceReconstructor(mask_factor=-10)
+        self.reconstructor = FaceReconstructor(mask_factor=-20)
 
     def __call__(self, image):
         """
@@ -35,7 +34,7 @@ class Anonymizer:
         extracted_face, extracted_information = self.extractor(image)
 
         # Resize to 64x64
-        face_in = extracted_face.resize((128,128), resample=LANCZOS)
+        face_in = extracted_face.resize(self.config['dataset_arguments']['img_size'], resample=LANCZOS)
         # Transform into tensor
         face_in = ToTensor()(face_in)
         # feed into network
