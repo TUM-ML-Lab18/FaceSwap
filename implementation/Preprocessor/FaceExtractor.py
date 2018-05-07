@@ -193,15 +193,16 @@ class FaceCropperCoarse(object):
         # Calculate bounding box and limit it to points inside the image
         # Additionally add offset inside the cropped image if bounding box is limited
         # => Center of the face should be center of the cropped image
-        top = int(center[1] - size/2)
-        top, dtop = (top, 0) if (top >= 0) else (0, -top+1)
-        bottom = int(center[1] + size/2)
-        bottom, dbottom = (bottom, size) if (bottom < H) else (H-1, ((size-1)-(bottom-H)))
-        left = int(center[0] - size/2)
-        left, dleft = (left, 0) if (left >= 0) else (0, -left+1)
-        right = int(center[0] + size/2)
-        right, dright = (right, size) if (right < W) else (W-1, ((size-1)-(right-W)))
-
+        # ATTENTION 1: Coordinates of the landmarks in format W,H
+        # ATTENTION 2: floor function because integer rounds towards zero (neg values!)
+        top = int(np.floor(center[1] - size/2))
+        top, dtop = (top, 0) if (top >= 0) else (0, -top)
+        bottom = int(np.floor(center[1] + size/2))
+        bottom, dbottom = (bottom, size) if (H >= bottom) else (H, (size-(bottom-H)))
+        left = int(np.floor(center[0] - size/2))
+        left, dleft = (left, 0) if (left >= 0) else (0, -left)
+        right = int(np.floor(center[0] + size/2))
+        right, dright = (right, size) if (W >= right) else (W, (size-(right-W)))
         # Store values in named tuple
         bounding_box = BoundingBox(left=left, right=right, top=top, bottom=bottom)
         offsets = BoundingBox(left=dleft, right=dright, top=dtop, bottom=dbottom)
@@ -381,6 +382,7 @@ class FaceCropperFine(object):
     def __call__(self, image, landmarks_dict):
         """
         Crops face fine and updates the landmarks accordingly
+        If image is not squared a padding is added
         :param image: cv2 image / np.array
         :param landmarks_dict: Dict of facial landmarks
         :return: (cropped_image, bounding_box):
@@ -410,12 +412,12 @@ class FaceCropperFine(object):
         left, top = np.min(landmarks_list, axis=0)
         right, bottom = np.max(landmarks_list, axis=0)
         # Resize bounding box according to margin
-        height = bottom - top
-        width = right - left
-        left = int(left - width * self.margin)
-        top = int(top - height * self.margin)
-        right = int(right + width * self.margin)
-        bottom = int(bottom + height * self.margin)
+        H = bottom - top
+        W = right - left
+        left = int(left - W * self.margin)
+        top = int(top - H * self.margin)
+        right = int(right + W * self.margin)
+        bottom = int(bottom + H * self.margin)
 
         return BoundingBox(left=left, right=right, top=top, bottom=bottom)
 
@@ -427,5 +429,37 @@ class FaceCropperFine(object):
                              ROI in the given image
         :return: The cropped image
         """
-        return image[bounding_box.top:bounding_box.bottom,
-                     bounding_box.left:bounding_box.right]
+        # Dimensions of the input image
+        H, W = image.shape[:2]
+        # Determine number of channels
+        C = image.shape[2] if len(image.shape) == 3 else 1
+        # Unpack bounding box
+        top = bounding_box.top
+        bottom = bounding_box.bottom
+        left = bounding_box.left
+        right = bounding_box.right
+        # Dimensions of the bounding box and the resulting image
+        bbH = bottom - top
+        bbW = right - left
+        size = max(bbH,bbW)
+        # Create squared image with zeros
+        cropped_image = np.zeros((size, size, C), dtype=np.uint8)
+        # Pad unsquared bounding box to squared dimensions
+        dH, dW = 0, 0
+        if bbH < bbW:
+            dH = (bbW - bbH) // 2
+            bbH += dH
+        elif W < H:
+            dW = (bbH - bbW) // 2
+            bbW += dW
+        # Limit bounding box to image interior
+        # Difference will be subtracted to match dimensions
+        top, dtop = (top, 0) if (top >= 0) else (0, -top)
+        bottom, dbottom = (bottom, 0) if (H >= bottom) else (H, (H-bottom))
+        left, dleft = (left, 0) if (left >= 0) else (0, -left)
+        right, dright = (right, 0) if (W >= right) else (W, (W-right))
+
+        # Crop with padding & with respect for bounding box regions out of image
+        cropped_image[(dH+dtop):(bbH+dbottom), (dW+dleft):(bbW+dright)] = \
+            image[top:bottom, left:right]
+        return cropped_image

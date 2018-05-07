@@ -32,17 +32,17 @@ class Anonymizer:
         """
         # Extract face
         extracted_face, extracted_information = self.extractor(image)
-
-        # Resize to 64x64
-        face_in = extracted_face.resize(self.config['dataset_arguments']['img_size'], resample=LANCZOS)
-        # Transform into tensor
-        face_in = ToTensor()(face_in)
-        # feed into network
-        face_out = self.model.anonymize(face_in.unsqueeze(0).cuda()).squeeze(0)
-        # get it back to the cpu and get the data
-        face_out = ToPILImage()(face_out.cpu().detach())
-        # scale to original resolution
-        face_out = face_out.resize(extracted_face.size, resample=BICUBIC)
+        if extracted_face is not None:
+            # Resize to 64x64
+            face_in = extracted_face.resize((128,128), resample=LANCZOS)
+            # Transform into tensor
+            face_in = ToTensor()(face_in)
+            # feed into network
+            face_out = self.model.anonymize(face_in.unsqueeze(0).cuda()).squeeze(0)
+            # get it back to the cpu and get the data
+            face_out = ToPILImage()(face_out.cpu().detach())
+            # scale to original resolution
+            face_out = face_out.resize(extracted_face.size, resample=BICUBIC)
 
         # Constructed scene with new face
         constructed_image = self.reconstructor(face_out, extracted_information)
