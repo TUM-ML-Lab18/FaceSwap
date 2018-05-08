@@ -5,13 +5,8 @@
 
 import torch
 from torch.nn import DataParallel
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-# from fastai.dataloader import DataLoader # todo decide which dataloader we want to use
-from torch.optim import Adam
 from pathlib import Path
 
-from FaceAnonymizer.models.Decoder import Decoder
-from FaceAnonymizer.models.Encoder import Encoder
 from FaceAnonymizer.models.Autoencoder import AutoEncoder
 
 

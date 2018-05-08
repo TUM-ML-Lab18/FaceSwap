@@ -1,6 +1,7 @@
 import json
 import os
 
+import numpy as np
 from torch.utils.data import Dataset
 from torchvision.datasets import ImageFolder
 import torchvision.transforms as transforms
@@ -41,6 +42,7 @@ class ImageDatesetCombined(Dataset):
 class LandmarkDataset(Dataset):
     def __init__(self, dataset, size_multiplicator=10, img_size=(64, 64)):
         self.size_multiplicator = size_multiplicator
+        self.width = img_size[0]
 
         self.transforms = transforms.Compose([
             transforms.Resize(img_size, interpolation=BICUBIC),
@@ -63,7 +65,7 @@ class LandmarkDataset(Dataset):
     def __getitem__(self, i):
         i %= min(len(self.dataset_a), len(self.dataset_b))
         file_name_a = os.path.basename(self.dataset_a.samples[i][0])
-        landmarks_a = self.landmarks[file_name_a]
+        landmarks_a = np.reshape(self.landmarks[file_name_a], -1).astype(np.float32)
         file_name_b = os.path.basename(self.dataset_b.samples[i][0])
-        landmarks_b = self.landmarks[file_name_b]
-        return (self.dataset_a[i][0], landmarks_a), (self.dataset_b[i][0], landmarks_b)
+        landmarks_b = np.reshape(self.landmarks[file_name_b], -1).astype(np.float32)
+        return (landmarks_a, self.dataset_a[i][0]), (landmarks_b, self.dataset_b[i][0])

@@ -94,6 +94,9 @@ class FaceExtractor(object):
             original_image = Image.fromarray(original_image)
             cropped_image = Image.fromarray(cropped_image)
 
+        if landmarks:
+            landmarks = list_landmarks(landmarks)
+
         extraction_information = ExtractionInformation(image_original=original_image,
                                                        image_cropped=cropped_image,
                                                        bounding_box_coarse=bounding_box_coarse,

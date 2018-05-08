@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 
+import numpy as np
 from PIL import Image
 
 from Logging.LoggingUtils import print_progress_bar
@@ -66,9 +67,11 @@ class Preprocessor:
                 except OSError:
                     continue
                 extracted_image, extracted_information = self.extractor(img)
-                self.landmarks_json[image_path.parts[-1]] = extracted_information[-1]
                 # if there was an face save the extracted part now in the processed folder
                 if extracted_image is not None:
+                    self.landmarks_json[
+                        image_path.parts[-1]] = (np.array(
+                        extracted_information.landmarks) / extracted_information.size_fine).tolist()
                     extracted_image.save(target / image_path.parts[-1], format='JPEG')
 
                 print_progress_bar(idx, images_count)
