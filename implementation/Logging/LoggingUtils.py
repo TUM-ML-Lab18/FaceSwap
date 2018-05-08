@@ -71,7 +71,7 @@ class Logger:
             self.anonymizer.save_model(self.shared_model_path)
 
     def log_config(self, config):
-        text = f"batchsize: {config['batch_size']}\n\nnum_gpus: {torch.cuda.device_count()}"
+        text = f"batchsize: {config['batch_size']}\n\nnum_gpus: {torch.cuda.device_count()}\n\nimg_size: {config['img_size']}"
         self.writer.add_text("hyperparameters",
                              text)
         text = inspect.getsource(config['model']).replace('\n', '\n\t')

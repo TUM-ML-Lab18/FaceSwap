@@ -14,6 +14,7 @@ from Preprocessor.Preprocessor import Preprocessor
 
 sebis_config = {'batch_size': 64,
                 'num_epoch': 5000,
+                'img_size': (128, 128),
                 'model': lambda dataset: DeepFakeOriginal(
                     data_loader=DataLoader(dataset=dataset,
                                            batch_size=64,
@@ -35,7 +36,7 @@ sebis_config = {'batch_size': 64,
                                                                   cooldown=50), )
     ,
                 'preprocessor': lambda root_folder: Preprocessor(root_folder=root_folder,
-                                                                 face_extractor=lambda: FaceExtractor(margin=0.5,
+                                                                 face_extractor=lambda: FaceExtractor(margin=0.05,
                                                                                                       mask_type=np.bool,
                                                                                                       mask_factor=10),
                                                                  image_dataset=lambda path_a,

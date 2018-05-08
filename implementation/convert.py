@@ -10,7 +10,7 @@ from configuration.run_config import sebis_config
 
 
 def convert_images():
-    anonymizer = Anonymizer(model_folder='./model', config=sebis_config)
+    anonymizer = Anonymizer(model_folder='./model', model=sebis_config['model'], img_size=sebis_config['img_size'])
     path = Path('/nfs/students/summer-term-2018/project_2/test/')
     path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')
     for image_file in path.iterdir():
@@ -23,7 +23,7 @@ def convert_images():
 
 
 def convert_video():
-    anonymizer = Anonymizer(model_folder='./model', config=sebis_config)
+    anonymizer = Anonymizer(model_folder='./model', model=sebis_config['model'], img_size=sebis_config['img_size'])
     path = Path('/nfs/students/summer-term-2018/project_2/test_video4/')
     path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')
     for video_file in path.iterdir():
@@ -63,4 +63,4 @@ def convert_video():
 
 
 if __name__ == '__main__':
-    convert_video()
+    convert_images()

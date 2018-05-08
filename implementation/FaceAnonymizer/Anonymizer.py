@@ -4,19 +4,18 @@ import numpy as np
 from PIL.Image import BICUBIC, LANCZOS
 from torchvision.transforms import ToTensor, ToPILImage
 
-from FaceAnonymizer.models.DeepFakeOriginal import DeepFakeOriginal
 from Preprocessor.FaceExtractor import FaceExtractor
 from Preprocessor.FaceReconstructor import FaceReconstructor
 
 
 class Anonymizer:
-    def __init__(self, model_folder: str, config) -> None:
+    def __init__(self, model_folder: str, model, img_size) -> None:
         """
         :param model_folder: Path to models folder.
         """
-        self.config = config
+        self.img_size = img_size
         self.model_folder = Path(model_folder)
-        self.model = DeepFakeOriginal(None, **config['model_arguments'])
+        self.model = model(None)
         self.model.load_model(self.model_folder)
 
         # use extractor and transform later get correct input for network
@@ -33,7 +32,7 @@ class Anonymizer:
         extracted_face, extracted_information = self.extractor(image)
         if extracted_face is not None:
             # Resize to 64x64
-            face_in = extracted_face.resize(self.config['dataset_arguments']['img_size'], resample=LANCZOS)
+            face_in = extracted_face.resize(self.img_size, resample=LANCZOS)
             # Transform into tensor
             face_in = ToTensor()(face_in)
             # feed into network
