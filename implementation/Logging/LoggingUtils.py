@@ -4,8 +4,11 @@ import datetime
 import random
 
 import inspect
+import torch
+
 from tensorboardX import SummaryWriter
 from torchvision import utils as vutils
+
 
 def log_first_layer(net, writer, frame_idx):
     first_layer = next(net.parameters()).data.cpu()
@@ -59,7 +62,7 @@ class Logger:
             self.writer.add_image("sample_input/trump", trump_grid, epoch)
             self.writer.add_image("sample_input/cage", cage_grid, epoch)
 
-            #self.writer.add_histogram("images_used", self.anonymizer.data.histogram, epoch)
+            # self.writer.add_histogram("images_used", self.anonymizer.data.histogram, epoch)
 
         print(f"[Epoch {epoch}] loss1: {loss1}, loss2: {loss2}", end='\n')
 
@@ -68,8 +71,11 @@ class Logger:
             self.anonymizer.save_model(self.shared_model_path)
 
     def log_config(self, config):
-        pass
-        #self.writer.add_text("config", inspect.getsource(config).replace('\n', '\n\t'))
+        text = f"batchsize: {config['batch_size']}\n\nnum_gpus: {torch.cuda.device_count()}"
+        self.writer.add_text("hyperparameters",
+                             text)
+        text = inspect.getsource(config['model']).replace('\n', '\n\t')
+        self.writer.add_text("config", text)
 
 
 def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):

@@ -12,22 +12,9 @@ from Preprocessor.FaceExtractor import FaceExtractor
 from Preprocessor.ImageDataset import ImageDatesetCombined
 from Preprocessor.Preprocessor import Preprocessor
 
-sebis_config = {'model': DeepFakeOriginal,
-                'model_arguments': {'encoder': Encoder,
-                                    'encoder_arguments': {'input_dim': (3, 128, 128), 'latent_dim': 1024,
-                                                          'num_convblocks': 5},
-                                    'decoder': Decoder,
-                                    'decoder_arguments': {'input_dim': 512, 'num_convblocks': 4},
-                                    'auto_encoder': AutoEncoder,
-                                    'loss_function': torch.nn.L1Loss(size_average=True),
-                                    'scheduler_arguments': {'threshold': 1e-6, 'verbose': True, 'patience': 100,
-                                                            'cooldown': 50},
-                                    'optimizer_arguments': {'lr': 1e-4}},
-                'dataset_arguments': {'img_size': (128, 128)},
-                'face_extractor_arguments': {'mask_factor': 10},
-                'batch_size': 64,
+sebis_config = {'batch_size': 64,
                 'num_epoch': 5000,
-                'model2': lambda dataset: DeepFakeOriginal(
+                'model': lambda dataset: DeepFakeOriginal(
                     data_loader=DataLoader(dataset=dataset,
                                            batch_size=64,
                                            shuffle=True,

@@ -13,7 +13,7 @@ class Trainer:
             self.batch_size *= torch.cuda.device_count()
             dataset.size_multiplicator *= torch.cuda.device_count()
 
-        self.model = config['model2'](dataset)
+        self.model = config['model'](dataset)
         self.logger = Logger(len(dataset) // dataset.size_multiplicator, self.model, save_model_every_nth=100,
                              shared_model_path=MOST_RECENT_MODEL)
         self.logger.log_config(config)
