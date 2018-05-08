@@ -4,11 +4,10 @@ import face_recognition
 from collections import namedtuple
 from PIL import Image
 
-
 ExtractionInformation = namedtuple('ExtractionInformation',
-                           ('image_original', 'image_cropped',
-                            'bounding_box_coarse', 'mask', 'rotation',
-                            'bounding_box_fine'))
+                                   ('image_original', 'image_cropped',
+                                    'bounding_box_coarse', 'mask', 'rotation',
+                                    'bounding_box_fine', 'landmarks'))
 BoundingBox = namedtuple('BoundingBox', ('left', 'right', 'top', 'bottom'))
 Rotation = namedtuple('Rotation', ('angle', 'center'))
 
@@ -22,6 +21,7 @@ class FaceExtractor(object):
     4. Align face horizontally with the eyes position
     5. Crop image fine to center face
     """
+
     def __init__(self, margin=0.05, mask_factor=10, mask_type=np.float):
         """
         Initializer for a FaceExtractor object
@@ -38,7 +38,7 @@ class FaceExtractor(object):
         self.landmarks_extractor = LandmarksExtractor()
         # 1.05: Crop coarse face with additional safety margin
         # => no facial landmarks can get lost during rotation
-        self.face_cropper_coarse = FaceCropperCoarse(margin=margin*1.05)
+        self.face_cropper_coarse = FaceCropperCoarse(margin=margin * 1.05)
         self.face_masker = FaceMasker(dtype=mask_type, morphing=mask_factor)
         self.face_aligner = FaceAligner()
         self.face_cropper_fine = FaceCropperFine(margin=margin)
@@ -80,13 +80,18 @@ class FaceExtractor(object):
             original_image = Image.fromarray(original_image)
             cropped_image = Image.fromarray(cropped_image)
 
+        if landmarks:
+            landmarks = list_landmarks(landmarks)
+
         extraction_information = ExtractionInformation(image_original=original_image,
                                                        image_cropped=cropped_image,
                                                        bounding_box_coarse=bounding_box_coarse,
                                                        mask=mask, rotation=rotation,
-                                                       bounding_box_fine=bounding_box_fine)
+                                                       bounding_box_fine=bounding_box_fine,
+                                                       landmarks=landmarks)
 
         return extracted_face, extraction_information
+
 
 def list_landmarks(landmarks_dict):
     """
@@ -113,7 +118,7 @@ def update_landmarks(landmarks_dict, transformation):
         for landmark in landmarks_dict[feature]:
             landmark = transformation(landmark)
             # Landmarks have to be integers
-            #landmark = np.round(landmark).astype(int)
+            # landmark = np.round(landmark).astype(int)
             landmarks.append(tuple(landmark))
         landmarks_dict[feature] = landmarks
 
@@ -123,6 +128,7 @@ class LandmarksExtractor(object):
     Extract facial landmarks of the first detected face in the image with the
     external face_recognition module
     """
+
     def __call__(self, image):
         """
         :param image: np.array / cv2 image
@@ -139,6 +145,7 @@ class FaceCropperCoarse(object):
     Size of the cropped region is determined by the largest distance between
     any landmark and additionally a parametrized margin
     """
+
     def __init__(self, margin=0.05):
         """
         :param margin: Factor to adapt size of the cropped region
@@ -162,8 +169,8 @@ class FaceCropperCoarse(object):
         cropped_image = self.apply_coarse_crop(image, bounding_box, offsets, size)
 
         # Update landmarks: Linear coordinate shift
-        transformation = lambda x: x - np.array([bounding_box.left-offsets.left,
-                                                 bounding_box.top-offsets.top])
+        transformation = lambda x: x - np.array([bounding_box.left - offsets.left,
+                                                 bounding_box.top - offsets.top])
         update_landmarks(landmarks_dict, transformation)
 
         return cropped_image, bounding_box
@@ -186,23 +193,23 @@ class FaceCropperCoarse(object):
         # Calculate the center (W,H) of the face via center of landmarks
         center = np.mean(landmarks_list, axis=0)
         # Calculate the distances of the landmarks to the center
-        dist = np.linalg.norm(landmarks_list-center, axis=1)
+        dist = np.linalg.norm(landmarks_list - center, axis=1)
         # Select the maximum distance as dimension for the bounding box
         # and add a safety margin
-        size = int(max(dist) * (1+self.margin))*2
+        size = int(max(dist) * (1 + self.margin)) * 2
         # Calculate bounding box and limit it to points inside the image
         # Additionally add offset inside the cropped image if bounding box is limited
         # => Center of the face should be center of the cropped image
         # ATTENTION 1: Coordinates of the landmarks in format W,H
         # ATTENTION 2: floor function because integer rounds towards zero (neg values!)
-        top = int(np.floor(center[1] - size/2))
+        top = int(np.floor(center[1] - size / 2))
         top, dtop = (top, 0) if (top >= 0) else (0, -top)
-        bottom = int(np.floor(center[1] + size/2))
-        bottom, dbottom = (bottom, size) if (H >= bottom) else (H, (size-(bottom-H)))
-        left = int(np.floor(center[0] - size/2))
+        bottom = int(np.floor(center[1] + size / 2))
+        bottom, dbottom = (bottom, size) if (H >= bottom) else (H, (size - (bottom - H)))
+        left = int(np.floor(center[0] - size / 2))
         left, dleft = (left, 0) if (left >= 0) else (0, -left)
-        right = int(np.floor(center[0] + size/2))
-        right, dright = (right, size) if (W >= right) else (W, (size-(right-W)))
+        right = int(np.floor(center[0] + size / 2))
+        right, dright = (right, size) if (W >= right) else (W, (size - (right - W)))
         # Store values in named tuple
         bounding_box = BoundingBox(left=left, right=right, top=top, bottom=bottom)
         offsets = BoundingBox(left=dleft, right=dright, top=dtop, bottom=dbottom)
@@ -238,6 +245,7 @@ class FaceMasker(object):
     Mask is determined by the convex hull of all landmarks and an optional
     morphological operation to increase or decrease the mask.
     """
+
     def __init__(self, dtype=np.bool, morphing=10):
         """
         :param dtype: Datatype of the created mask:
@@ -281,8 +289,8 @@ class FaceMasker(object):
         # Fill convex hull with ones
         mask = cv2.fillConvexPoly(mask, convex_hull, 1)
         # Calculate image resolution dependent kernel (H==W) (odd size)
-        k_size = int(abs(self.morphing)/100 * H)
-        k_size = k_size if (k_size % 2 == 1) else k_size+1
+        k_size = int(abs(self.morphing) / 100 * H)
+        k_size = k_size if (k_size % 2 == 1) else k_size + 1
         kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (k_size, k_size))
         # Execute morphological operations
         # Dilation -> increase masked region
@@ -291,7 +299,7 @@ class FaceMasker(object):
         mask = cv2.morphologyEx(mask, op=operation, kernel=kernel)
         # Blur mask if floating mask -> softer transition
         if np.float == self.dtype:
-            mask = cv2.GaussianBlur(mask, (k_size,k_size), 0)
+            mask = cv2.GaussianBlur(mask, (k_size, k_size), 0)
         # Convert data type
         mask = mask.astype(self.dtype)
 
@@ -318,6 +326,7 @@ class FaceAligner(object):
     Center of the rotation is determined by the center of all landmarks
     Rotation angle is the angle of the vector between the eyes
     """
+
     def __call__(self, image, landmarks_dict):
         """
         Aligns face such that eyes are horizontal and updates the landmarks
@@ -333,7 +342,7 @@ class FaceAligner(object):
         aligned_image = self.apply_rotation(image, R)
 
         # Update landmarks: Apply affine transformation to homogeneous coordinate
-        transformation = lambda x: np.dot(R, np.array(x+(1,)))
+        transformation = lambda x: np.dot(R, np.array(x + (1,)))
         update_landmarks(landmarks_dict, transformation)
 
         return aligned_image, rotation
@@ -365,12 +374,14 @@ class FaceAligner(object):
         H, W = image.shape[:2]
         return cv2.warpAffine(image, R, (W, H))
 
+
 class FaceCropperFine(object):
     """
     Crops face fine
     Bounding box is determined by the minimum rectangle containing all
     landmarks and additionally a parametrized margin
     """
+
     def __init__(self, margin=0.05):
         """
         :param margin: Factor to adapt size of the cropped region
@@ -441,7 +452,7 @@ class FaceCropperFine(object):
         # Dimensions of the bounding box and the resulting image
         bbH = bottom - top
         bbW = right - left
-        size = max(bbH,bbW)
+        size = max(bbH, bbW)
         # Create squared image with zeros
         cropped_image = np.zeros((size, size, C), dtype=np.uint8)
         # Pad unsquared bounding box to squared dimensions
@@ -455,11 +466,11 @@ class FaceCropperFine(object):
         # Limit bounding box to image interior
         # Difference will be subtracted to match dimensions
         top, dtop = (top, 0) if (top >= 0) else (0, -top)
-        bottom, dbottom = (bottom, 0) if (H >= bottom) else (H, (H-bottom))
+        bottom, dbottom = (bottom, 0) if (H >= bottom) else (H, (H - bottom))
         left, dleft = (left, 0) if (left >= 0) else (0, -left)
-        right, dright = (right, 0) if (W >= right) else (W, (W-right))
+        right, dright = (right, 0) if (W >= right) else (W, (W - right))
 
         # Crop with padding & with respect for bounding box regions out of image
-        cropped_image[(dH+dtop):(bbH+dbottom), (dW+dleft):(bbW+dright)] = \
+        cropped_image[(dH + dtop):(bbH + dbottom), (dW + dleft):(bbW + dright)] = \
             image[top:bottom, left:right]
         return cropped_image

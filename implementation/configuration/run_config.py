@@ -9,7 +9,7 @@ from FaceAnonymizer.models.Decoder import Decoder
 from FaceAnonymizer.models.DeepFakeOriginal import DeepFakeOriginal
 from FaceAnonymizer.models.Encoder import Encoder
 from Preprocessor.FaceExtractor import FaceExtractor
-from Preprocessor.ImageDataset import ImageDatesetCombined
+from Preprocessor.ImageDataset import ImageDatesetCombined, LandmarkDataset
 from Preprocessor.Preprocessor import Preprocessor
 
 sebis_config = {'batch_size': 64,
@@ -38,9 +38,17 @@ sebis_config = {'batch_size': 64,
                                                                  face_extractor=lambda: FaceExtractor(margin=0.05,
                                                                                                       mask_type=np.bool,
                                                                                                       mask_factor=10),
-                                                                 image_dataset=lambda path_a,
-                                                                                      path_b: ImageDatesetCombined(
-                                                                     dataset_a=path_a, dataset_b=path_b,
+                                                                 image_dataset=lambda path: ImageDatesetCombined(
+                                                                     dataset=path,
                                                                      img_size=(128, 128)))
                 }
-current_config = sebis_config
+landmarks_config = sebis_config.copy()
+landmarks_config['preprocessor'] = lambda root_folder: Preprocessor(root_folder=root_folder,
+                                                                    face_extractor=lambda: FaceExtractor(margin=0.05,
+                                                                                                         mask_type=np.bool,
+                                                                                                         mask_factor=10),
+                                                                    image_dataset=lambda path: LandmarkDataset(
+                                                                        dataset=path,
+                                                                        img_size=(128, 128)))
+
+current_config = landmarks_config
