@@ -1,23 +1,19 @@
 import os
 from pathlib import Path
 
-import numpy as np
 from PIL import Image
 
-from Preprocessor.FaceExtractor import FaceExtractor
 from Logging.LoggingUtils import print_progress_bar
-from Preprocessor.ImageDataset import ImageDatesetCombined
-from config import *
+from configuration.gerneral_config import RAW, PREPROCESSED, A, B
 
 
 class Preprocessor:
-    def __init__(self, root_folder: str, config=None):
-        self.config = config
+    def __init__(self, root_folder: str, face_extractor, image_dataset):
+        self.image_dataset = image_dataset
         self.root_folder = Path(root_folder)
         self.raw_folder = self.root_folder / RAW
         self.processed_folder = self.root_folder / PREPROCESSED
-        self.extractor = FaceExtractor(mask_factor=config['face_extractor_arguments']['mask_factor'], mask_type=np.bool,
-                                       margin=0.05)
+        self.extractor = face_extractor()
 
     def process_images(self):
         """
@@ -73,6 +69,5 @@ class Preprocessor:
         :return: ImageDataset containing the image classes from the dataset.
         """
         self.process_images()
-        return ImageDatesetCombined((self.processed_folder / A).__str__(),
-                                    (self.processed_folder / B).__str__(),
-                                    **self.config['dataset_arguments'])
+        return self.image_dataset((self.processed_folder / A).__str__(),
+                                  (self.processed_folder / B).__str__())

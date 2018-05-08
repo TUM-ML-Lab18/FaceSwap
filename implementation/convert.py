@@ -6,7 +6,7 @@ from PIL import Image
 from pathlib import Path
 
 from Logging.LoggingUtils import print_progress_bar
-from config import deep_fake_config, sebis_config
+from configuration.run_config import sebis_config
 
 
 def convert_images():

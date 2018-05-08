@@ -7,9 +7,6 @@ import inspect
 from tensorboardX import SummaryWriter
 from torchvision import utils as vutils
 
-from config import MOST_RECENT_MODEL
-
-
 def log_first_layer(net, writer, frame_idx):
     first_layer = next(net.parameters()).data.cpu()
 
@@ -22,7 +19,8 @@ def log_first_layer(net, writer, frame_idx):
 
 
 class Logger:
-    def __init__(self, steps_per_epoch, anonymizer, save_model_every_nth=100):
+    def __init__(self, steps_per_epoch, anonymizer, save_model_every_nth=100, shared_model_path='.'):
+        self.shared_model_path = shared_model_path
         self.loggin_path = "./logs/" + str(datetime.datetime.now())
         self.writer = SummaryWriter(self.loggin_path)
         self.steps_per_epoch = steps_per_epoch
@@ -67,10 +65,11 @@ class Logger:
 
         if epoch % self.save_model_every_nth == 0 and epoch > 0:
             self.anonymizer.save_model(self.loggin_path)
-            self.anonymizer.save_model(MOST_RECENT_MODEL)
+            self.anonymizer.save_model(self.shared_model_path)
 
     def log_config(self, config):
-        self.writer.add_text("config", inspect.getsource(config).replace('\n', '\n\t'))
+        pass
+        #self.writer.add_text("config", inspect.getsource(config).replace('\n', '\n\t'))
 
 
 def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):

@@ -16,9 +16,8 @@ from FaceAnonymizer.models.Autoencoder import AutoEncoder
 
 
 class DeepFakeOriginal:
-    def __init__(self, data_loader, encoder=Encoder, encoder_arguments=None, decoder=Decoder, decoder_arguments=None,
-                 auto_encoder=AutoEncoder, loss_function=torch.nn.L1Loss(size_average=True), scheduler_arguments=None,
-                 optimizer_arguments=None):
+    def __init__(self, optimizer, scheduler, data_loader, encoder, decoder, auto_encoder=AutoEncoder,
+                 loss_function=torch.nn.L1Loss(size_average=True)):
         """
         Initialize a new DeepFakeOriginal.
 
@@ -30,9 +29,9 @@ class DeepFakeOriginal:
         - learning_rate: learning rate
         """
         self.data_loader = data_loader
-        self.encoder = encoder(**encoder_arguments).cuda()
-        self.decoder1 = decoder(**decoder_arguments).cuda()
-        self.decoder2 = decoder(**decoder_arguments).cuda()
+        self.encoder = encoder().cuda()
+        self.decoder1 = decoder().cuda()
+        self.decoder2 = decoder().cuda()
 
         self.autoencoder1 = auto_encoder(self.encoder, self.decoder1).cuda()
         self.autoencoder2 = auto_encoder(self.encoder, self.decoder2).cuda()
@@ -44,10 +43,10 @@ class DeepFakeOriginal:
 
         self.lossfn = loss_function.cuda()
 
-        self.optimizer1 = Adam(self.autoencoder1.parameters(), **optimizer_arguments)
-        self.scheduler1 = ReduceLROnPlateau(self.optimizer1, **scheduler_arguments)
-        self.optimizer2 = Adam(self.autoencoder2.parameters(), **optimizer_arguments)
-        self.scheduler2 = ReduceLROnPlateau(self.optimizer2, **scheduler_arguments)
+        self.optimizer1 = optimizer(self.autoencoder1.parameters())
+        self.scheduler1 = scheduler(self.optimizer1)
+        self.optimizer2 = optimizer(self.autoencoder2.parameters())
+        self.scheduler2 = scheduler(self.optimizer2)
 
     def train(self, current_epoch):
         loss1_mean, loss2_mean = 0, 0

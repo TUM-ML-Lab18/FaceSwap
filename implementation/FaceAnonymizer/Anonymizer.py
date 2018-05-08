@@ -7,11 +7,10 @@ from torchvision.transforms import ToTensor, ToPILImage
 from FaceAnonymizer.models.DeepFakeOriginal import DeepFakeOriginal
 from Preprocessor.FaceExtractor import FaceExtractor
 from Preprocessor.FaceReconstructor import FaceReconstructor
-from config import deep_fake_config
 
 
 class Anonymizer:
-    def __init__(self, model_folder: str, config=deep_fake_config) -> None:
+    def __init__(self, model_folder: str, config) -> None:
         """
         :param model_folder: Path to models folder.
         """
@@ -34,7 +33,7 @@ class Anonymizer:
         extracted_face, extracted_information = self.extractor(image)
         if extracted_face is not None:
             # Resize to 64x64
-            face_in = extracted_face.resize((128,128), resample=LANCZOS)
+            face_in = extracted_face.resize(self.config['dataset_arguments']['img_size'], resample=LANCZOS)
             # Transform into tensor
             face_in = ToTensor()(face_in)
             # feed into network
