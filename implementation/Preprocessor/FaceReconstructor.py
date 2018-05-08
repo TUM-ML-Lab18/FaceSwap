@@ -22,10 +22,17 @@ class FaceReconstructor(object):
         :param extraction_information: namedtuple with the following elements
                     * image_original: The original scene (PIL image)
                     * image_cropped: The cropped region from the original image (PIL image)
-                    * bounding_box: Namedtuple with the coordinates of the cropped region in
-                                    the original image
+                    * bounding_box_coarse: Namedtuple with the coordinates of the cropped ROI
+                                           in the original image
+                    * offsets_coarse: index shift to pad image and prevent indices out of image
+                    * size_coarse: size (quadratic) of the coarse cropped image
                     * mask: Mask applied to filter background
                     * rotation: Namedtuple with rotation and rotation center to align eyes
+                    * bounding_box_fine: Namedtuple with the coordinates of the fine cropped
+                                         ROI in the coarse cropped region
+                    * offsets_fine: index shift to pad image and prevent indices out of image
+                    * size_fine: size (quadratic) of the fine cropped image
+                    * landmarks: coordinates of facial regions (x,y)
         :return: reconstructed image (PIL image)
         """
         # Convert PIL image into np.array
@@ -35,7 +42,8 @@ class FaceReconstructor(object):
 
         decropped_image = self.face_decropper_fine(processed_image,
                                                    extraction_information.bounding_box_fine,
-                                                   extraction_information.bounding_box_coarse)
+                                                   extraction_information.offsets_fine,
+                                                   extraction_information.size_coarse)
         dealigned_image = self.face_dealigner(decropped_image,
                                               extraction_information.rotation)
         demasked_image = self.face_demasker(dealigned_image,
@@ -43,7 +51,8 @@ class FaceReconstructor(object):
                                             extraction_information.mask)
         decropped_image = self.face_decropper_coarse(demasked_image,
                                                      original_image,
-                                                     extraction_information.bounding_box_coarse)
+                                                     extraction_information.bounding_box_coarse,
+                                                     extraction_information.offsets_coarse)
         # Convert np.array into PIL image
         reconstructed_image = Image.fromarray(decropped_image)
         return reconstructed_image
@@ -53,24 +62,23 @@ class FaceDecropperFine(object):
     """
     Invert the fine cropping of the aligned and masked image
     """
-    def __call__(self, fine_cropped_image, bounding_box_fine, bounding_box_coarse):
+    def __call__(self, cropped_image, bounding_box, offsets, size_coarse):
         """
-        :param fine_cropped_image: The constructed image
-        :param bounding_box_fine: named tuple with absolute coordinates of the fine crop
-        :param bounding_box_coarse: named tuple with absolute coordinates of the coarse crop
+        :param cropped_image: The constructed image
+        :param bounding_box: named tuple with absolute coordinates of the fine crop
+        :param offsets: named tuple with the offsets (padding + image out of range) of the fine
+                        crop for every bounding box side
+        :param size_coarse: size of the coarse cropped image
         :return: The aligned face only coarsely cropped
         """
-        H = bounding_box_coarse.bottom - bounding_box_coarse.top
-        W = bounding_box_coarse.right - bounding_box_coarse.left
         # Determine number of channels
-        C = fine_cropped_image.shape[2] if len(fine_cropped_image.shape) == 3 else 1
-        top = bounding_box_fine.top
-        bottom = bounding_box_fine.bottom
-        left = bounding_box_fine.left
-        right = bounding_box_fine.right
-        decropped_image = np.zeros((H, W, C))
-        decropped_image[top:bottom, left:right] = fine_cropped_image
+        C = cropped_image.shape[2] if len(cropped_image.shape) == 3 else 1
 
+        # Create target image
+        decropped_image = np.zeros((size_coarse, size_coarse, C))
+        # Invert the crop
+        decropped_image[bounding_box.top:bounding_box.bottom, bounding_box.left:bounding_box.right] = \
+            cropped_image[offsets.top:offsets.bottom,offsets.left:offsets.right]
         return decropped_image
 
 class FaceDealigner(object):
@@ -126,7 +134,6 @@ class FaceDemasker(object):
         # Erosion -> decrease masked region
         operation = cv2.MORPH_ERODE if self.morphing < 0 else cv2.MORPH_DILATE
         mask = cv2.morphologyEx(mask, op=operation, kernel=kernel)
-
         # Check type of mask
         if np.bool == dtype:
             demasked_image = np.where(mask[:,:,None], masked_image, cropped_image)
@@ -140,17 +147,16 @@ class FaceDecropperCoarse(object):
     """
     Invert the coarse cropping of the image
     """
-    def __call__(self, cropped_image, original_image, bounding_box):
+    def __call__(self, cropped_image, original_image, bounding_box, offsets):
         """
         :param cropped_image: The cropped constructed image
         :param original_image: The original image
         :param bounding_box: Indicator where the cropped region was in the image
+        :param offsets: named tuple with the offsets (padding + image out of range) of the
+                        crop for every bounding box side
         :return: The reconstructed image in the original scene
         """
         decropped_image = original_image.copy()
-        top = bounding_box.top
-        bottom = bounding_box.bottom
-        left = bounding_box.left
-        right = bounding_box.right
-        decropped_image[top:bottom, left:right] = cropped_image
+        decropped_image[bounding_box.top:bounding_box.bottom, bounding_box.left:bounding_box.right] = \
+            cropped_image[offsets.top:offsets.bottom, offsets.left:offsets.right]
         return decropped_image
