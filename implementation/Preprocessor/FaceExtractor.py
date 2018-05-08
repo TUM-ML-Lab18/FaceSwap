@@ -7,8 +7,10 @@ from PIL import Image
 
 ExtractionInformation = namedtuple('ExtractionInformation',
                            ('image_original', 'image_cropped',
-                            'bounding_box_coarse', 'mask', 'rotation',
-                            'bounding_box_fine'))
+                            'bounding_box_coarse', 'offsets_coarse', 'size_coarse',
+                            'mask', 'rotation',
+                            'bounding_box_fine', 'offsets_fine', 'size_fine',
+                            'landmarks'))
 BoundingBox = namedtuple('BoundingBox', ('left', 'right', 'top', 'bottom'))
 Rotation = namedtuple('Rotation', ('angle', 'center'))
 
@@ -53,28 +55,40 @@ class FaceExtractor(object):
                     * image_cropped: The cropped region from the original image (PIL image)
                     * bounding_box_coarse: Namedtuple with the coordinates of the cropped ROI
                                            in the original image
+                    * offsets_coarse: index shift to pad image and prevent indices out of image
+                    * size_coarse: size (quadratic) of the coarse cropped image
                     * mask: Mask applied to filter background
                     * rotation: Namedtuple with rotation and rotation center to align eyes
                     * bounding_box_fine: Namedtuple with the coordinates of the fine cropped
                                          ROI in the coarse cropped region
+                    * offsets_fine: index shift to pad image and prevent indices out of image
+                    * size_fine: size (quadratic) of the fine cropped image
+                    * landmarks: coordinates of facial regions (x,y)
         """
         extracted_face = None
         original_image = None
         cropped_image = None
         bounding_box_coarse = None
+        offsets_coarse = None
+        size_coarse = None
         mask = None
         rotation = None
         bounding_box_fine = None
+        offsets_fine = None
+        size_fine = None
+        landmarks = None
 
         # Convert PIL image into np.array
         image = np.array(image)
         landmarks = self.landmarks_extractor(image)
         if landmarks is not None:
             original_image = image
-            cropped_image, bounding_box_coarse = self.face_cropper_coarse(original_image, landmarks)
+            cropped_image, bounding_box_coarse, offsets_coarse, size_coarse= \
+                self.face_cropper_coarse(original_image, landmarks)
             masked_image, mask = self.face_masker(cropped_image, landmarks)
             aligned_image, rotation = self.face_aligner(masked_image, landmarks)
-            extracted_face, bounding_box_fine = self.face_cropper_fine(aligned_image, landmarks)
+            extracted_face, bounding_box_fine, offsets_fine, size_fine = \
+                self.face_cropper_fine(aligned_image, landmarks)
             # Convert np.array into PIL image
             extracted_face = Image.fromarray(extracted_face)
             original_image = Image.fromarray(original_image)
@@ -83,8 +97,13 @@ class FaceExtractor(object):
         extraction_information = ExtractionInformation(image_original=original_image,
                                                        image_cropped=cropped_image,
                                                        bounding_box_coarse=bounding_box_coarse,
+                                                       offsets_coarse=offsets_coarse,
+                                                       size_coarse=size_coarse,
                                                        mask=mask, rotation=rotation,
-                                                       bounding_box_fine=bounding_box_fine)
+                                                       bounding_box_fine=bounding_box_fine,
+                                                       offsets_fine=offsets_fine,
+                                                       size_fine=size_fine,
+                                                       landmarks=landmarks)
 
         return extracted_face, extraction_information
 
@@ -152,10 +171,12 @@ class FaceCropperCoarse(object):
         Crops face coarsely and updates the landmarks accordingly
         :param image: cv2 image / np.array
         :param landmarks_dict: Dict of facial landmarks
-        :return: (cropped_image, bounding_box):
+        :return: (cropped_image, bounding_box, offsets):
                     * cropped_image: The cropped image
                     * bounding_box: named tuple with absolute coordinates of the ROI
                                     in the given image
+                    * offsets: named tuple with the offsets (padding + image out of range)
+                               for every bounding box side
         """
         bounding_box, offsets, size = self.calculate_coarse_bounding_box(image,
                                                                          landmarks_dict)
@@ -166,7 +187,7 @@ class FaceCropperCoarse(object):
                                                  bounding_box.top-offsets.top])
         update_landmarks(landmarks_dict, transformation)
 
-        return cropped_image, bounding_box
+        return cropped_image, bounding_box, offsets, size
 
     def calculate_coarse_bounding_box(self, image, landmarks_dict):
         """
@@ -176,11 +197,13 @@ class FaceCropperCoarse(object):
         :return: (bounding_box, offsets, size):
                     * bounding_box: named tuple with absolute coordinates of the ROI
                                     in the given image
-                    * offsets: Offsets to create automatic padding inside
-                               the cropped image
+                    * offsets: named tuple with the offsets (padding + image out of range)
+                               for every bounding box side
                     * size: size of the cropped region
         """
         H, W = image.shape[:2]
+
+        # ===================== Bounding box size
         # Transform landmarks into list of coordinates for calculations
         landmarks_list = list_landmarks(landmarks_dict)
         # Calculate the center (W,H) of the face via center of landmarks
@@ -190,6 +213,8 @@ class FaceCropperCoarse(object):
         # Select the maximum distance as dimension for the bounding box
         # and add a safety margin
         size = int(max(dist) * (1+self.margin))*2
+
+        # ===================== Bounding box + Offset (Indices outside the image)
         # Calculate bounding box and limit it to points inside the image
         # Additionally add offset inside the cropped image if bounding box is limited
         # => Center of the face should be center of the cropped image
@@ -198,11 +223,12 @@ class FaceCropperCoarse(object):
         top = int(np.floor(center[1] - size/2))
         top, dtop = (top, 0) if (top >= 0) else (0, -top)
         bottom = int(np.floor(center[1] + size/2))
-        bottom, dbottom = (bottom, size) if (H >= bottom) else (H, (size-(bottom-H)))
+        bottom, dbottom = (bottom, size) if (H >= bottom) else (H, (H+size-bottom))
         left = int(np.floor(center[0] - size/2))
         left, dleft = (left, 0) if (left >= 0) else (0, -left)
         right = int(np.floor(center[0] + size/2))
-        right, dright = (right, size) if (W >= right) else (W, (size-(right-W)))
+        right, dright = (right, size) if (W >= right) else (W, (W+size-right))
+
         # Store values in named tuple
         bounding_box = BoundingBox(left=left, right=right, top=top, bottom=bottom)
         offsets = BoundingBox(left=dleft, right=dright, top=dtop, bottom=dbottom)
@@ -215,7 +241,8 @@ class FaceCropperCoarse(object):
         :param image: np.array / cv2 image
         :param bounding_box: named tuple with absolute coordinates of the ROI
                              in the given image
-        :param offsets: offsets inside the cropped region for padding
+        :param offsets: named tuple with the offsets (padding + image out of range)
+                        for every bounding box side
         :param size: size of the cropped region
         :return: The cropped image
         """
@@ -228,7 +255,6 @@ class FaceCropperCoarse(object):
         cropped_image = np.zeros((size, size, C), dtype=np.uint8)
         cropped_image[offsets.top:offsets.bottom, offsets.left:offsets.right] = \
             image[bounding_box.top:bounding_box.bottom, bounding_box.left:bounding_box.right]
-
         return cropped_image
 
 
@@ -385,73 +411,66 @@ class FaceCropperFine(object):
         If image is not squared a padding is added
         :param image: cv2 image / np.array
         :param landmarks_dict: Dict of facial landmarks
-        :return: (cropped_image, bounding_box):
+        :return: (cropped_image, bounding_box, offsets):
                     * cropped_image: The cropped image
                     * bounding_box: Indicator where the cropped region was in
                                     the given image
+                    * offsets: named tuple with the offsets (padding + image out of range)
+                               for every bounding box side
         """
-        bounding_box = self.calculate_fine_bounding_box(landmarks_dict)
-        cropped_image = self.apply_fine_crop(image, bounding_box)
+        bounding_box, offsets, size = self.calculate_fine_bounding_box(image,
+                                                                       landmarks_dict)
+        cropped_image = self.apply_fine_crop(image, bounding_box, offsets, size)
 
         # Update landmarks: Linear coordinate shift
         transformation = lambda x: x - np.array([bounding_box.left, bounding_box.top])
         update_landmarks(landmarks_dict, transformation)
 
-        return cropped_image, bounding_box
+        return cropped_image, bounding_box, offsets, size
 
-    def calculate_fine_bounding_box(self, landmarks_dict):
+    def calculate_fine_bounding_box(self, image, landmarks_dict):
         """
         Calculates a bounding box containing all landmarks
+        :param image: cv2 image / np.array
         :param landmarks_dict: Dict of facial landmarks
-        :return: bounding_box: named tuple with absolute coordinates of the
-                               ROI in the given image
+        :return: (bounding_box, offsets, size):
+                    * bounding_box: named tuple with absolute coordinates of the ROI
+                                    in the given image
+                    * offsets: named tuple with the offsets (padding + image out of range)
+                               for every bounding box side
+                    * size: size of the cropped region
         """
+        H, W = image.shape[:2]
+
+
+        # ===================== Bounding box
         # Transform landmarks into list of coordinates for calculations
         landmarks_list = list_landmarks(landmarks_dict)
         # Determine smallest bounding box
         left, top = np.min(landmarks_list, axis=0)
         right, bottom = np.max(landmarks_list, axis=0)
         # Resize bounding box according to margin
-        H = bottom - top
-        W = right - left
-        left = int(left - W * self.margin)
-        top = int(top - H * self.margin)
-        right = int(right + W * self.margin)
-        bottom = int(bottom + H * self.margin)
+        bbH = bottom - top
+        bbW = right - left
+        # ATTENTION: floor function because integer rounds towards zero (neg values!)
+        left = int(np.floor(left - W * self.margin))
+        top = int(np.floor(top - H * self.margin))
+        right = int(np.floor(right + W * self.margin))
+        bottom = int(np.floor(bottom + H * self.margin))
 
-        return BoundingBox(left=left, right=right, top=top, bottom=bottom)
-
-    def apply_fine_crop(self, image, bounding_box):
-        """
-        Apply the crop
-        :param image: np.array / cv2 image
-        :param bounding_box: named tuple with absolute coordinates of the
-                             ROI in the given image
-        :return: The cropped image
-        """
-        # Dimensions of the input image
-        H, W = image.shape[:2]
-        # Determine number of channels
-        C = image.shape[2] if len(image.shape) == 3 else 1
-        # Unpack bounding box
-        top = bounding_box.top
-        bottom = bounding_box.bottom
-        left = bounding_box.left
-        right = bounding_box.right
-        # Dimensions of the bounding box and the resulting image
+        # ===================== Padding + bounding box size
+        # Dimensions of the bounding box
         bbH = bottom - top
         bbW = right - left
         size = max(bbH,bbW)
-        # Create squared image with zeros
-        cropped_image = np.zeros((size, size, C), dtype=np.uint8)
-        # Pad unsquared bounding box to squared dimensions
+        # Calculate the padding
         dH, dW = 0, 0
         if bbH < bbW:
             dH = (bbW - bbH) // 2
-            bbH += dH
-        elif W < H:
+        elif bbH < bbW:
             dW = (bbH - bbW) // 2
-            bbW += dW
+
+        # ===================== Offset (Indices outside the image)
         # Limit bounding box to image interior
         # Difference will be subtracted to match dimensions
         top, dtop = (top, 0) if (top >= 0) else (0, -top)
@@ -459,7 +478,31 @@ class FaceCropperFine(object):
         left, dleft = (left, 0) if (left >= 0) else (0, -left)
         right, dright = (right, 0) if (W >= right) else (W, (W-right))
 
-        # Crop with padding & with respect for bounding box regions out of image
-        cropped_image[(dH+dtop):(bbH+dbottom), (dW+dleft):(bbW+dright)] = \
-            image[top:bottom, left:right]
+        bounding_box = BoundingBox(left=left, right=right, top=top, bottom=bottom)
+        offsets = BoundingBox(left=dW+dleft, right=dW+bbW+dright,
+                              top=dH+dtop, bottom=dH+bbH+dbottom)
+
+        return bounding_box, offsets, size
+
+    def apply_fine_crop(self, image, bounding_box, offsets, size):
+        """
+        Apply the crop
+        :param image: np.array / cv2 image
+        :param bounding_box: named tuple with absolute coordinates of the
+                             ROI in the given image
+        :param offsets: named tuple with the offsets (padding + image out of range)
+                        for every bounding box side
+        :param size: size of the cropped region
+        :return: The cropped image
+        """
+        # Determine number of channels
+        C = image.shape[2] if len(image.shape) == 3 else 1
+
+        # Create squared image with zeros
+        # If bounding box touches original images limits the cropped image is
+        # padded such that the face is centered
+        cropped_image = np.zeros((size, size, C), dtype=np.uint8)
+        cropped_image[offsets.top:offsets.bottom,offsets.left:offsets.right] = \
+            image[bounding_box.top:bounding_box.bottom, bounding_box.left:bounding_box.right]
+
         return cropped_image

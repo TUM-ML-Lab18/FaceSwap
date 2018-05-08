@@ -28,6 +28,7 @@ class Anonymizer:
         :param image: PIL image
         :return: PIL image
         """
+        constructed_image = None
         # Extract face
         extracted_face, extracted_information = self.extractor(image)
         if extracted_face is not None:
@@ -42,7 +43,7 @@ class Anonymizer:
             # scale to original resolution
             face_out = face_out.resize(extracted_face.size, resample=BICUBIC)
 
-        # Constructed scene with new face
-        constructed_image = self.reconstructor(face_out, extracted_information)
+            # Constructed scene with new face
+            constructed_image = self.reconstructor(face_out, extracted_information)
 
         return constructed_image
