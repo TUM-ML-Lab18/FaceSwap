@@ -1,6 +1,6 @@
 from google_images_download import google_images_download
 
-from configuration.gerneral_config import IMAGE_DOWNLOADER
+from configuration.general_config import IMAGE_DOWNLOADER
 
 
 class ImageDownloader:

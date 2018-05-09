@@ -1,5 +1,5 @@
 from FaceAnonymizer.Trainer import Trainer
-from configuration.gerneral_config import MERKEL_TRUMP_NORMAL_BASE
+from configuration.general_config import MERKEL_TRUMP_NORMAL_BASE
 from configuration.run_config import current_config
 
 if __name__ == '__main__':

@@ -4,7 +4,7 @@ from pathlib import Path
 from PIL import Image
 
 from Logging.LoggingUtils import print_progress_bar
-from configuration.gerneral_config import RAW, PREPROCESSED, A, B
+from configuration.general_config import RAW, PREPROCESSED, A, B
 
 
 class Preprocessor:
