@@ -1,8 +1,3 @@
-#
-# This file includes the main functionality of the FaceAnonymizer module
-# Author: Alexander Becker
-#
-
 import torch
 from torch.nn import DataParallel
 from torch.optim.lr_scheduler import ReduceLROnPlateau
