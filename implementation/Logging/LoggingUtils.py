@@ -70,6 +70,10 @@ class Logger:
             self.anonymizer.save_model(self.loggin_path)
             self.anonymizer.save_model(self.shared_model_path)
 
+    def log_validation(self, epoch, loss1, loss2):
+        self.writer.add_scalars("validation_loss", {'lossA': loss1, 'lossB': loss2}, epoch)
+        print(f"[Epoch {epoch}] validation_loss1: {loss1}, validation_loss2: {loss2}", end='\n')
+
     def log_config(self, config):
         text = f"batchsize: {config['batch_size']}\n\nnum_gpus: {torch.cuda.device_count()}\n\nimg_size: {config['img_size']}"
         self.writer.add_text("hyperparameters",

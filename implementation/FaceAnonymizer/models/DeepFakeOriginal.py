@@ -6,7 +6,7 @@ from FaceAnonymizer.models.Autoencoder import AutoEncoder
 
 
 class DeepFakeOriginal:
-    def __init__(self, optimizer, scheduler, data_loader, encoder, decoder, auto_encoder=AutoEncoder,
+    def __init__(self, optimizer, scheduler, encoder, decoder, auto_encoder=AutoEncoder,
                  loss_function=torch.nn.L1Loss(size_average=True)):
         """
         Initialize a new DeepFakeOriginal.
@@ -18,7 +18,6 @@ class DeepFakeOriginal:
         - epochs: number of training epochs
         - learning_rate: learning rate
         """
-        self.data_loader = data_loader
         self.encoder = encoder().cuda()
         self.decoder1 = decoder().cuda()
         self.decoder2 = decoder().cuda()
@@ -38,7 +37,7 @@ class DeepFakeOriginal:
         self.optimizer2 = optimizer(self.autoencoder2.parameters())
         self.scheduler2 = scheduler(self.optimizer2)
 
-    def train(self, current_epoch):
+    def train(self, current_epoch, batches):
         loss1_mean, loss2_mean = 0, 0
         face1 = None
         face1_warped = None
@@ -48,7 +47,7 @@ class DeepFakeOriginal:
         output2 = None
         iterations = 0
 
-        for (face1_warped, face1), (face2_warped, face2) in self.data_loader.train():
+        for (face1_warped, face1), (face2_warped, face2) in batches:
             # face1 and face2 contain a batch of images of the first and second face, respectively
             face1, face2 = face1.cuda(), face2.cuda()
             face1_warped, face2_warped = face1_warped.cuda(), face2_warped.cuda()
@@ -77,6 +76,29 @@ class DeepFakeOriginal:
         self.scheduler2.step(loss2_mean, current_epoch)
 
         return loss1_mean, loss2_mean, [face1_warped, output1, face1, face2_warped, output2, face2]
+
+    def validate(self, batches):
+        loss1_valid_mean, loss2_valid_mean = 0, 0
+        iterations = 0
+
+        for (face1_warped, face1), (face2_warped, face2) in batches:
+            face1, face2 = face1.cuda(), face2.cuda()
+            face1_warped, face2_warped = face1_warped.cuda(), face2_warped.cuda()
+
+            output1 = self.autoencoder1(face1_warped)
+            loss1_valid_mean += self.lossfn(output1, face1)
+
+            output2 = self.autoencoder2(face2_warped)
+            loss2_valid_mean += self.lossfn(output2, face2)
+
+            iterations += 1
+
+        loss1_valid_mean /= iterations
+        loss2_valid_mean /= iterations
+        loss1_valid_mean = loss1_valid_mean.cpu().data.numpy()
+        loss2_valid_mean = loss2_valid_mean.cpu().data.numpy()
+
+        return loss1_valid_mean, loss2_valid_mean
 
     def anonymize(self, x):
         return self.autoencoder2(x)
