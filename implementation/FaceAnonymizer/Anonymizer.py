@@ -1,3 +1,4 @@
+import torch
 from pathlib import Path
 
 import numpy as np
@@ -36,8 +37,12 @@ class Anonymizer:
             face_in = extracted_face.resize(self.img_size, resample=LANCZOS)
             # Transform into tensor
             face_in = ToTensor()(face_in)
+            landmarks = (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist()
+            landmarks = np.reshape(landmarks, -1).astype(np.float32)
+            landmarks = torch.from_numpy(landmarks).unsqueeze(0).cuda()
+            extracted_information.landmarks = landmarks
             # feed into network
-            face_out = self.model.anonymize(face_in.unsqueeze(0).cuda()).squeeze(0)
+            face_out = self.model.anonymize(face_in.unsqueeze(0).cuda(), extracted_information).squeeze(0)
             # get it back to the cpu and get the data
             face_out = ToPILImage()(face_out.cpu().detach())
             # scale to original resolution
