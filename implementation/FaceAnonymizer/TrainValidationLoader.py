@@ -22,7 +22,7 @@ class TrainValidationLoader:
 
         self.train_loader = DataLoader(dataset, sampler=train_sampler, batch_size = batch_size,
                                        num_workers=num_workers, pin_memory=pin_memory, drop_last=drop_last)
-        self.validation_loader = DataLoader(dataset, sampler=validation_sampler, batch_size=batch_size, shuffle=shuffle,
+        self.validation_loader = DataLoader(dataset, sampler=validation_sampler, batch_size=batch_size, shuffle=False,
                                        num_workers=num_workers, pin_memory=pin_memory, drop_last=drop_last)
 
     def train(self):

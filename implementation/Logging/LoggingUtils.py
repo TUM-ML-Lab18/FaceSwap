@@ -9,6 +9,8 @@ import torch
 from tensorboardX import SummaryWriter
 from torchvision import utils as vutils
 
+from Preprocessor.FaceExtractor import ExtractionInformation
+
 
 def log_first_layer(net, writer, frame_idx):
     first_layer = next(net.parameters()).data.cpu()
@@ -34,6 +36,7 @@ class Logger:
     # def log(self, epoch, loss1, loss2, images):
     #    _thread.start_new_thread(self.log_threaded, (epoch, loss1, loss2, images))
 
+    # todo add some processing for different architectures
     def log(self, epoch, loss1, loss2, images):
         new_time = datetime.datetime.now()
         self.writer.add_scalar("fps", self.steps_per_epoch * 1.0 / (new_time - self.t).total_seconds(), epoch)
@@ -45,22 +48,32 @@ class Logger:
             examples = int(len(images[0]))
 
             example_indices = random.sample(range(0, examples - 1), 5)  # range(examples)  #
-            anonymized_images_trump = self.anonymizer.anonymize(images[2][example_indices])
-            anonymized_images_cage = self.anonymizer.anonymize_2(images[5][example_indices])
+            # todo this is only hacky
+            # latent model
+            if len(images) is 2:
+                trump = []
+                for idx, i in enumerate(example_indices):
+                    trump.append(images[0].cpu()[i] * 255.00)
+                    trump.append(images[1].cpu()[i] * 255.00)
 
-            trump = []
-            cage = []
-            for idx, i in enumerate(example_indices):
-                for j in range(3):
-                    trump.append(images[j].cpu()[i] * 255.00)
-                    cage.append(images[3 + j].cpu()[i] * 255.00)
-                trump.append(anonymized_images_trump.cpu()[idx] * 255.00)
-                cage.append(anonymized_images_cage.cpu()[idx] * 255.00)
+                trump_grid = vutils.make_grid(trump, normalize=True, scale_each=True, nrow=2)
+                self.writer.add_image("sample_input/trump", trump_grid, epoch)
+            else:
+                anonymized_images_trump = self.anonymizer.anonymize(images[2][example_indices], None)
+                anonymized_images_cage = self.anonymizer.anonymize_2(images[5][example_indices], None)
+                trump = []
+                cage = []
+                for idx, i in enumerate(example_indices):
+                    for j in range(3):
+                        trump.append(images[j].cpu()[i] * 255.00)
+                        cage.append(images[3 + j].cpu()[i] * 255.00)
+                    trump.append(anonymized_images_trump.cpu()[idx] * 255.00)
+                    cage.append(anonymized_images_cage.cpu()[idx] * 255.00)
 
-            trump_grid = vutils.make_grid(trump, normalize=True, scale_each=True, nrow=4)
-            cage_grid = vutils.make_grid(cage, normalize=True, scale_each=True, nrow=4)
-            self.writer.add_image("sample_input/trump", trump_grid, epoch)
-            self.writer.add_image("sample_input/cage", cage_grid, epoch)
+                trump_grid = vutils.make_grid(trump, normalize=True, scale_each=True, nrow=4)
+                cage_grid = vutils.make_grid(cage, normalize=True, scale_each=True, nrow=4)
+                self.writer.add_image("sample_input/trump", trump_grid, epoch)
+                self.writer.add_image("sample_input/cage", cage_grid, epoch)
 
             # self.writer.add_histogram("images_used", self.anonymizer.data.histogram, epoch)
 
@@ -80,6 +93,19 @@ class Logger:
                              text)
         text = inspect.getsource(config['model']).replace('\n', '\n\t')
         self.writer.add_text("config", text)
+
+    @staticmethod
+    def construct_recordclass(landmarks):
+        return ExtractionInformation(image_original=None,
+                                     image_cropped=None,
+                                     bounding_box_coarse=None,
+                                     offsets_coarse=None,
+                                     size_coarse=None,
+                                     mask=None, rotation=None,
+                                     bounding_box_fine=None,
+                                     offsets_fine=None,
+                                     size_fine=None,
+                                     landmarks=landmarks)
 
 
 def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):

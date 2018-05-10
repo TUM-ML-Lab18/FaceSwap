@@ -1,8 +1,12 @@
 import torch
+from PIL import Image
 from torch.nn import DataParallel
 from pathlib import Path
 
+from torchvision.transforms import ToTensor, ToPILImage
+
 from FaceAnonymizer.models.Autoencoder import AutoEncoder
+from Preprocessor.FaceExtractor import ExtractionInformation
 
 
 class DeepFakeOriginal:
@@ -100,10 +104,10 @@ class DeepFakeOriginal:
 
         return loss1_valid_mean, loss2_valid_mean
 
-    def anonymize(self, x):
+    def anonymize(self, x: Image, y: ExtractionInformation):
         return self.autoencoder2(x)
 
-    def anonymize_2(self, x):
+    def anonymize_2(self, x: Image, y: ExtractionInformation):
         return self.autoencoder1(x)
 
     # TODO: Use save & load functions from models -> memory independent (RAM vs GPU)

@@ -1,18 +1,18 @@
 import numpy as np
 import cv2
 import face_recognition
-from collections import namedtuple
+from recordclass import recordclass
 from PIL import Image
 
 
-ExtractionInformation = namedtuple('ExtractionInformation',
+ExtractionInformation = recordclass('ExtractionInformation',
                            ('image_original', 'image_cropped',
                             'bounding_box_coarse', 'offsets_coarse', 'size_coarse',
                             'mask', 'rotation',
                             'bounding_box_fine', 'offsets_fine', 'size_fine',
                             'landmarks'))
-BoundingBox = namedtuple('BoundingBox', ('left', 'right', 'top', 'bottom'))
-Rotation = namedtuple('Rotation', ('angle', 'center'))
+BoundingBox = recordclass('BoundingBox', ('left', 'right', 'top', 'bottom'))
+Rotation = recordclass('Rotation', ('angle', 'center'))
 
 
 class FaceExtractor(object):

@@ -6,12 +6,12 @@ from PIL import Image
 from pathlib import Path
 
 from Logging.LoggingUtils import print_progress_bar
-from configuration.run_config import sebis_config
+from configuration.run_config import current_config
 
 
 def convert_images():
-    anonymizer = Anonymizer(model_folder='./logs/2018-05-07 23:49:39.061884/model', model=sebis_config['model'],
-                            img_size=sebis_config['img_size'])
+    anonymizer = Anonymizer(model_folder='./logs/2018-05-08 21:13:43.859094/model', model=current_config['model'],
+                            img_size=current_config['img_size'])
     path = Path('/nfs/students/summer-term-2018/project_2/test/')
     path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')
     for image_file in path.iterdir():
@@ -24,8 +24,8 @@ def convert_images():
 
 
 def convert_video():
-    anonymizer = Anonymizer(model_folder='./logs/2018-05-07 23:49:39.061884/model', model=sebis_config['model'],
-                            img_size=sebis_config['img_size'])
+    anonymizer = Anonymizer(model_folder='./logs/2018-05-07 23:49:39.061884/model', model=current_config['model'],
+                            img_size=current_config['img_size'])
     path = Path('/nfs/students/summer-term-2018/project_2/test_video2/')
     path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')
     for video_file in path.iterdir():
@@ -64,4 +64,4 @@ def convert_video():
 
 
 if __name__ == '__main__':
-    convert_video()
+    convert_images()

@@ -3,7 +3,6 @@ import torch
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from FaceAnonymizer import TrainValidationLoader
-from torch.utils.data import DataLoader
 
 from FaceAnonymizer.models.Autoencoder import AutoEncoder
 from FaceAnonymizer.models.Decoder import Decoder, LatentDecoder
@@ -73,4 +72,4 @@ landmarks_config = {'batch_size': 64,
                                                                      image_dataset=lambda path: LandmarkDataset(
                                                                          dataset=path,
                                                                          img_size=(128, 128)))}
-current_config = sebis_config
+current_config = landmarks_config

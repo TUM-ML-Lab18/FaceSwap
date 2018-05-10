@@ -1,7 +1,12 @@
 from pathlib import Path
 
+import numpy as np
 import torch
+from PIL import Image
 from torch.nn import DataParallel
+from torchvision.transforms import ToPILImage
+
+from Preprocessor.FaceExtractor import ExtractionInformation
 
 
 class LatentModel:
@@ -34,9 +39,9 @@ class LatentModel:
             loss1 = self.lossfn(output1, face1)
             loss1.backward()
 
-            #output2 = self.decoder(face2_landmarks)
-            #loss2 = self.lossfn(output2, face2)
-            #loss2.backward()
+            # output2 = self.decoder(face2_landmarks)
+            # loss2 = self.lossfn(output2, face2)
+            # loss2.backward()
 
             self.optimizer1.step()
 
@@ -48,7 +53,7 @@ class LatentModel:
         loss2_mean = 0
         self.scheduler1.step(loss1_mean, current_epoch)
 
-        return loss1_mean, loss2_mean, [face1, output1, face1, face1, output1, face1]
+        return loss1_mean, loss2_mean, [face1, output1]
 
     def validate(self, batches):
         loss1_valid_mean, loss2_valid_mean = 0, 0
@@ -64,11 +69,11 @@ class LatentModel:
 
         return loss1_valid_mean, loss2_valid_mean
 
-    def anonymize(self, x):
-        return x
+    def anonymize(self, x: Image, y: ExtractionInformation):
+        return self.decoder(y.landmarks)
 
-    def anonymize_2(self, x):
-        return x
+    def anonymize_2(self, x: Image, y: ExtractionInformation):
+        return self.anonymize(x, y)
 
     # TODO: Use save & load functions from models -> memory independent (RAM vs GPU)
     def save_model(self, path):
@@ -81,4 +86,4 @@ class LatentModel:
 
     def load_model(self, path):
         path = Path(path)
-        self.decoder.load(path / 'decoder1.model')
+        self.decoder.load(path / 'decoder.model')
