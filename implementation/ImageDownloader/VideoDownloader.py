@@ -5,7 +5,7 @@ import numpy as np
 from pytube import YouTube
 
 from Logging.LoggingUtils import print_progress_bar
-from configuration.gerneral_config import VIDEO_DOWNLOADER
+from configuration.general_config import VIDEO_DOWNLOADER
 
 
 class VideoDownloader:
