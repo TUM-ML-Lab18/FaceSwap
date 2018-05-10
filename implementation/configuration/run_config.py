@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from FaceAnonymizer import TrainValidationLoader
 from torch.utils.data import DataLoader
 
 from FaceAnonymizer.models.Autoencoder import AutoEncoder
@@ -16,7 +17,7 @@ sebis_config = {'batch_size': 64,
                 'num_epoch': 5000,
                 'img_size': (128, 128),
                 'model': lambda dataset: DeepFakeOriginal(
-                    data_loader=TrainValidationLoader(dataset=dataset,
+                    data_loader=DataLoader(dataset=dataset,
                                            batch_size=64,
                                            shuffle=True,
                                            num_workers=12,
@@ -47,7 +48,7 @@ alex_config = {'batch_size': 512,
                 'num_epoch': 1000,
                 'img_size': (128, 128),
                 'model': lambda dataset: DeepFakeOriginal(
-                    data_loader=DataLoader(dataset=dataset,
+                    data_loader=TrainValidationLoader(dataset=dataset,
                                            batch_size=64,
                                            shuffle=True,
                                            num_workers=12,
