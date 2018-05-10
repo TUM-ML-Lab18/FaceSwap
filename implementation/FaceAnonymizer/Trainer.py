@@ -15,7 +15,7 @@ class Trainer:
             dataset.size_multiplicator *= torch.cuda.device_count()
 
         self.data_loader = config['data_loader'](dataset)
-        self.model = config['model']
+        self.model = config['model']()
 
         self.logger = Logger(len(dataset) // dataset.size_multiplicator, self.model, save_model_every_nth=100,
                              shared_model_path=MOST_RECENT_MODEL)
