@@ -6,6 +6,9 @@ from torch.utils.data.sampler import SubsetRandomSampler
 
 class TrainValidationLoader:
     def __init__(self, dataset, batch_size=64, validation_size=0.2, shuffle=True, num_workers=12, pin_memory=True, drop_last=True):
+        if dataset is None:
+            return
+
         idxs = list(range(len(dataset)))
 
         if shuffle:
