@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import torch
 from torch.nn import DataParallel
 
@@ -54,3 +56,16 @@ class LatentModel:
 
     def anonymize_2(self, x):
         return x
+
+    # TODO: Use save & load functions from models -> memory independent (RAM vs GPU)
+    def save_model(self, path):
+        # Create subfolder for models
+        path = Path(path)
+        subfolder = "model"  # "#datetime.now().strftime('model__%Y%m%d_%H%M%S')
+        path = path / subfolder
+        path.mkdir(parents=True, exist_ok=True)
+        self.decoder.save(path / 'decoder.model')
+
+    def load_model(self, path):
+        path = Path(path)
+        self.decoder.load(path / 'decoder1.model')

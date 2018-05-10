@@ -10,7 +10,8 @@ from configuration.run_config import sebis_config
 
 
 def convert_images():
-    anonymizer = Anonymizer(model_folder='./model', model=sebis_config['model'], img_size=sebis_config['img_size'])
+    anonymizer = Anonymizer(model_folder='./logs/2018-05-07 23:49:39.061884/model', model=sebis_config['model'],
+                            img_size=sebis_config['img_size'])
     path = Path('/nfs/students/summer-term-2018/project_2/test/')
     path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')
     for image_file in path.iterdir():
@@ -23,8 +24,9 @@ def convert_images():
 
 
 def convert_video():
-    anonymizer = Anonymizer(model_folder='./model', model=sebis_config['model'], img_size=sebis_config['img_size'])
-    path = Path('/nfs/students/summer-term-2018/project_2/test_video4/')
+    anonymizer = Anonymizer(model_folder='./logs/2018-05-07 23:49:39.061884/model', model=sebis_config['model'],
+                            img_size=sebis_config['img_size'])
+    path = Path('/nfs/students/summer-term-2018/project_2/test_video2/')
     path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')
     for video_file in path.iterdir():
         if video_file.is_dir():
@@ -46,9 +48,8 @@ def convert_video():
             if ret:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 image = Image.fromarray(frame)
-                try:
-                    new_image = anonymizer(image)
-                except:
+                new_image = anonymizer(image)
+                if not new_image:
                     new_image = image
                 new_image = np.array(new_image)
                 new_image = cv2.cvtColor(new_image, cv2.COLOR_RGB2BGR)
@@ -63,4 +64,4 @@ def convert_video():
 
 
 if __name__ == '__main__':
-    convert_images()
+    convert_video()
