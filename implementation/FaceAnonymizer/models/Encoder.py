@@ -82,8 +82,3 @@ class Encoder(nn.Module):
         """
         print('Loading model... %s' % path)
         self.load_state_dict(torch.load(path, map_location=lambda storage, loc: storage))
-
-
-class SebisEncoder(Encoder):
-    def __init__(self, input_dim, latent_dim):
-        super(SebisEncoder, self).__init__(input_dim, latent_dim)
