@@ -1,7 +1,7 @@
 import torch
 
 from Logging.LoggingUtils import Logger
-from configuration.gerneral_config import MOST_RECENT_MODEL
+from configuration.general_config import MOST_RECENT_MODEL
 
 
 class Trainer:

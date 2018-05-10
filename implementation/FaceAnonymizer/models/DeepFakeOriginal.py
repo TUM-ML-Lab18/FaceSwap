@@ -1,8 +1,3 @@
-#
-# This file includes the main functionality of the FaceAnonymizer module
-# Author: Alexander Becker
-#
-
 import torch
 from torch.nn import DataParallel
 from pathlib import Path
@@ -53,7 +48,7 @@ class DeepFakeOriginal:
         output2 = None
         iterations = 0
 
-        for (face1_warped, face1), (face2_warped, face2) in self.data_loader:
+        for (face1_warped, face1), (face2_warped, face2) in self.data_loader.train():
             # face1 and face2 contain a batch of images of the first and second face, respectively
             face1, face2 = face1.cuda(), face2.cuda()
             face1_warped, face2_warped = face1_warped.cuda(), face2_warped.cuda()
