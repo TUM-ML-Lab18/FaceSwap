@@ -100,4 +100,4 @@ landmarks_config = {'batch_size': 64,
                                                                      image_dataset=lambda path: LandmarkDataset(
                                                                          dataset=path,
                                                                          img_size=(128, 128)))}
-current_config = sebis_config
+current_config = landmarks_config
