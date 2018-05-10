@@ -2,9 +2,6 @@ import torch
 from PIL import Image
 from torch.nn import DataParallel
 from pathlib import Path
-
-from torchvision.transforms import ToTensor, ToPILImage
-
 from FaceAnonymizer.models.Autoencoder import AutoEncoder
 from Preprocessor.FaceExtractor import ExtractionInformation
 

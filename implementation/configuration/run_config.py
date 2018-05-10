@@ -13,7 +13,7 @@ from Preprocessor.FaceExtractor import FaceExtractor
 from Preprocessor.ImageDataset import ImageDatesetCombined, LandmarkDataset
 from Preprocessor.Preprocessor import Preprocessor
 
-sebis_config = {'batch_size': 64,
+standart_config = {'batch_size': 64,
                 'num_epoch': 5000,
                 'img_size': (128, 128),
                 'validation_freq': 20,
@@ -24,7 +24,7 @@ sebis_config = {'batch_size': 64,
                                            num_workers=12,
                                            pin_memory=True,
                                            drop_last=True),
-                'model': lambda: DeepFakeOriginal(
+                   'model': lambda: DeepFakeOriginal(
                     encoder=lambda: Encoder(input_dim=(3, 128, 128),
                                             latent_dim=1024,
                                             num_convblocks=5),
@@ -37,14 +37,14 @@ sebis_config = {'batch_size': 64,
                                                                   verbose=True,
                                                                   patience=100,
                                                                   cooldown=50), ),
-                'preprocessor': lambda root_folder: Preprocessor(root_folder=root_folder,
+                   'preprocessor': lambda root_folder: Preprocessor(root_folder=root_folder,
                                                                  face_extractor=lambda: FaceExtractor(margin=0.05,
                                                                                                       mask_type=np.bool,
                                                                                                       mask_factor=10),
                                                                  image_dataset=lambda path: ImageDatesetCombined(
                                                                      dataset=path,
                                                                      img_size=(128, 128)))
-                }
+                   }
 
 landmarks_config = {'batch_size': 64,
                     'num_epoch': 5000,
@@ -72,4 +72,4 @@ landmarks_config = {'batch_size': 64,
                                                                      image_dataset=lambda path: LandmarkDataset(
                                                                          dataset=path,
                                                                          img_size=(128, 128)))}
-current_config = landmarks_config
+current_config = standart_config
