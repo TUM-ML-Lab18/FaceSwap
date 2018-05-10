@@ -5,8 +5,7 @@ from torch.nn import DataParallel
 
 
 class LatentModel:
-    def __init__(self, optimizer, scheduler, data_loader, decoder, loss_function):
-        self.data_loader = data_loader
+    def __init__(self, optimizer, scheduler, decoder, loss_function):
         self.decoder = decoder().cuda()
 
         if torch.cuda.device_count() > 1:
@@ -17,7 +16,7 @@ class LatentModel:
         self.optimizer1 = optimizer(self.decoder.parameters())
         self.scheduler1 = scheduler(self.optimizer1)
 
-    def train(self, current_epoch):
+    def train(self, current_epoch, batches):
         loss1_mean, loss2_mean = 0, 0
         face1 = None
         output1 = None
@@ -25,7 +24,7 @@ class LatentModel:
         output2 = None
         iterations = 0
 
-        for (face1_landmarks, face1), (face2_landmarks, face2) in self.data_loader:
+        for (face1_landmarks, face1), (face2_landmarks, face2) in batches:
             # face1 and face2 contain a batch of images of the first and second face, respectively
             face1, face2 = face1.cuda(), face2.cuda()
             face1_landmarks, face2_landmarks = face1_landmarks.cuda(), face2_landmarks.cuda()
@@ -50,6 +49,20 @@ class LatentModel:
         self.scheduler1.step(loss1_mean, current_epoch)
 
         return loss1_mean, loss2_mean, [face1, output1, face1, face1, output1, face1]
+
+    def validate(self, batches):
+        loss1_valid_mean, loss2_valid_mean = 0, 0
+        iterations = 0
+
+        for (face1_warped, face1), (face2_warped, face2) in batches:
+            pass
+
+        loss1_valid_mean /= iterations
+        loss2_valid_mean /= iterations
+        loss1_valid_mean = loss1_valid_mean.cpu().data.numpy()
+        loss2_valid_mean = loss2_valid_mean.cpu().data.numpy()
+
+        return loss1_valid_mean, loss2_valid_mean
 
     def anonymize(self, x):
         return x
