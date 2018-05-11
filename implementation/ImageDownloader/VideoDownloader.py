@@ -1,21 +1,21 @@
 import cv2
 from pathlib import Path
-
-import numpy as np
 from pytube import YouTube
 
 from Logging.LoggingUtils import print_progress_bar
 from configuration.general_config import VIDEO_DOWNLOADER
+from configuration.general_config import VIDEO_DOWNLOADER_MERKEL
 
 
 class VideoDownloader:
     @staticmethod
     def download_video(url):
-        YouTube(url).streams.filter(progressive=True).order_by('resolution').desc().first().download(VIDEO_DOWNLOADER)
+        YouTube(url).streams.filter(progressive=True).order_by('resolution').desc().first().download(
+            VIDEO_DOWNLOADER_MERKEL)
 
     @staticmethod
     def extract_frames():
-        path = Path(VIDEO_DOWNLOADER)
+        path = Path(VIDEO_DOWNLOADER_MERKEL)
         for video_file in path.iterdir():
             if video_file.is_dir():
                 continue
@@ -85,11 +85,16 @@ if __name__ == '__main__':
     VideoDownloader.download_video(
         "https://www.youtube.com/watch?v=8yiUJeXrW_Y")  # Weltklimaabkommen - Kanzlerin Merkel zum Pariser Klimaabkommen und dem Ausstieg der USA
     VideoDownloader.download_video("https://www.youtube.com/watch?v=9jL0yoxcL2s")  # Kanzlerin Merkel zum #Brexit
-    VideoDownloader.download_video("https://www.youtube.com/watch?v=-TZBqCnRrEU")  # Kanzlerin Merkel zum Ausgang der US-Präsidentschaftswahl
-    VideoDownloader.download_video("https://www.youtube.com/watch?v=CXzKHu2usSA")  # Kanzlerin Merkel zum Tod von Guido Westerwelle
-    VideoDownloader.download_video("https://www.youtube.com/watch?v=yaF1CI9lLzI")  # Kanzlerin #Merkel zum Tod von Helmut Schmidt
-    VideoDownloader.download_video("https://www.youtube.com/watch?v=tyVmDmZm5Bs")  # Kanzlerin Merkel zum Tod von Hans-Dietrich Genscher
-    VideoDownloader.download_video("https://www.youtube.com/watch?v=yzOheh9kvJQ")  # Sommer-Pressekonferenz mit Kanzlerin Merkel Regierungserklärung zum Brexit
+    VideoDownloader.download_video(
+        "https://www.youtube.com/watch?v=-TZBqCnRrEU")  # Kanzlerin Merkel zum Ausgang der US-Präsidentschaftswahl
+    VideoDownloader.download_video(
+        "https://www.youtube.com/watch?v=CXzKHu2usSA")  # Kanzlerin Merkel zum Tod von Guido Westerwelle
+    VideoDownloader.download_video(
+        "https://www.youtube.com/watch?v=yaF1CI9lLzI")  # Kanzlerin #Merkel zum Tod von Helmut Schmidt
+    VideoDownloader.download_video(
+        "https://www.youtube.com/watch?v=tyVmDmZm5Bs")  # Kanzlerin Merkel zum Tod von Hans-Dietrich Genscher
+    VideoDownloader.download_video(
+        "https://www.youtube.com/watch?v=yzOheh9kvJQ")  # Sommer-Pressekonferenz mit Kanzlerin Merkel Regierungserklärung zum Brexit
 
     VideoDownloader.download_video("")  #
     # VideoDownloader.extract_frames()

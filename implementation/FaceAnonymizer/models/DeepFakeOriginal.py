@@ -38,6 +38,10 @@ class DeepFakeOriginal:
         self.optimizer2 = optimizer(self.autoencoder2.parameters())
         self.scheduler2 = scheduler(self.optimizer2)
 
+    def set_train_mode(self, mode):
+        self.autoencoder1.train(mode)
+        self.autoencoder2.train(mode)
+
     def train(self, current_epoch, batches):
         loss1_mean, loss2_mean = 0, 0
         face1 = None
@@ -83,16 +87,17 @@ class DeepFakeOriginal:
         iterations = 0
 
         for (face1_warped, face1), (face2_warped, face2) in batches:
-            face1, face2 = face1.cuda(), face2.cuda()
-            face1_warped, face2_warped = face1_warped.cuda(), face2_warped.cuda()
+            with torch.no_grad():
+                face1, face2 = face1.cuda(), face2.cuda()
+                face1_warped, face2_warped = face1_warped.cuda(), face2_warped.cuda()
 
-            output1 = self.autoencoder1(face1_warped)
-            loss1_valid_mean += self.lossfn(output1, face1)
+                output1 = self.autoencoder1(face1_warped)
+                loss1_valid_mean += self.lossfn(output1, face1)
 
-            output2 = self.autoencoder2(face2_warped)
-            loss2_valid_mean += self.lossfn(output2, face2)
+                output2 = self.autoencoder2(face2_warped)
+                loss2_valid_mean += self.lossfn(output2, face2)
 
-            iterations += 1
+                iterations += 1
 
         loss1_valid_mean /= iterations
         loss2_valid_mean /= iterations
