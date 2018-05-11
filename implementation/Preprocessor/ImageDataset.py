@@ -8,7 +8,7 @@ import torchvision.transforms as transforms
 from Preprocessor.Transforms import RandomWarp, TupleToTensor, TupleResize
 from PIL.Image import BICUBIC
 
-from configuration.gerneral_config import A, B, PREPROCESSED, LANDMARKS
+from configuration.general_config import A, B, PREPROCESSED, LANDMARKS
 
 
 class ImageDatesetCombined(Dataset):
