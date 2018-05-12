@@ -1,4 +1,5 @@
 import json
+import ast
 import os
 from pathlib import Path
 
@@ -6,76 +7,119 @@ import numpy as np
 from PIL import Image
 
 from Logging.LoggingUtils import print_progress_bar
-from configuration.general_config import RAW, PREPROCESSED, A, B, LANDMARKS
+from configuration.general_config import RAW, PREPROCESSED, LANDMARKS_BUFFER, LANDMARKS_JSON
 
+img_file_extensions = ['.jpg', '.JPG', '.png', '.PNG']
+separator = '        '
 
 class Preprocessor:
-    def __init__(self, root_folder: str, face_extractor, image_dataset):
-        self.image_dataset = image_dataset
-        self.root_folder = Path(root_folder)
-        self.raw_folder = self.root_folder / RAW
-        self.processed_folder = self.root_folder / PREPROCESSED
-        self.extractor = face_extractor()
-        self.landmarks = self.root_folder / LANDMARKS
-
-    def process_images(self):
+    """
+    Preprocesses all images in the given directory
+    Directory must have the following structure:
+    root/raw: Place, where the unprocessed images are stored
+    root/preprocessed: Place, where the processed images get stored
+    """
+    def __init__(self, face_extractor):
         """
-        Processes all image classes in the raw folder and saves the results to the processed folder.
+        :param face_extractor: Initialized FaceExtractor
         """
-        if not self.processed_folder.exists():
-            self.processed_folder.mkdir()
+        # Used extractor
+        self.extractor = face_extractor
 
-        if not self.landmarks.exists():
-            self.landmarks.touch()
-            with open(self.landmarks, 'w') as f:
-                f.write("{}")
-        with open(self.landmarks) as f:
-            self.landmarks_json = json.load(f)
+    def __call__(self, root_folder):
+        """
+        Processes all image classes in the raw folder and saves the results to the preprocessed folder.
+        :param root_folder: Path to the dataset that should be processed
+        """
+        # ============================ Initializations
+        # Initialize paths
+        raw_folder = root_folder / RAW
+        preprocessed_folder = root_folder / PREPROCESSED
+        landmarks_buffer = root_folder / LANDMARKS_BUFFER
+        landmarks_json = root_folder / LANDMARKS_JSON
+        # Check root path
+        if not raw_folder.exists():
+            raise FileNotFoundError('No RAW folder with images to process: ' + str(raw_folder))
+        # Check preprocessed path
+        if not preprocessed_folder.exists():
+            preprocessed_folder.mkdir()
 
-        # dataset A
-        dataset_a = self.raw_folder / A
+        # Count files recursively for logging
+        total_files_count = sum([len(files) for r, d, files in os.walk(raw_folder)])
+        files_count = 0
 
-        # should be only one
-        for person_dir in dataset_a.iterdir():
-            target_dir = self.processed_folder / A / person_dir.parts[-1]
-            if not target_dir.exists():
-                self.process_person_folder(person_dir, target_dir)
+        # ============================ Process images
+        # Iterate recursively over RAW directory
+        for root, dirs, files in os.walk(raw_folder):
+            root = Path(root)
 
-        # and all the other person in dataset B
-        dataset_b = self.raw_folder / B
+            # Create subdirectories
+            for subdir in dirs:
+                # Create paths for subdirectory
+                subdir_raw = root / subdir
+                relative_path = subdir_raw.relative_to(raw_folder)
+                subdir_processed = preprocessed_folder / relative_path
+                if not subdir_processed.exists():
+                    subdir_processed.mkdir()
 
-        # should be only one
-        for person_dir in dataset_b.iterdir():
-            target_dir = self.processed_folder / B / person_dir.parts[-1]
-            if not target_dir.exists():
-                self.process_person_folder(person_dir, target_dir)
-
-        with open(self.landmarks, 'w') as f:
-            json.dump(self.landmarks_json, f)
-
-    def process_person_folder(self, source, target):
-        if source.is_dir():
-            # log progress
-            images_count = len([f for f in os.listdir(source) if os.path.isfile(os.path.join(source, f))])
-            print_progress_bar(0, images_count)
-
-            target.mkdir(parents=True)
-            for idx, image_path in enumerate(source.iterdir()):
-                # open image and extract facial region
-                try:
-                    img = Image.open(image_path)
-                except OSError:
+            # Convert images
+            for file in files:
+                # Logging
+                files_count += 1
+                print_progress_bar(files_count, total_files_count)
+                # Create paths for image file
+                file_path_raw = root / file
+                relative_path = file_path_raw.relative_to(raw_folder)
+                # Check if image is already preprocessed
+                if (preprocessed_folder / relative_path).exists():
                     continue
-                extracted_image, extracted_information = self.extractor(img)
-                # if there was an face save the extracted part now in the processed folder
-                if extracted_image is not None:
-                    self.landmarks_json[
-                        image_path.parts[-1]] = (np.array(
-                        extracted_information.landmarks) / extracted_information.size_fine).tolist()
-                    extracted_image.save(target / image_path.parts[-1], format='JPEG')
+                if file_path_raw.suffix in img_file_extensions:
+                    # open image and extract facial region
+                    try:
+                        image = Image.open(file_path_raw)
+                    except OSError:
+                        continue
+                    # Convert image to RGB
+                    if image.mode is not 'RGB':
+                        image = image.convert('RGB')
+                    # Extract facial region in image
+                    extracted_image, extracted_information = self.extractor(image)
+                    # Check if extraction found a face
+                    if extracted_image is None:
+                        continue
+                    # Convert landmarks into normalized list
+                    landmarks = (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist()
+                    # Buffer landmarks in CSV file
+                    with open(landmarks_buffer, 'a') as lm_buffer:
+                        lm_buffer.write(str(relative_path) + separator + str(landmarks) + '\n')
+                    # Save extraction result in PROCESSED folder
+                    extracted_image.save(preprocessed_folder / relative_path, format='JPEG')
 
-                print_progress_bar(idx, images_count)
-        print("\n")
+        # Convert landmarks to json
+        landmarks_storage = convert_buffer_to_dict(landmarks_buffer)
+
+        # Save json file
+        with open(landmarks_json, 'w') as lm_json:
+            json.dump(landmarks_storage, lm_json)
+
+
+def convert_buffer_to_dict(landmarks_buffer_file):
+    """
+    Converts the landmarks from the buffer file  to a dict
+    :param landmarks_buffer_file: Path to the landmarks buffer file
+    :return: Landmarks stored in a dict
+    """
+    # Extract landmarks from file and remove separator
+    with open(landmarks_buffer_file) as lm_buffer:
+        buffered_landmarks = lm_buffer.readlines()
+    # Extract separators
+    buffered_landmarks = [line.strip() for line in buffered_landmarks]
+    buffered_landmarks = [line.split(separator) for line in buffered_landmarks]
+    # Save landmarks in dict
+    landmarks_storage = {}
+    for filename, landmarks in buffered_landmarks:
+        landmarks_storage[filename] = ast.literal_eval(landmarks)
+    return landmarks_storage
 
     @property
     def dataset(self):
@@ -85,4 +129,4 @@ class Preprocessor:
         :return: ImageDataset containing the image classes from the dataset.
         """
         self.process_images()
-        return self.image_dataset(self.root_folder)
+        return self.image_dataset(self.root_folder / PREPROCESSED)

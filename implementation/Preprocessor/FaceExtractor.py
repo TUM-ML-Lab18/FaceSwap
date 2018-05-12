@@ -80,9 +80,6 @@ class FaceExtractor(object):
 
         # Convert PIL image into np.array
         image = np.array(image)
-        # Check if image is in grayscale format
-        if len(image.shape)==2:
-            image = gray_to_rgb(image)
         landmarks = self.landmarks_extractor(image)
         if landmarks is not None:
             original_image = image
@@ -140,15 +137,6 @@ def update_landmarks(landmarks_dict, transformation):
             #landmark = np.round(landmark).astype(int)
             landmarks.append(tuple(landmark))
         landmarks_dict[feature] = landmarks
-
-def gray_to_rgb(grayscale_img):
-    """
-    Converts a 1 channel gray scale into RGB format
-    :param image: np.array / cv2 image without channel information
-    :return: iamge: np.array / cv2 image with 3 channels
-    """
-    rgb_image = np.stack((grayscale_img,)*3, -1)
-    return rgb_image
 
 class LandmarksExtractor(object):
     """
