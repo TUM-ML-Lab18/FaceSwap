@@ -93,8 +93,7 @@ class FaceExtractor(object):
             extracted_face = Image.fromarray(extracted_face)
             original_image = Image.fromarray(original_image)
             cropped_image = Image.fromarray(cropped_image)
-
-        if landmarks:
+            # Save landmarks in list
             landmarks = list_landmarks(landmarks)
 
         extraction_information = ExtractionInformation(image_original=original_image,

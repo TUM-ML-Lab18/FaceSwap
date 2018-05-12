@@ -11,6 +11,7 @@ class FaceReconstructor(object):
     4. Invert coarse cropping of the ROI
     """
     def __init__(self, mask_factor=-10):
+        self.face_sharpener = FaceSharpener()
         self.face_decropper_fine = FaceDecropperFine()
         self.face_dealigner = FaceDealigner()
         self.face_demasker = FaceDemasker(mask_factor)
@@ -40,7 +41,8 @@ class FaceReconstructor(object):
         original_image = np.array(extraction_information.image_original)
         coarse_cropped_image = np.array(extraction_information.image_cropped)
 
-        decropped_image = self.face_decropper_fine(processed_image,
+        sharpened_image = self.face_sharpener(processed_image)
+        decropped_image = self.face_decropper_fine(sharpened_image,
                                                    extraction_information.bounding_box_fine,
                                                    extraction_information.offsets_fine,
                                                    extraction_information.size_coarse)
@@ -57,6 +59,30 @@ class FaceReconstructor(object):
         reconstructed_image = Image.fromarray(decropped_image)
         return reconstructed_image
 
+class FaceSharpener(object):
+    """
+    Sharpen the given image
+    Sharpening via inverse gaussian filtering on the
+    L channel of the image in the CIELab color space
+    """
+    def __init__(self, sharp_factor=5):
+        """
+        :param sharp_factor: Sharpening degree
+        """
+        self.sharp_factor = sharp_factor
+
+    def __call__(self, image):
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2Lab)
+        # Extract L channel
+        L = image[:,:,0]
+        # Inverse filtering
+        L_blur = cv2.GaussianBlur(L, (0,0), self.sharp_factor)
+        L_sharp = cv2.addWeighted(L_blur, -1, L, 2, 0)
+        # Substitute L channel with sharpened L channel
+        image[:,:,0] = L_sharp
+        image = cv2.cvtColor(image, cv2.COLOR_Lab2RGB)
+
+        return image
 
 class FaceDecropperFine(object):
     """
