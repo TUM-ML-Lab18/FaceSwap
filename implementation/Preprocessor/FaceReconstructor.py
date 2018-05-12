@@ -97,11 +97,7 @@ class FaceDecropperFine(object):
         :param size_coarse: size of the coarse cropped image
         :return: The aligned face only coarsely cropped
         """
-        # Determine number of channels
-        C = cropped_image.shape[2] if len(cropped_image.shape) == 3 else 1
-
-        # Create target image
-        decropped_image = np.zeros((size_coarse, size_coarse, C))
+        decropped_image = np.zeros((size_coarse, size_coarse, cropped_image.shape[2]), dtype=np.uint8)
         # Invert the crop
         decropped_image[bounding_box.top:bounding_box.bottom, bounding_box.left:bounding_box.right] = \
             cropped_image[offsets.top:offsets.bottom,offsets.left:offsets.right]

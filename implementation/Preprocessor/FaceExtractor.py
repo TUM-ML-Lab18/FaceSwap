@@ -80,6 +80,9 @@ class FaceExtractor(object):
 
         # Convert PIL image into np.array
         image = np.array(image)
+        # Check if image is in grayscale format
+        if len(image.shape)==2:
+            image = gray_to_rgb(image)
         landmarks = self.landmarks_extractor(image)
         if landmarks is not None:
             original_image = image
@@ -138,6 +141,14 @@ def update_landmarks(landmarks_dict, transformation):
             landmarks.append(tuple(landmark))
         landmarks_dict[feature] = landmarks
 
+def gray_to_rgb(grayscale_img):
+    """
+    Converts a 1 channel gray scale into RGB format
+    :param image: np.array / cv2 image without channel information
+    :return: iamge: np.array / cv2 image with 3 channels
+    """
+    rgb_image = np.stack((grayscale_img,)*3, -1)
+    return rgb_image
 
 class LandmarksExtractor(object):
     """
@@ -248,13 +259,9 @@ class FaceCropperCoarse(object):
         :param size: size of the cropped region
         :return: The cropped image
         """
-        # Determine number of channels
-        C = image.shape[2] if len(image.shape) == 3 else 1
-
-        # Create squared image with zeros
+        cropped_image = np.zeros((size, size, image.shape[2]), dtype=np.uint8)
         # If bounding box touches original images limits the cropped image is
         # padded such that the face is centered
-        cropped_image = np.zeros((size, size, C), dtype=np.uint8)
         cropped_image[offsets.top:offsets.bottom, offsets.left:offsets.right] = \
             image[bounding_box.top:bounding_box.bottom, bounding_box.left:bounding_box.right]
         return cropped_image
@@ -497,13 +504,9 @@ class FaceCropperFine(object):
         :param size: size of the cropped region
         :return: The cropped image
         """
-        # Determine number of channels
-        C = image.shape[2] if len(image.shape) == 3 else 1
-
-        # Create squared image with zeros
+        cropped_image = np.zeros((size, size, image.shape[2]), dtype=np.uint8)
         # If bounding box touches original images limits the cropped image is
         # padded such that the face is centered
-        cropped_image = np.zeros((size, size, C), dtype=np.uint8)
         cropped_image[offsets.top:offsets.bottom,offsets.left:offsets.right] = \
             image[bounding_box.top:bounding_box.bottom, bounding_box.left:bounding_box.right]
 
