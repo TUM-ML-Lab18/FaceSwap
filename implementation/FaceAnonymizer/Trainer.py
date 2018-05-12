@@ -12,7 +12,7 @@ class Trainer:
 
         if torch.cuda.device_count() > 1:
             self.batch_size *= torch.cuda.device_count()
-            dataset.size_multiplicator *= torch.cuda.device_count()
+            # dataset.size_multiplicator *= torch.cuda.device_count()
 
         self.data_loader = config['data_loader'](dataset, batch_size=self.batch_size)
         self.model = config['model']()
@@ -29,6 +29,8 @@ class Trainer:
 
             if i % self.validation_freq == 0:
                 # do validation
+                self.model.set_train_mode(False)
                 batches = self.data_loader.validation()
                 loss1, loss2 = self.model.validate(batches)
                 self.logger.log_validation(i, loss1, loss2)
+                self.model.set_train_mode(True)

@@ -12,7 +12,7 @@ from configuration.general_config import A, B, PREPROCESSED, LANDMARKS
 
 
 class ImageDatesetCombined(Dataset):
-    def __init__(self, dataset, size_multiplicator=10, img_size=(64, 64)):
+    def __init__(self, dataset, size_multiplicator=1, img_size=(64, 64)):
         self.size_multiplicator = size_multiplicator
 
         self.random_transforms = transforms.Compose([

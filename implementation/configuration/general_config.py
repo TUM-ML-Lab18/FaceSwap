@@ -24,6 +24,7 @@ PROCESSED_IMAGES = TRUMP_CAGE_BASE + "/" + PREPROCESSED
 
 IMAGE_DOWNLOADER = "/nfs/students/summer-term-2018/project_2/data/ImageDownloader"
 VIDEO_DOWNLOADER = "/nfs/students/summer-term-2018/project_2/data/VideoDownloader"
+VIDEO_DOWNLOADER_MERKEL = "/nfs/students/summer-term-2018/project_2/data/VideoDownloader_Merkel"
 
 SAMPLE_MODEL = "./model"
 
