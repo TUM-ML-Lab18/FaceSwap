@@ -25,9 +25,9 @@ class Preprocessor:
         :param face_extractor: Initialized FaceExtractor
         """
         # Used extractor
-        self.extractor = face_extractor
+        self.extractor = face_extractor()
 
-    def __call__(self, root_folder):
+    def __call__(self, root_folder:Path):
         """
         Processes all image classes in the raw folder and saves the results to the preprocessed folder.
         :param root_folder: Path to the dataset that should be processed
@@ -38,6 +38,13 @@ class Preprocessor:
         preprocessed_folder = root_folder / PREPROCESSED
         landmarks_buffer = root_folder / LANDMARKS_BUFFER
         landmarks_json = root_folder / LANDMARKS_JSON
+
+        if not landmarks_buffer.exists():
+            landmarks_buffer.touch()
+
+        if not landmarks_json.exists():
+            landmarks_json.touch()
+
         # Check root path
         if not raw_folder.exists():
             raise FileNotFoundError('No RAW folder with images to process: ' + str(raw_folder))

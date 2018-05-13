@@ -13,7 +13,7 @@ from Preprocessor.FaceExtractor import FaceExtractor
 from Preprocessor.ImageDataset import ImageDatesetCombined, LandmarkDataset
 from Preprocessor.Preprocessor import Preprocessor
 
-standart_config = {'batch_size': 256,
+standart_config = {'batch_size': 64,
                    'num_epoch': 5000,
                    'img_size': (128, 128),
                    'validation_freq': 20,
@@ -24,8 +24,8 @@ standart_config = {'batch_size': 256,
                                                                                     num_workers=12,
                                                                                     pin_memory=True,
                                                                                     drop_last=True),
-                   'model': lambda: DeepFakeOriginal(
-                       encoder=lambda: Encoder(input_dim=(3, 128, 128),
+                   'model': lambda img_size: DeepFakeOriginal(
+                       encoder=lambda: Encoder(input_dim=(3,)+img_size,
                                                latent_dim=1024,
                                                num_convblocks=5),
                        decoder=lambda: Decoder(input_dim=512,
@@ -37,13 +37,11 @@ standart_config = {'batch_size': 256,
                                                                      verbose=True,
                                                                      patience=100,
                                                                      cooldown=50), ),
-                   'preprocessor': lambda root_folder: Preprocessor(root_folder=root_folder,
-                                                                    face_extractor=lambda: FaceExtractor(margin=0.05,
-                                                                                                         mask_type=np.bool,
-                                                                                                         mask_factor=10),
-                                                                    image_dataset=lambda path: ImageDatesetCombined(
-                                                                        dataset=path,
-                                                                        img_size=(128, 128), size_multiplicator=1))
+                   'preprocessor': lambda: Preprocessor(face_extractor=lambda: FaceExtractor(margin=0.05,
+                                                                                             mask_type=np.bool,
+                                                                                             mask_factor=10)),
+                   'dataset': lambda root_folder, img_size: ImageDatesetCombined(root_folder, size_multiplicator=1,
+                                                                                 img_size=img_size)
                    }
 
 alex_config = {'batch_size': 512,

@@ -5,7 +5,7 @@ from configuration.general_config import MOST_RECENT_MODEL
 
 
 class Trainer:
-    def __init__(self, dataset, config):
+    def __init__(self, root_folder, config):
         self.batch_size = config['batch_size']
         self.epochs = config['num_epoch']
         self.validation_freq = config['validation_freq']
@@ -14,8 +14,9 @@ class Trainer:
             self.batch_size *= torch.cuda.device_count()
             # dataset.size_multiplicator *= torch.cuda.device_count()
 
+        dataset = config['dataset'](root_folder, config['img_size'])
         self.data_loader = config['data_loader'](dataset, batch_size=self.batch_size)
-        self.model = config['model']()
+        self.model = config['model'](config['img_size'])
 
         self.logger = Logger(len(dataset) // dataset.size_multiplicator, self.model, save_model_every_nth=100,
                              shared_model_path=MOST_RECENT_MODEL)

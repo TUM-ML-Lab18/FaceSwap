@@ -90,6 +90,24 @@ class TupleResize(object):
         return self.resize(image_tuple[0]), self.resize(image_tuple[1])
 
 
+class LowResTuple:
+    """
+    Class to get a tuple that contains the input image as well as a low res representation of it
+    """
+
+    def __init__(self, resolution=(8, 8)):
+        """
+        :param resolution: The resolution of the low res image
+        """
+        self.resize = transforms.Resize(resolution, interpolation=BICUBIC)
+
+    def __call__(self, img):
+        """
+        :param img: Image for low res tuple representation
+        :return Tuple of low res image and input image
+        """
+        return self.resize(img), img
+
 class TupleToTensor(object):
     """
     Class to convert tuples of images into tensors
