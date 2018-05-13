@@ -8,6 +8,7 @@ from PIL import Image
 
 from Logging.LoggingUtils import print_progress_bar
 from configuration.general_config import RAW, PREPROCESSED, LANDMARKS_BUFFER, LANDMARKS_JSON
+from Preprocessor.FaceExtractor import FaceExtractor
 
 img_file_extensions = ['.jpg', '.JPG', '.png', '.PNG']
 separator = '        '
@@ -130,3 +131,4 @@ def convert_buffer_to_dict(landmarks_buffer_file):
         """
         self.process_images()
         return self.image_dataset(self.root_folder / PREPROCESSED)
+

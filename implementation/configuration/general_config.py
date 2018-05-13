@@ -18,7 +18,8 @@ RAW = "raw"
 A = "A"
 B = "B"
 PREPROCESSED = "preprocessed"
-LANDMARKS = "landmarks.json"
+LANDMARKS_JSON = "landmarks.json"
+LANDMARKS_BUFFER = "landmarks.txt"
 
 PROCESSED_IMAGES = TRUMP_CAGE_BASE + "/" + PREPROCESSED
 
