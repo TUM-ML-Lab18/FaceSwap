@@ -11,11 +11,11 @@ class VideoDownloader:
     @staticmethod
     def download_video(url):
         YouTube(url).streams.filter(progressive=True).order_by('resolution').desc().first().download(
-            VIDEO_DOWNLOADER_MERKEL)
+            VIDEO_DOWNLOADER)
 
     @staticmethod
     def extract_frames():
-        path = Path(VIDEO_DOWNLOADER_MERKEL)
+        path = Path(VIDEO_DOWNLOADER)
         for video_file in path.iterdir():
             if video_file.is_dir():
                 continue

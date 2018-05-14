@@ -10,7 +10,7 @@ from configuration.run_config import current_config
 if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
-    p = current_config['preprocessor']()
+    #p = current_config['preprocessor']()
     #p(Path(MERKEL_TRUMP_NORMAL_BASE)) #todo fix
     trainer = Trainer(Path(MERKEL_TRUMP_NORMAL_BASE), current_config)
 

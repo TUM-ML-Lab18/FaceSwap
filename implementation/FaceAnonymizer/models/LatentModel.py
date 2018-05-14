@@ -1,10 +1,8 @@
 from pathlib import Path
 
-import numpy as np
 import torch
 from PIL import Image
 from torch.nn import DataParallel
-from torchvision.transforms import ToPILImage
 
 from Preprocessor.FaceExtractor import ExtractionInformation
 
@@ -29,19 +27,15 @@ class LatentModel:
         output2 = None
         iterations = 0
 
-        for (face1_landmarks, face1), (face2_landmarks, face2) in batches:
+        for (face1_landmarks, face1) in batches:
             # face1 and face2 contain a batch of images of the first and second face, respectively
-            face1, face2 = face1.cuda(), face2.cuda()
-            face1_landmarks, face2_landmarks = face1_landmarks.cuda(), face2_landmarks.cuda()
+            face1 = face1.cuda()
+            face1_landmarks = face1_landmarks.cuda()
 
             self.optimizer1.zero_grad()
             output1 = self.decoder(face1_landmarks)
             loss1 = self.lossfn(output1, face1)
             loss1.backward()
-
-            # output2 = self.decoder(face2_landmarks)
-            # loss2 = self.lossfn(output2, face2)
-            # loss2.backward()
 
             self.optimizer1.step()
 

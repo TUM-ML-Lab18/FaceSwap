@@ -16,7 +16,7 @@ class Anonymizer:
         """
         self.img_size = img_size
         self.model_folder = Path(model_folder)
-        self.model = model(None)
+        self.model = model()
         self.model.load_model(self.model_folder)
 
         # use extractor and transform later get correct input for network

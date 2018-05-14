@@ -1,3 +1,4 @@
+import random
 import torch
 from PIL import Image
 from torch.nn import DataParallel
@@ -128,3 +129,34 @@ class DeepFakeOriginal:
         self.encoder.load(path / 'encoder.model')
         self.decoder1.load(path / 'decoder1.model')
         self.decoder2.load(path / 'decoder2.model')
+
+    def log(self, logger, epoch, loss1, loss2, images):
+        """
+        use logger to log current loss etc...
+        :param logger: logger used to log
+        :param epoch: current epoch
+        """
+        logger.log_loss(epoch=epoch, loss={'lossA': float(loss1), 'lossB': float(loss2)})
+        logger.log_fps(epoch=epoch)
+
+        # log images
+        if images:
+            examples = int(len(images[0]))
+            example_indices = random.sample(range(0, examples - 1), 5)
+
+            anonymized_images_trump = self.anonymize(images[2][example_indices], None)
+            anonymized_images_cage = self.anonymize_2(images[5][example_indices], None)
+            A = []
+            B = []
+            for idx, i in enumerate(example_indices):
+                for j in range(3):
+                    A.append(images[j].cpu()[i] * 255.00)
+                    B.append(images[3 + j].cpu()[i] * 255.00)
+                A.append(anonymized_images_trump.cpu()[idx] * 255.00)
+                B.append(anonymized_images_cage.cpu()[idx] * 255.00)
+            logger.log_images(epoch, A, "sample_input/A", 4)
+            logger.log_images(epoch, B, "sample_input/B", 4)
+        logger.save_model(epoch)
+
+    def log_validate(self, logger, epoch, loss1, loss2):
+        logger.log_loss(epoch=epoch, loss={'lossA_val': float(loss1), 'lossB_val': float(loss2)})
