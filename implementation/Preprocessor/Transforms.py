@@ -11,7 +11,7 @@ class RandomWarp(object):
     Class to apply random warps on PIL images
     """
 
-    def __init__(self, warp_factor=1):
+    def __init__(self, warp_factor=2.5):
         """
         :param warp_factor: The warping factor
         """
