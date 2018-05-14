@@ -130,7 +130,7 @@ class DeepFakeOriginal:
         self.decoder1.load(path / 'decoder1.model')
         self.decoder2.load(path / 'decoder2.model')
 
-    def log(self, logger, epoch, loss1, loss2, images):
+    def log(self, logger, epoch, loss1, loss2, images, log_images=False):
         """
         use logger to log current loss etc...
         :param logger: logger used to log
@@ -140,7 +140,7 @@ class DeepFakeOriginal:
         logger.log_fps(epoch=epoch)
 
         # log images
-        if images:
+        if log_images:
             examples = int(len(images[0]))
             example_indices = random.sample(range(0, examples - 1), 5)
 

@@ -9,6 +9,7 @@ MERKEL_TRUMP_NORMAL_BASE = "/nfs/students/summer-term-2018/project_2/data/Merkel
 MERKEL_TRUMP_NO_MASK_BASE = "/nfs/students/summer-term-2018/project_2/data/Merkel_Trump_no_mask"
 MERKEL_TRUMP_LANDMARKS = "/nfs/students/summer-term-2018/project_2/data/Merkel_Trump_landmarks"
 MEGA_MERKEL_TRUMP = "/nfs/students/summer-term-2018/project_2/data/MEGA_Merkel_Trump"
+TRUMP_LANDMARKS = "/nfs/students/summer-term-2018/project_2/data/Trump_Landmarks"
 
 CONVERTER_BASE = "/nfs/students/summer-term-2018/project_2/data/converter"
 CONVERTER_INPUT = "/test_converter_images"

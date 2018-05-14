@@ -26,12 +26,14 @@ class Trainer:
         for i in range(self.epochs):
             batches = self.data_loader.train()
             info = self.model.train(i, batches)
-            self.model.log(self.logger, i, *info)
 
             if i % self.validation_freq == 0:
+                self.model.log(self.logger, i, *info, log_images=True)
                 # do validation
                 self.model.set_train_mode(False)
                 batches = self.data_loader.validation()
-                loss1, loss2 = self.model.validate(batches)
-                self.model.log_validate(self.logger, i, loss1, loss2)
+                info = self.model.validate(batches)
+                self.model.log_validate(self.logger, i, *info)
                 self.model.set_train_mode(True)
+            else:
+                self.model.log(self.logger, i, *info)

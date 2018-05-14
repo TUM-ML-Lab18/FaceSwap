@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import random
 import torch
 from PIL import Image
 from torch.nn import DataParallel
@@ -19,21 +20,21 @@ class LatentModel:
         self.optimizer1 = optimizer(self.decoder.parameters())
         self.scheduler1 = scheduler(self.optimizer1)
 
+    def set_train_mode(self, mode):
+        self.decoder.train(mode)
+
     def train(self, current_epoch, batches):
-        loss1_mean, loss2_mean = 0, 0
+        loss1_mean = 0
         face1 = None
         output1 = None
-        face2 = None
-        output2 = None
         iterations = 0
 
-        for (face1_landmarks, face1) in batches:
-            # face1 and face2 contain a batch of images of the first and second face, respectively
+        for (latent_information, face1) in batches:
             face1 = face1.cuda()
-            face1_landmarks = face1_landmarks.cuda()
+            latent_information = latent_information.cuda()
 
             self.optimizer1.zero_grad()
-            output1 = self.decoder(face1_landmarks)
+            output1 = self.decoder(latent_information)
             loss1 = self.lossfn(output1, face1)
             loss1.backward()
 
@@ -44,24 +45,28 @@ class LatentModel:
 
         loss1_mean /= iterations
         loss1_mean = loss1_mean.cpu().data.numpy()
-        loss2_mean = 0
         self.scheduler1.step(loss1_mean, current_epoch)
 
-        return loss1_mean, loss2_mean, [face1, output1]
+        return loss1_mean, [face1, output1]
 
     def validate(self, batches):
-        loss1_valid_mean, loss2_valid_mean = 0, 0
+        loss1_valid_mean = 0
         iterations = 0
 
-        for (face1_warped, face1), (face2_warped, face2) in batches:
-            pass
+        for (latent_information, face1) in batches:
+            with torch.no_grad():
+                face1 = face1.cuda()
+                latent_information = latent_information.cuda()
+
+                output1 = self.decoder(latent_information)
+                loss1_valid_mean += self.lossfn(output1, face1)
+
+                iterations += 1
 
         loss1_valid_mean /= iterations
-        loss2_valid_mean /= iterations
         loss1_valid_mean = loss1_valid_mean.cpu().data.numpy()
-        loss2_valid_mean = loss2_valid_mean.cpu().data.numpy()
 
-        return loss1_valid_mean, loss2_valid_mean
+        return [loss1_valid_mean]
 
     def anonymize(self, x: Image, y: ExtractionInformation):
         return self.decoder(y.landmarks)
@@ -81,3 +86,26 @@ class LatentModel:
     def load_model(self, path):
         path = Path(path)
         self.decoder.load(path / 'decoder.model')
+
+    def log(self, logger, epoch, loss1, images, log_images=False):
+        """
+        use logger to log current loss etc...
+        :param logger: logger used to log
+        :param epoch: current epoch
+        """
+        logger.log_loss(epoch=epoch, loss={'lossA': float(loss1)})
+        logger.log_fps(epoch=epoch)
+
+        # log images
+        if log_images:
+            examples = int(len(images[0]))
+            example_indices = random.sample(range(0, examples - 1), 5)
+            A = []
+            for idx, i in enumerate(example_indices):
+                A.append(images[0].cpu()[i] * 255.00)
+                A.append(images[1].cpu()[i] * 255.00)
+            logger.log_images(epoch, A, "sample_input/A", 2)
+        logger.save_model(epoch)
+
+    def log_validate(self, logger, epoch, loss1):
+        logger.log_loss(epoch=epoch, loss={'lossA_val': float(loss1)})
