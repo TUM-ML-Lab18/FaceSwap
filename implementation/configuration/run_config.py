@@ -129,4 +129,4 @@ lm_hist_config['model'] = lambda img_size: LatentModel(
                                                   patience=100,
                                                   cooldown=50))
 
-current_config = lm_hist_config#lm_lowres_config
+current_config = lm_lowres_config#lm_hist_config#

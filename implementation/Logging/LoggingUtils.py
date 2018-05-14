@@ -66,7 +66,7 @@ class Logger:
         self.writer.add_image(tag_name, grid, epoch)
 
     def save_model(self, epoch):
-        if epoch % self.save_model_every_nth == 0 and epoch > 0:
+        if epoch % self.save_model_every_nth == 0:# and epoch > 0:
             self.model.save_model(self.loggin_path)
             self.model.save_model(self.shared_model_path)
 

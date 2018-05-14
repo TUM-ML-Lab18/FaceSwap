@@ -13,6 +13,6 @@ if __name__ == '__main__':
     torch.backends.cudnn.deterministic = True
     p = current_config['preprocessor']()
     # p(Path(CELEBA))
-    trainer = Trainer(Path(TRUMP_LANDMARKS), current_config)
+    trainer = Trainer(Path(CELEBA), current_config)
 
     trainer.train()

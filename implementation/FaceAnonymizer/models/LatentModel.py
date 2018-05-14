@@ -10,10 +10,11 @@ from Preprocessor.FaceExtractor import ExtractionInformation
 
 class LatentModel:
     def __init__(self, optimizer, scheduler, decoder, loss_function):
-        self.decoder = decoder().cuda()
+        self.decoder = decoder()
 
         if torch.cuda.device_count() > 1:
             self.decoder = DataParallel(self.decoder)
+        self.decoder = self.decoder.cuda()
 
         self.lossfn = loss_function.cuda()
 
@@ -81,7 +82,10 @@ class LatentModel:
         subfolder = "model"  # "#datetime.now().strftime('model__%Y%m%d_%H%M%S')
         path = path / subfolder
         path.mkdir(parents=True, exist_ok=True)
-        self.decoder.save(path / 'decoder.model')
+        if torch.cuda.device_count() > 1:
+            self.decoder.module.save(path / 'decoder.model')
+        else:
+            self.decoder.save(path / 'decoder.model')
 
     def load_model(self, path):
         path = Path(path)
