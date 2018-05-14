@@ -6,7 +6,7 @@ import numpy as np
 from torch.utils.data import Dataset
 from torchvision.datasets import ImageFolder
 import torchvision.transforms as transforms
-from Preprocessor.Transforms import RandomWarp, TupleToTensor, TupleResize, LowResTuple
+from Preprocessor.Transforms import RandomWarp, TupleToTensor, TupleResize, LowResTuple, HistTuple
 from PIL.Image import BICUBIC
 
 from configuration.general_config import A, B, PREPROCESSED, LANDMARKS_JSON
@@ -47,6 +47,7 @@ class ImageDatesetCombined(Dataset):
 
 class LandmarkDataset(Dataset):
     def __init__(self, root_folder: Path, size_multiplicator=10, img_size=(64, 64)):
+        self.img_size = img_size
         self.size_multiplicator = size_multiplicator
 
         self.transforms = transforms.Compose([
@@ -88,5 +89,24 @@ class CelebA_Landmarks_LowRes(LandmarkDataset):
         landmarks, img_list = super().__getitem__(i)
         low_res = img_list[0].numpy().flatten()
         latent = np.append(landmarks, low_res)
+        img = img_list[1]
+        return latent, img
+
+
+class Trump_Histogram(LandmarkDataset):
+    def __init__(self, root_folder: Path, size_multiplicator=10, img_size=(64, 64)):
+        super().__init__(root_folder=root_folder, size_multiplicator=size_multiplicator, img_size=img_size)
+        self.transforms = transforms.Compose([
+            transforms.Resize(img_size, interpolation=BICUBIC),
+            HistTuple()
+        ])
+        self.dataset_a.transform = self.transforms
+        self.pixel_count = self.img_size[0]*self.img_size[1]*3
+
+    def __getitem__(self, i):
+        landmarks, img_list = super().__getitem__(i)
+        # todo find better method to scale to [0..1] like softmax?
+        low_res = img_list[0].flatten() / self.pixel_count
+        latent = np.append(landmarks, low_res).astype(np.float32)
         img = img_list[1]
         return latent, img

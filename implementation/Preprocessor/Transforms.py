@@ -108,6 +108,22 @@ class LowResTuple:
         """
         return self.resize(img), img
 
+
+class HistTuple:
+    """
+    Class to get a tuple that contains the input image as well as the histogram of it
+    """
+
+    def __init__(self):
+        """
+        Initializer for HistTuple class
+        """
+        self.toTensor = transforms.ToTensor()
+
+    def __call__(self, img):
+        return np.array(img.histogram()), self.toTensor(img)
+
+
 class TupleToTensor(object):
     """
     Class to convert tuples of images into tensors
