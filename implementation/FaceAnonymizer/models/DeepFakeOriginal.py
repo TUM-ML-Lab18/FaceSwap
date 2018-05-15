@@ -107,10 +107,10 @@ class DeepFakeOriginal:
 
         return loss1_valid_mean, loss2_valid_mean
 
-    def anonymize(self, x: Image, y: ExtractionInformation):
+    def anonymize(self, x):
         return self.autoencoder2(x)
 
-    def anonymize_2(self, x: Image, y: ExtractionInformation):
+    def anonymize_2(self, x):
         return self.autoencoder1(x)
 
     # TODO: Use save & load functions from models -> memory independent (RAM vs GPU)

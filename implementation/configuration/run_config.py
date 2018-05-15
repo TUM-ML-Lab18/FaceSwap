@@ -1,7 +1,10 @@
 import numpy as np
 import torch
+from PIL.Image import LANCZOS, BICUBIC
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torchvision.transforms import ToTensor
+
 from FaceAnonymizer import TrainValidationLoader
 
 from FaceAnonymizer.models.Autoencoder import AutoEncoder
@@ -41,7 +44,9 @@ standart_config = {'batch_size': 64,
                                                                                              mask_type=np.bool,
                                                                                              mask_factor=10)),
                    'dataset': lambda root_folder, img_size: ImageDatesetCombined(root_folder, size_multiplicator=1,
-                                                                                 img_size=img_size)
+                                                                                 img_size=img_size),
+                   'img2latent_bridge:': lambda extracted_face, extracted_information, img_size:
+                   ToTensor()(extracted_face.resize(img_size, resample=BICUBIC)).unsqueeze(0).cuda()
                    }
 
 alex_config = {'batch_size': 512,
@@ -105,7 +110,11 @@ landmarks_config = {'batch_size': 512,
                                                                                               mask_factor=10)),
                     'dataset': lambda root_folder, img_size: LandmarkDataset(root_folder=root_folder,
                                                                              size_multiplicator=1,
-                                                                             img_size=img_size)}
+                                                                             img_size=img_size),
+                    'img2latent_bridge:': lambda extracted_face, extracted_information, img_size: torch.from_numpy(
+                        np.reshape(
+                            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(),
+                            -1).astype(np.float32)).unsqueeze(0).cuda()}
 
 ####### config for using landmarks as well as a low res image as input
 # dim = 72+2+8+8+3
@@ -113,6 +122,17 @@ lm_lowres_config = landmarks_config.copy()
 lm_lowres_config['dataset'] = lambda root_folder, img_size: CelebA_Landmarks_LowRes(root_folder=root_folder,
                                                                                     size_multiplicator=1,
                                                                                     target_img_size=img_size)
+lm_lowres_config['img2latent_bridge'] = lambda extracted_face, extracted_information, img_size: (
+    torch.from_numpy(
+        np.append(
+            np.reshape((np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(),
+                       -1),
+                # todo this is really ugly
+                ToTensor()(
+                    extracted_face.resize(img_size, BICUBIC).resize((8, 8), BICUBIC)).numpy().flatten()).astype(
+            np.float32))
+        .unsqueeze(0).cuda()
+)
 
 ###### config for using landmarks as well as a histogram of the target as input
 lm_hist_config = landmarks_config.copy()
@@ -129,4 +149,4 @@ lm_hist_config['model'] = lambda img_size: LatentModel(
                                                   patience=100,
                                                   cooldown=50))
 
-current_config = lm_lowres_config#lm_hist_config#
+current_config = lm_lowres_config  # lm_hist_config#

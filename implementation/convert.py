@@ -10,8 +10,8 @@ from configuration.run_config import current_config
 
 
 def convert_images():
-    anonymizer = Anonymizer(model_folder='./model', model=current_config['model'],
-                            img_size=current_config['img_size'])
+    anonymizer = Anonymizer(model_folder='./logs/2018-05-14 18:16:55.884488/model', model=current_config['model'],
+                            config=current_config)
     path = Path('/nfs/students/summer-term-2018/project_2/test/')
     path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')
     for image_file in path.iterdir():
@@ -25,7 +25,7 @@ def convert_images():
 
 def convert_video():
     anonymizer = Anonymizer(model_folder='./model', model=current_config['model'],
-                            img_size=current_config['img_size'])
+                            config=current_config)
     path = Path('/nfs/students/summer-term-2018/project_2/test_hoecke/')
     path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')
     for video_file in path.iterdir():
@@ -64,4 +64,4 @@ def convert_video():
 
 
 if __name__ == '__main__':
-    convert_video()
+    convert_images()

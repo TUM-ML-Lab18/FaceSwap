@@ -10,13 +10,13 @@ from Preprocessor.FaceReconstructor import FaceReconstructor
 
 
 class Anonymizer:
-    def __init__(self, model_folder: str, model, img_size) -> None:
+    def __init__(self, model_folder: str, model, config) -> None:
         """
         :param model_folder: Path to models folder.
         """
-        self.img_size = img_size
+        self.config = config
         self.model_folder = Path(model_folder)
-        self.model = model()
+        self.model = model(self.config['img_size'])
         self.model.load_model(self.model_folder)
 
         # use extractor and transform later get correct input for network
@@ -33,16 +33,10 @@ class Anonymizer:
         # Extract face
         extracted_face, extracted_information = self.extractor(image)
         if extracted_face is not None:
-            # Resize to 64x64
-            face_in = extracted_face.resize(self.img_size, resample=LANCZOS)
-            # Transform into tensor
-            face_in = ToTensor()(face_in)
-            landmarks = (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist()
-            landmarks = np.reshape(landmarks, -1).astype(np.float32)
-            landmarks = torch.from_numpy(landmarks).unsqueeze(0).cuda()
-            extracted_information.landmarks = landmarks
+            latent_information = self.config['img2latent_bridge'](extracted_face, extracted_information,
+                                                                  self.config['img_size'])
             # feed into network
-            face_out = self.model.anonymize(face_in.unsqueeze(0).cuda(), extracted_information).squeeze(0)
+            face_out = self.model.anonymize(latent_information).squeeze(0)
             # get it back to the cpu and get the data
             face_out = ToPILImage()(face_out.cpu().detach())
             # scale to original resolution

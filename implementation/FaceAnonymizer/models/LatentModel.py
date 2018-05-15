@@ -2,10 +2,7 @@ from pathlib import Path
 
 import random
 import torch
-from PIL import Image
 from torch.nn import DataParallel
-
-from Preprocessor.FaceExtractor import ExtractionInformation
 
 
 class LatentModel:
@@ -69,11 +66,11 @@ class LatentModel:
 
         return [loss1_valid_mean]
 
-    def anonymize(self, x: Image, y: ExtractionInformation):
-        return self.decoder(y.landmarks)
+    def anonymize(self, x):
+        return self.decoder(x)
 
-    def anonymize_2(self, x: Image, y: ExtractionInformation):
-        return self.anonymize(x, y)
+    def anonymize_2(self, x):
+        return self.anonymize(x)
 
     # TODO: Use save & load functions from models -> memory independent (RAM vs GPU)
     def save_model(self, path):
