@@ -127,10 +127,10 @@ lm_lowres_config['img2latent_bridge'] = lambda extracted_face, extracted_informa
         np.append(
             np.reshape((np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(),
                        -1),
-                # todo this is really ugly
-                ToTensor()(
-                    extracted_face.resize(img_size, BICUBIC).resize((8, 8), BICUBIC)).numpy().flatten()).astype(
-            np.float32))
+            # todo this is really ugly
+            ToTensor()(
+                extracted_face.resize(img_size, BICUBIC).resize((8, 8), BICUBIC)).numpy().flatten())
+            .astype(np.float32))
         .unsqueeze(0).cuda()
 )
 
@@ -139,6 +139,17 @@ lm_hist_config = landmarks_config.copy()
 lm_hist_config['dataset'] = lambda root_folder, img_size: Trump_Histogram(root_folder=root_folder,
                                                                           size_multiplicator=1,
                                                                           img_size=img_size)
+lm_hist_config['img2latent_bridge'] = lambda extracted_face, extracted_information, img_size: (
+    torch.from_numpy(
+        np.append(
+            np.reshape((np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(),
+                       -1),
+            # todo this is really ugly
+            np.array(extracted_face.resize(img_size, BICUBIC).histogram()).flatten() / (
+                    img_size[0] * img_size[1] * 3))
+            .astype(np.float32))
+        .unsqueeze(0).cuda()
+)
 
 lm_hist_config['model'] = lambda img_size: LatentModel(
     decoder=lambda: LatentDecoder(72 * 2 + 768),
@@ -149,4 +160,4 @@ lm_hist_config['model'] = lambda img_size: LatentModel(
                                                   patience=100,
                                                   cooldown=50))
 
-current_config = lm_lowres_config  # lm_hist_config#
+current_config =  lm_lowres_config  #lm_hist_config  #

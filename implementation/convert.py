@@ -10,7 +10,8 @@ from configuration.run_config import current_config
 
 
 def convert_images():
-    anonymizer = Anonymizer(model_folder='./logs/2018-05-14 18:16:55.884488/model', model=current_config['model'],
+    anonymizer = Anonymizer(model_folder='/nfs/students/summer-term-2018/project_2/models/celebA',
+                            model=current_config['model'],
                             config=current_config)
     path = Path('/nfs/students/summer-term-2018/project_2/test/')
     path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')

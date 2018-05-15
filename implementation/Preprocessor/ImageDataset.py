@@ -106,7 +106,7 @@ class Trump_Histogram(LandmarkDataset):
     def __getitem__(self, i):
         landmarks, img_list = super().__getitem__(i)
         # todo find better method to scale to [0..1] like softmax?
-        low_res = img_list[0].flatten() / self.pixel_count
-        latent = np.append(landmarks, low_res).astype(np.float32)
+        hist = img_list[0].flatten() / self.pixel_count
+        latent = np.append(landmarks, hist).astype(np.float32)
         img = img_list[1]
         return latent, img
