@@ -9,7 +9,7 @@ import torchvision.transforms as transforms
 from Preprocessor.Transforms import RandomWarp, TupleToTensor, TupleResize, LowResTuple, HistTuple
 from PIL.Image import BICUBIC
 
-from configuration.general_config import A, B, PREPROCESSED, LANDMARKS_JSON
+from configuration.general_config import A, B, PREPROCESSED, LANDMARKS_JSON, ANNOTATIONS
 
 
 class ImageDatesetCombined(Dataset):
@@ -45,7 +45,7 @@ class ImageDatesetCombined(Dataset):
         return self.dataset_a[i][0], self.dataset_b[i][0]
 
 
-class LandmarkDataset(Dataset):
+class LandmarksDataset(Dataset):
     def __init__(self, root_folder: Path, size_multiplicator=10, img_size=(64, 64)):
         self.img_size = img_size
         self.size_multiplicator = size_multiplicator
@@ -74,7 +74,7 @@ class LandmarkDataset(Dataset):
         return landmarks_a, self.dataset_a[i][0]
 
 
-class CelebA_Landmarks_LowRes(LandmarkDataset):
+class LandmarksLowResDataset(LandmarksDataset):
     def __init__(self, root_folder: Path, size_multiplicator=10, target_img_size=(64, 64), lowres_img_size=(8, 8)):
         # todo self.dataset_a could be different
         super().__init__(root_folder, size_multiplicator=size_multiplicator, img_size=target_img_size)
@@ -93,7 +93,7 @@ class CelebA_Landmarks_LowRes(LandmarkDataset):
         return latent, img
 
 
-class Trump_Histogram(LandmarkDataset):
+class LandmarksHistDataset(LandmarksDataset):
     def __init__(self, root_folder: Path, size_multiplicator=10, img_size=(64, 64)):
         super().__init__(root_folder=root_folder, size_multiplicator=size_multiplicator, img_size=img_size)
         self.transforms = transforms.Compose([
@@ -101,7 +101,7 @@ class Trump_Histogram(LandmarkDataset):
             HistTuple()
         ])
         self.dataset_a.transform = self.transforms
-        self.pixel_count = self.img_size[0]*self.img_size[1]*3
+        self.pixel_count = self.img_size[0] * self.img_size[1] * 3
 
     def __getitem__(self, i):
         landmarks, img_list = super().__getitem__(i)
@@ -109,4 +109,33 @@ class Trump_Histogram(LandmarkDataset):
         hist = img_list[0].flatten() / self.pixel_count
         latent = np.append(landmarks, hist).astype(np.float32)
         img = img_list[1]
+        return latent, img
+
+
+class LandmarksHistAnnotationsDataset(LandmarksHistDataset):
+    def __init__(self, root_folder: Path, size_multiplicator=10, img_size=(64, 64)):
+        super().__init__(root_folder=root_folder, size_multiplicator=size_multiplicator, img_size=img_size)
+        with open(root_folder / ANNOTATIONS) as f:
+            self.annotations = json.load(f)
+
+    def __getitem__(self, i):
+        latent, img = super().__getitem__(i)
+        file_name_a = self.dataset_a.classes[self.dataset_a.samples[i][1]] + "/" + os.path.basename(
+            self.dataset_a.samples[i][0])
+        latent = np.append(latent, self.annotations[file_name_a]).astype(np.float32)
+        return latent, img
+
+
+class LandmarksLowResAnnotationsDataset(LandmarksLowResDataset):
+    def __init__(self, root_folder: Path, size_multiplicator=10, target_img_size=(64, 64), lowres_img_size=(8, 8)):
+        super().__init__(root_folder=root_folder, size_multiplicator=size_multiplicator,
+                         target_img_size=target_img_size, lowres_img_size=lowres_img_size)
+        with open(root_folder / ANNOTATIONS) as f:
+            self.annotations = json.load(f)
+
+    def __getitem__(self, i):
+        latent, img = super().__getitem__(i)
+        file_name_a = self.dataset_a.classes[self.dataset_a.samples[i][1]] + "/" + os.path.basename(
+            self.dataset_a.samples[i][0])
+        latent = np.append(latent, self.annotations[file_name_a]).astype(np.float32)
         return latent, img

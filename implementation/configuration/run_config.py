@@ -13,7 +13,8 @@ from FaceAnonymizer.models.DeepFakeOriginal import DeepFakeOriginal
 from FaceAnonymizer.models.Encoder import Encoder
 from FaceAnonymizer.models.LatentModel import LatentModel
 from Preprocessor.FaceExtractor import FaceExtractor
-from Preprocessor.ImageDataset import ImageDatesetCombined, LandmarkDataset, CelebA_Landmarks_LowRes, Trump_Histogram
+from Preprocessor.ImageDataset import ImageDatesetCombined, LandmarksDataset, LandmarksLowResDataset, \
+    LandmarksHistDataset, LandmarksHistAnnotationsDataset, LandmarksLowResAnnotationsDataset
 from Preprocessor.Preprocessor import Preprocessor
 
 standart_config = {'batch_size': 64,
@@ -108,9 +109,9 @@ landmarks_config = {'batch_size': 512,
                     'preprocessor': lambda: Preprocessor(face_extractor=lambda: FaceExtractor(margin=0.05,
                                                                                               mask_type=np.bool,
                                                                                               mask_factor=10)),
-                    'dataset': lambda root_folder, img_size: LandmarkDataset(root_folder=root_folder,
-                                                                             size_multiplicator=1,
-                                                                             img_size=img_size),
+                    'dataset': lambda root_folder, img_size: LandmarksDataset(root_folder=root_folder,
+                                                                              size_multiplicator=1,
+                                                                              img_size=img_size),
                     'img2latent_bridge:': lambda extracted_face, extracted_information, img_size: torch.from_numpy(
                         np.reshape(
                             (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(),
@@ -119,9 +120,9 @@ landmarks_config = {'batch_size': 512,
 ####### config for using landmarks as well as a low res image as input
 # dim = 72+2+8+8+3
 lm_lowres_config = landmarks_config.copy()
-lm_lowres_config['dataset'] = lambda root_folder, img_size: CelebA_Landmarks_LowRes(root_folder=root_folder,
-                                                                                    size_multiplicator=1,
-                                                                                    target_img_size=img_size)
+lm_lowres_config['dataset'] = lambda root_folder, img_size: LandmarksLowResDataset(root_folder=root_folder,
+                                                                                   size_multiplicator=1,
+                                                                                   target_img_size=img_size)
 lm_lowres_config['img2latent_bridge'] = lambda extracted_face, extracted_information, img_size: (
     torch.from_numpy(
         np.append(
@@ -136,9 +137,9 @@ lm_lowres_config['img2latent_bridge'] = lambda extracted_face, extracted_informa
 
 ###### config for using landmarks as well as a histogram of the target as input
 lm_hist_config = landmarks_config.copy()
-lm_hist_config['dataset'] = lambda root_folder, img_size: Trump_Histogram(root_folder=root_folder,
-                                                                          size_multiplicator=1,
-                                                                          img_size=img_size)
+lm_hist_config['dataset'] = lambda root_folder, img_size: LandmarksHistDataset(root_folder=root_folder,
+                                                                               size_multiplicator=1,
+                                                                               img_size=img_size)
 lm_hist_config['img2latent_bridge'] = lambda extracted_face, extracted_information, img_size: (
     torch.from_numpy(
         np.append(
@@ -160,4 +161,35 @@ lm_hist_config['model'] = lambda img_size: LatentModel(
                                                   patience=100,
                                                   cooldown=50))
 
-current_config =  lm_lowres_config  #lm_hist_config  #
+###### config for using landmarks as well as a histogram as well as annotations of the target as input
+lm_hist_annotations_config = lm_hist_config.copy()
+lm_hist_annotations_config['dataset'] = lambda root_folder, img_size: LandmarksHistAnnotationsDataset(
+    root_folder=root_folder,
+    size_multiplicator=1,
+    img_size=img_size)
+
+lm_hist_annotations_config['model'] = lambda img_size: LatentModel(
+    decoder=lambda: LatentDecoder(72 * 2 + 768 + 40),
+    loss_function=torch.nn.L1Loss(size_average=True),
+    optimizer=lambda params: Adam(params=params, lr=1e-4),
+    scheduler=lambda optimizer: ReduceLROnPlateau(optimizer=optimizer,
+                                                  verbose=True,
+                                                  patience=100,
+                                                  cooldown=50))
+
+lm_lowres_annotations_config = lm_lowres_config.copy()
+lm_lowres_annotations_config['dataset'] = lambda root_folder, img_size: LandmarksLowResAnnotationsDataset(
+    root_folder=root_folder,
+    size_multiplicator=1,
+    target_img_size=img_size)
+
+lm_lowres_annotations_config['model'] = lambda img_size: LatentModel(
+    decoder=lambda: LatentDecoder(72 * 2 + 8 * 8 * 3 + 40),
+    loss_function=torch.nn.L1Loss(size_average=True),
+    optimizer=lambda params: Adam(params=params, lr=1e-4),
+    scheduler=lambda optimizer: ReduceLROnPlateau(optimizer=optimizer,
+                                                  verbose=True,
+                                                  patience=100,
+                                                  cooldown=50))
+
+current_config = lm_lowres_annotations_config  # lm_hist_annotations_config  # lm_hist_config  # lm_lowres_config  #

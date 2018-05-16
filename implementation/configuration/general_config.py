@@ -22,6 +22,8 @@ B = "B"
 PREPROCESSED = "preprocessed"
 LANDMARKS_JSON = "landmarks.json"
 LANDMARKS_BUFFER = "landmarks.txt"
+ANNOTATIONS = "list_attr_celeba.txt"
+
 
 PROCESSED_IMAGES = TRUMP_CAGE_BASE + "/" + PREPROCESSED
 

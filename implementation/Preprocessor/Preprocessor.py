@@ -129,13 +129,3 @@ def convert_buffer_to_dict(landmarks_buffer_file):
         landmarks_storage[filename] = ast.literal_eval(landmarks)
     return landmarks_storage
 
-    @property
-    def dataset(self):
-        """
-        This function returns the preprocessed images for a dataset. If the images of this dataset are not preprocessed
-        it will apply the necessary step.
-        :return: ImageDataset containing the image classes from the dataset.
-        """
-        self.process_images()
-        return self.image_dataset(self.root_folder / PREPROCESSED)
-
