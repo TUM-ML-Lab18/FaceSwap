@@ -86,7 +86,10 @@ class LatentModel:
 
     def load_model(self, path):
         path = Path(path)
-        self.decoder.load(path / 'decoder.model')
+        if torch.cuda.device_count() > 1:
+            self.decoder.module.load(path / 'decoder.model')
+        else:
+            self.decoder.load(path / 'decoder.model')
 
     def log(self, logger, epoch, loss1, images, log_images=False):
         """
@@ -110,3 +113,8 @@ class LatentModel:
 
     def log_validate(self, logger, epoch, loss1):
         logger.log_loss(epoch=epoch, loss={'lossA_val': float(loss1)})
+
+
+class HistogramModel(LatentModel):
+    def img2latent_bridge(self, extracted_face, extracted_information, img_size):
+        pass
