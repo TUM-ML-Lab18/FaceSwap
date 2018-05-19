@@ -12,18 +12,18 @@ from configuration.general_config import MOST_RECENT_MODEL
 
 class StyleTransferTrainer:
 
-    def __init__(self, model_emotion, model_face, image, steps, alpha, beta):
+    def __init__(self, model_emotion, model_face, input_img, steps, alpha, beta):
         self.model_emotion = model_emotion
         self.model_face = model_face
-        self.image = image
-        self.input_img = image.clone()
+        self.input_img = input_img
+        self.result_img = input_img.clone()
         self.steps = steps
         self.alpha = alpha
         self.beta = beta
 
-        self.loss_emotion = MSELoss(self.model_emotion(self.image).detach())
-        self.loss_face = MSELoss(self.model_face(self.image).detach())
-        self.optimizer = optim.LBFGS([self.input_img.requires_grad_()])
+        self.loss_emotion = MSELoss(self.model_emotion(self.input_img).detach())
+        self.loss_face = MSELoss(self.model_face(self.input_img).detach())
+        self.optimizer = optim.LBFGS([self.result_img.requires_grad_()])
 
     def train(self):
         print("Starting optimization")
@@ -40,9 +40,9 @@ class StyleTransferTrainer:
                 loss = self.alpha * le + self.beta * lf
                 loss.backward()
 
-                i[0] += 1
                 if i[0] % 5 == 0:
                     print(f"[Step {i[0]}] alpha-loss: {le}, beta-loss: {lf}")
+                i[0] += 1
 
                 return loss
 

@@ -24,6 +24,9 @@ if __name__ == '__main__':
     image = loader(image).unsqueeze(0)
     image = image.to(device, torch.float)
 
-    trainer = StyleTransferTrainer(model_emotion, model_face, image, 200, 0.5, 0.5)
+    trainer = StyleTransferTrainer(model_emotion, model_face, image, 50, 0.5, 0.5)
 
     trainer.train()
+
+    result = transforms.ToPILImage(trainer.result_img)
+    result.save("result.jpg")
