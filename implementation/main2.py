@@ -25,3 +25,5 @@ if __name__ == '__main__':
     image = image.to(device, torch.float)
 
     trainer = StyleTransferTrainer(model_emotion, model_face, image, 200, 0.5, 0.5)
+
+    trainer.train()
