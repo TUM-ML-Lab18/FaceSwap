@@ -26,7 +26,7 @@ class StyleTransferTrainer:
         self.optimizer = optim.LBFGS([image.requires_grad_()])
 
     def train(self):
-        print("Starting training")
+        print("Starting optimization")
 
         for i in range(self.epochs):
 
@@ -39,12 +39,12 @@ class StyleTransferTrainer:
                 loss.backward()
 
                 if i % 50 == 0:
-                    print(f"[Epoch {i}] Loss: {loss}")
+                    print(f"[Epoch {i}] alpha-loss: {le}, beta-loss: {lf}")
 
             self.optimizer.step(closure)
             self.input_img.data.clamp_(0, 1)
 
-        print("Finished training")
+        print(f"Reached {self.epochs} epochs, finishing optimization")
 
 
 class MSELoss(nn.Module):
