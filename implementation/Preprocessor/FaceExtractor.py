@@ -111,7 +111,7 @@ class FaceExtractor(object):
 
 def list_landmarks(landmarks_dict):
     """
-    Extracts the coordinates of the landmarks from the landmarks dictionary
+    Converts the coordinates of the landmarks from the landmarks dictionary
     to a list of coordinates
     :param landmarks_dict: Dict of facial landmarks
     :return: List with tuples that represent the coordinates
@@ -121,6 +121,24 @@ def list_landmarks(landmarks_dict):
                       for coordinate in feature]
     return landmarks_list
 
+def dict_landmarks(landmarks_list):
+    """
+    Converts the coordinates of the landmarks from a list of landmarks
+    to a landmarks dictionary
+    :param landmarks_list: List of facial landmarks
+    :return: Dict with tuples that represent the coordinates
+    """
+    landmarks_dict = {}
+    landmarks_dict['chin'] = landmarks_list[0:17]
+    landmarks_dict['left_eyebrow'] = landmarks_list[17:22]
+    landmarks_dict['right_eyebrow'] = landmarks_list[22:27]
+    landmarks_dict['nose_bridge'] = landmarks_list[27:31]
+    landmarks_dict['nose_tip'] = landmarks_list[31:36]
+    landmarks_dict['left_eye'] = landmarks_list[36:42]
+    landmarks_dict['right_eye'] = landmarks_list[42:48]
+    landmarks_dict['top_lip'] = landmarks_list[48:60]
+    landmarks_dict['bottom_lip'] = landmarks_list[60:72]
+    return landmarks_dict
 
 def update_landmarks(landmarks_dict, transformation):
     """
