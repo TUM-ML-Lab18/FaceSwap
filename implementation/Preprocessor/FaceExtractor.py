@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import face_recognition
 from recordclass import recordclass
-from PIL import Image
+from PIL import Image, ImageDraw
 
 
 ExtractionInformation = recordclass('ExtractionInformation',
@@ -14,6 +14,17 @@ ExtractionInformation = recordclass('ExtractionInformation',
 BoundingBox = recordclass('BoundingBox', ('left', 'right', 'top', 'bottom'))
 Rotation = recordclass('Rotation', ('angle', 'center'))
 
+facial_features = [
+    'chin',
+    'left_eyebrow',
+    'right_eyebrow',
+    'nose_bridge',
+    'nose_tip',
+    'left_eye',
+    'right_eye',
+    'top_lip',
+    'bottom_lip'
+    ]
 
 class FaceExtractor(object):
     """
@@ -155,6 +166,22 @@ def update_landmarks(landmarks_dict, transformation):
             #landmark = np.round(landmark).astype(int)
             landmarks.append(tuple(landmark))
         landmarks_dict[feature] = landmarks
+
+def draw_landmarks(image, landmarks_dict):
+    """
+    Draw landmarks into image
+    :param image: PIL image
+    :param landmarks_dict: Dict of facial landmarks
+    :return: PIL image with the landmarks drawn
+    """
+    landmarks_face = image.copy()
+    d = ImageDraw.Draw(landmarks_face)
+    r = 3
+    for facial_feature in facial_features:
+        for x, y in landmarks_dict[facial_feature]:
+            d.ellipse((x - r, y - r, x + r, y + r), fill=(0, 255, 0))
+        d.line(landmarks_dict[facial_feature], width=r, fill=(0, 255, 0))
+    return landmarks_face
 
 class LandmarksExtractor(object):
     """
