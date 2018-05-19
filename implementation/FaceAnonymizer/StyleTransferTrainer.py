@@ -41,7 +41,7 @@ class StyleTransferTrainer:
                 loss.backward()
 
                 i[0] += 1
-                if i[0] % 50 == 0:
+                if i[0] % 5 == 0:
                     print(f"[Step {i[0]}] alpha-loss: {le}, beta-loss: {lf}")
 
                 return loss
