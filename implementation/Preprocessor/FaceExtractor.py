@@ -465,7 +465,8 @@ class FaceCropperFine(object):
         cropped_image = self.apply_fine_crop(image, bounding_box, offsets, size)
 
         # Update landmarks: Linear coordinate shift
-        transformation = lambda x: x - np.array([bounding_box.left, bounding_box.top])
+        transformation = lambda x: x - np.array([bounding_box.left-offsets.left,
+                                                 bounding_box.top-offsets.top])
         update_landmarks(landmarks_dict, transformation)
 
         return cropped_image, bounding_box, offsets, size
