@@ -25,7 +25,7 @@ class Preprocessor:
         :param face_extractor: Initialized FaceExtractor
         """
         # Used extractor
-        self.extractor = face_extractor()
+        self.extractor = face_extractor
 
     def __call__(self, root_folder:Path):
         """
