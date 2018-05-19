@@ -96,7 +96,7 @@ class Preprocessor:
                     if extracted_image is None:
                         continue
                     # Convert landmarks into normalized list
-                    landmarks = (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist()
+                    landmarks = (np.array(extracted_information.landmarks).reshape(-1) / extracted_information.size_fine).tolist()
                     # Buffer landmarks in CSV file
                     with open(landmarks_buffer, 'a') as lm_buffer:
                         lm_buffer.write(str(relative_path) + separator + str(landmarks) + '\n')
