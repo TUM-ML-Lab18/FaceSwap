@@ -20,7 +20,7 @@ if __name__ == '__main__':
         transforms.ToTensor()
     ])
 
-    image = Image.open("...")
+    image = Image.open("trump_first.jpg")
     image = loader(image).unsqueeze(0)
     image = image.to(device, torch.float)
 
