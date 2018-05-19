@@ -33,8 +33,10 @@ class Anonymizer:
         # Extract face
         extracted_face, extracted_information = self.extractor(image)
         if extracted_face is not None:
-            latent_information = self.config['img2latent_bridge'](extracted_face, extracted_information,
-                                                                  self.config['img_size'])
+            # latent_information = self.config['img2latent_bridge'](extracted_face, extracted_information,
+            #                                                      self.config['img_size'])
+            latent_information = self.model.img2latent_bridge(extracted_face, extracted_information,
+                                                              self.config['img_size'])
             # feed into network
             face_out = self.model.anonymize(latent_information).squeeze(0)
             # get it back to the cpu and get the data

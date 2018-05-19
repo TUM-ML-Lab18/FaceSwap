@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import face_recognition
 from recordclass import recordclass
-from PIL import Image
+from PIL import Image, ImageDraw
 
 
 ExtractionInformation = recordclass('ExtractionInformation',
@@ -14,6 +14,17 @@ ExtractionInformation = recordclass('ExtractionInformation',
 BoundingBox = recordclass('BoundingBox', ('left', 'right', 'top', 'bottom'))
 Rotation = recordclass('Rotation', ('angle', 'center'))
 
+facial_features = [
+    'chin',
+    'left_eyebrow',
+    'right_eyebrow',
+    'nose_bridge',
+    'nose_tip',
+    'left_eye',
+    'right_eye',
+    'top_lip',
+    'bottom_lip'
+    ]
 
 class FaceExtractor(object):
     """
@@ -111,7 +122,7 @@ class FaceExtractor(object):
 
 def list_landmarks(landmarks_dict):
     """
-    Extracts the coordinates of the landmarks from the landmarks dictionary
+    Converts the coordinates of the landmarks from the landmarks dictionary
     to a list of coordinates
     :param landmarks_dict: Dict of facial landmarks
     :return: List with tuples that represent the coordinates
@@ -121,6 +132,24 @@ def list_landmarks(landmarks_dict):
                       for coordinate in feature]
     return landmarks_list
 
+def dict_landmarks(landmarks_list):
+    """
+    Converts the coordinates of the landmarks from a list of landmarks
+    to a landmarks dictionary
+    :param landmarks_list: List of facial landmarks
+    :return: Dict with tuples that represent the coordinates
+    """
+    landmarks_dict = {}
+    landmarks_dict['chin'] = landmarks_list[0:17]
+    landmarks_dict['left_eyebrow'] = landmarks_list[17:22]
+    landmarks_dict['right_eyebrow'] = landmarks_list[22:27]
+    landmarks_dict['nose_bridge'] = landmarks_list[27:31]
+    landmarks_dict['nose_tip'] = landmarks_list[31:36]
+    landmarks_dict['left_eye'] = landmarks_list[36:42]
+    landmarks_dict['right_eye'] = landmarks_list[42:48]
+    landmarks_dict['top_lip'] = landmarks_list[48:60]
+    landmarks_dict['bottom_lip'] = landmarks_list[60:72]
+    return landmarks_dict
 
 def update_landmarks(landmarks_dict, transformation):
     """
@@ -137,6 +166,22 @@ def update_landmarks(landmarks_dict, transformation):
             #landmark = np.round(landmark).astype(int)
             landmarks.append(tuple(landmark))
         landmarks_dict[feature] = landmarks
+
+def draw_landmarks(image, landmarks_dict):
+    """
+    Draw landmarks into image
+    :param image: PIL image
+    :param landmarks_dict: Dict of facial landmarks
+    :return: PIL image with the landmarks drawn
+    """
+    landmarks_face = image.copy()
+    d = ImageDraw.Draw(landmarks_face)
+    r = 3
+    for facial_feature in facial_features:
+        for x, y in landmarks_dict[facial_feature]:
+            d.ellipse((x - r, y - r, x + r, y + r), fill=(0, 255, 0))
+        d.line(landmarks_dict[facial_feature], width=r, fill=(0, 255, 0))
+    return landmarks_face
 
 class LandmarksExtractor(object):
     """
@@ -420,7 +465,8 @@ class FaceCropperFine(object):
         cropped_image = self.apply_fine_crop(image, bounding_box, offsets, size)
 
         # Update landmarks: Linear coordinate shift
-        transformation = lambda x: x - np.array([bounding_box.left, bounding_box.top])
+        transformation = lambda x: x - np.array([bounding_box.left-offsets.left,
+                                                 bounding_box.top-offsets.top])
         update_landmarks(landmarks_dict, transformation)
 
         return cropped_image, bounding_box, offsets, size
