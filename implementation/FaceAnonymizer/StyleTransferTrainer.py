@@ -12,23 +12,24 @@ from configuration.general_config import MOST_RECENT_MODEL
 
 class StyleTransferTrainer:
 
-    def __init__(self, model_emotion, model_face, image, epochs, alpha, beta):
+    def __init__(self, model_emotion, model_face, image, steps, alpha, beta):
         self.model_emotion = model_emotion
         self.model_face = model_face
         self.image = image
         self.input_img = image.clone()
-        self.epochs = epochs
+        self.steps = steps
         self.alpha = alpha
         self.beta = beta
 
         self.loss_emotion = MSELoss(self.model_emotion(self.image).detach())
         self.loss_face = MSELoss(self.model_face(self.image).detach())
-        self.optimizer = optim.LBFGS([image.requires_grad_()])
+        self.optimizer = optim.LBFGS([self.input_img.requires_grad_()])
 
     def train(self):
         print("Starting optimization")
+        i = [0]
 
-        for i in range(self.epochs):
+        while i[0] < self.steps:
 
             def closure():
                 self.input_img.data.clamp_(0, 1)
@@ -39,15 +40,16 @@ class StyleTransferTrainer:
                 loss = self.alpha * le + self.beta * lf
                 loss.backward()
 
-                if i % 50 == 0:
-                    print(f"[Epoch {i}] alpha-loss: {le}, beta-loss: {lf}")
+                i[0] += 1
+                if i[0] % 50 == 0:
+                    print(f"[Step {i[0]}] alpha-loss: {le}, beta-loss: {lf}")
 
                 return loss
 
             self.optimizer.step(closure)
 
         self.input_img.data.clamp_(0, 1)
-        print(f"Reached {self.epochs} epochs, finishing optimization")
+        print(f"Reached {self.steps} steps, finishing optimization")
 
 
 class MSELoss(nn.Module):
