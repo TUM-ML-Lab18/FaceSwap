@@ -42,6 +42,8 @@ class StyleTransferTrainer:
                 if i % 50 == 0:
                     print(f"[Epoch {i}] alpha-loss: {le}, beta-loss: {lf}")
 
+                return loss
+
             self.optimizer.step(closure)
 
         self.input_img.data.clamp_(0, 1)
