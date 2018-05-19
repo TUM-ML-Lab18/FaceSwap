@@ -31,6 +31,7 @@ class StyleTransferTrainer:
         for i in range(self.epochs):
 
             def closure():
+                self.input_img.data.clamp_(0, 1)
                 self.optimizer.zero_grad()
 
                 le = self.loss_emotion(self.model_emotion(self.input_img))
@@ -42,8 +43,8 @@ class StyleTransferTrainer:
                     print(f"[Epoch {i}] alpha-loss: {le}, beta-loss: {lf}")
 
             self.optimizer.step(closure)
-            self.input_img.data.clamp_(0, 1)
 
+        self.input_img.data.clamp_(0, 1)
         print(f"Reached {self.epochs} epochs, finishing optimization")
 
 
@@ -53,6 +54,5 @@ class MSELoss(nn.Module):
         super(MSELoss, self).__init__()
         self.target = target.detach() #detach such that its not considered for autograd
 
-    def forward(self, *input):
-        self.loss = F.mse_loss(input, self.target)
-        return input
+    def forward(self, input):
+        return F.mse_loss(input, self.target)
