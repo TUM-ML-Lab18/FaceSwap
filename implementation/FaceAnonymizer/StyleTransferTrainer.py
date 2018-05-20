@@ -16,7 +16,7 @@ class StyleTransferTrainer:
         self.model_emotion = model_emotion
         self.model_face = model_face
         self.input_img = input_img
-        self.result_img = input_img.clone()
+        self.result_img = torch.randn(input_img.data.size()) #input_img.clone()
         self.steps = steps
         self.alpha = alpha
         self.beta = beta

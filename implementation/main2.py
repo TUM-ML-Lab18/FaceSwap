@@ -28,5 +28,5 @@ if __name__ == '__main__':
 
     trainer.train()
 
-    result = transforms.ToPILImage(trainer.result_img)
+    result = transforms.ToPILImage()(trainer.result_img)
     result.save("result.jpg")
