@@ -9,8 +9,8 @@ from configuration.general_config import MEGA_MERKEL_TRUMP, MERKEL_TRUMP_NORMAL_
 from configuration.run_config import current_config
 
 if __name__ == '__main__':
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
+    #torch.backends.cudnn.benchmark = False
+    #torch.backends.cudnn.deterministic = True
     p = current_config['preprocessor']()
     # p(Path(CELEBA))
     trainer = Trainer(Path(CELEBA), current_config)
