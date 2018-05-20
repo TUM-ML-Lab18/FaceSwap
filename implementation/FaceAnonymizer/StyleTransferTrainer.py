@@ -32,11 +32,11 @@ class StyleTransferTrainer:
         while i[0] < self.steps:
 
             def closure():
-                self.input_img.data.clamp_(0, 1)
+                self.result_img.data.clamp_(0, 1)
                 self.optimizer.zero_grad()
 
-                le = self.loss_emotion(self.model_emotion(self.input_img))
-                lf = self.loss_face(self.model_face(self.input_img))
+                le = self.loss_emotion(self.model_emotion(self.result_img))
+                lf = self.loss_face(self.model_face(self.result_img))
                 loss = self.alpha * le + self.beta * lf
                 loss.backward()
 
@@ -48,7 +48,7 @@ class StyleTransferTrainer:
 
             self.optimizer.step(closure)
 
-        self.input_img.data.clamp_(0, 1)
+        self.result_img.data.clamp_(0, 1)
         print(f"Reached {self.steps} steps, finishing optimization")
 
 
