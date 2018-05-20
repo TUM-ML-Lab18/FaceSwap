@@ -12,11 +12,11 @@ from configuration.general_config import MOST_RECENT_MODEL
 
 class StyleTransferTrainer:
 
-    def __init__(self, model_emotion, model_face, input_img, steps, alpha, beta):
+    def __init__(self, model_emotion, model_face, input_img, steps, alpha, beta, result_img = None):
         self.model_emotion = model_emotion
         self.model_face = model_face
         self.input_img = input_img
-        self.result_img = torch.randn(input_img.data.size()) #input_img.clone()
+        self.result_img = result_img if result_img is not None else input_img.clone()
         self.steps = steps
         self.alpha = alpha
         self.beta = beta
@@ -41,7 +41,7 @@ class StyleTransferTrainer:
                 loss.backward()
 
                 if i[0] % 5 == 0:
-                    print(f"[Step {i[0]}] alpha-loss: {le}, beta-loss: {lf}")
+                    print(f"[Step {i[0]}] alpha-loss: {le}, beta-loss: {lf}, overall: {loss}")
                 i[0] += 1
 
                 return loss
