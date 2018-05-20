@@ -101,12 +101,11 @@ class LandmarksHistDataset(LandmarksDataset):
             HistTuple()
         ])
         self.dataset_a.transform = self.transforms
-        self.pixel_count = self.img_size[0] * self.img_size[1] * 3
 
     def __getitem__(self, i):
         landmarks, img_list = super().__getitem__(i)
         # todo find better method to scale to [0..1] like softmax?
-        hist = img_list[0].flatten() / self.pixel_count
+        hist = img_list[0].flatten()
         latent = np.append(landmarks, hist).astype(np.float32)
         img = img_list[1]
         return latent, img

@@ -8,11 +8,11 @@ from torchvision.transforms import ToTensor
 from FaceAnonymizer import TrainValidationLoader
 
 from FaceAnonymizer.models.Autoencoder import AutoEncoder
-from FaceAnonymizer.models.Decoder import Decoder, LatentDecoder
+from FaceAnonymizer.models.Decoder import Decoder, LatentDecoder, LatentReducedDecoder
 from FaceAnonymizer.models.DeepFakeOriginal import DeepFakeOriginal
 from FaceAnonymizer.models.Encoder import Encoder
 from FaceAnonymizer.models.LatentModel import LatentModel, LowResAnnotationModel, HistAnnotationModel, HistModel, \
-    LowResModel
+    LowResModel, HistReducedModel
 from Preprocessor.FaceExtractor import FaceExtractor
 from Preprocessor.ImageDataset import ImageDatesetCombined, LandmarksDataset, LandmarksLowResDataset, \
     LandmarksHistDataset, LandmarksHistAnnotationsDataset, LandmarksLowResAnnotationsDataset
@@ -79,11 +79,7 @@ landmarks_config = {'batch_size': 512,
                                                                                               mask_factor=10)),
                     'dataset': lambda root_folder, img_size: LandmarksDataset(root_folder=root_folder,
                                                                               size_multiplicator=1,
-                                                                              img_size=img_size),
-                    'img2latent_bridge:': lambda extracted_face, extracted_information, img_size: torch.from_numpy(
-                        np.reshape(
-                            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(),
-                            -1).astype(np.float32)).unsqueeze(0).cuda()}
+                                                                              img_size=img_size)}
 
 ####### config for using landmarks as well as a low res image as input
 # dim = 72+2+8+8+3
@@ -116,6 +112,23 @@ lm_hist_config['model'] = lambda img_size: HistModel(
                                                   patience=100,
                                                   cooldown=50))
 
+###### config for using landmarks as well as a histogram of the target as input (reduced with dropout)
+lm_hist_reduced_config = landmarks_config.copy()
+lm_hist_reduced_config['img_size'] = (64, 64)
+lm_hist_reduced_config['batch_size'] = 2048
+lm_hist_reduced_config['dataset'] = lambda root_folder, img_size: LandmarksHistDataset(root_folder=root_folder,
+                                                                                       size_multiplicator=1,
+                                                                                       img_size=img_size)
+
+lm_hist_reduced_config['model'] = lambda img_size: HistReducedModel(
+    decoder=lambda: LatentReducedDecoder(72 * 2 + 10*3),
+    loss_function=torch.nn.L1Loss(size_average=True),
+    optimizer=lambda params: Adam(params=params, lr=1e-4),
+    scheduler=lambda optimizer: ReduceLROnPlateau(optimizer=optimizer,
+                                                  verbose=True,
+                                                  patience=100,
+                                                  cooldown=50))
+
 ###### config for using landmarks as well as a histogram as well as annotations of the target as input
 lm_hist_annotations_config = lm_hist_config.copy()
 lm_hist_annotations_config['dataset'] = lambda root_folder, img_size: LandmarksHistAnnotationsDataset(
@@ -131,7 +144,7 @@ lm_hist_annotations_config['model'] = lambda img_size: HistAnnotationModel(
                                                   verbose=True,
                                                   patience=100,
                                                   cooldown=50))
-
+###### config for using landmarks as well as a lowres as well as annotations of the target as input
 lm_lowres_annotations_config = lm_lowres_config.copy()
 lm_lowres_annotations_config['dataset'] = lambda root_folder, img_size: LandmarksLowResAnnotationsDataset(
     root_folder=root_folder,
@@ -147,4 +160,4 @@ lm_lowres_annotations_config['model'] = lambda img_size: LowResAnnotationModel(
                                                   patience=100,
                                                   cooldown=50))
 
-current_config = lm_hist_annotations_config
+current_config = lm_hist_reduced_config
