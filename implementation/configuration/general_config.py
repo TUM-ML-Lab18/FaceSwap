@@ -22,7 +22,10 @@ B = "B"
 PREPROCESSED = "preprocessed"
 LANDMARKS_JSON = "landmarks.json"
 LANDMARKS_BUFFER = "landmarks.txt"
+HISTO_BUFFER = "histo.txt"
+HISTO_JSON = "histo.json"
 ANNOTATIONS = "list_attr_celeba.txt"
+RESOLUTIONS = [4,8,16,32,64,128]
 
 
 PROCESSED_IMAGES = TRUMP_CAGE_BASE + "/" + PREPROCESSED

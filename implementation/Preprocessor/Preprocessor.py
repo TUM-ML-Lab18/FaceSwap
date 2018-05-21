@@ -1,13 +1,14 @@
 import json
 import ast
 import os
+import cv2
 from pathlib import Path
 
 import numpy as np
 from PIL import Image
 
 from Logging.LoggingUtils import print_progress_bar
-from configuration.general_config import RAW, PREPROCESSED, LANDMARKS_BUFFER, LANDMARKS_JSON
+from configuration.general_config import *
 from Preprocessor.FaceExtractor import FaceExtractor
 
 img_file_extensions = ['.jpg', '.JPG', '.png', '.PNG']
@@ -38,19 +39,17 @@ class Preprocessor:
         preprocessed_folder = root_folder / PREPROCESSED
         landmarks_buffer = root_folder / LANDMARKS_BUFFER
         landmarks_json = root_folder / LANDMARKS_JSON
-
-        if not landmarks_buffer.exists():
-            landmarks_buffer.touch()
-
-        if not landmarks_json.exists():
-            landmarks_json.touch()
+        histo_buffer = root_folder / HISTO_BUFFER
+        histo_json = root_folder / HISTO_JSON
 
         # Check root path
         if not raw_folder.exists():
             raise FileNotFoundError('No RAW folder with images to process: ' + str(raw_folder))
-        # Check preprocessed path
-        if not preprocessed_folder.exists():
-            preprocessed_folder.mkdir()
+        # Check preprocessed folders
+        preprocessed_folder.mkdir(exist_ok=True)
+        for size in RESOLUTIONS:
+            resolution_folder = root_folder / ('preprocessed' + str(size))
+            resolution_folder.mkdir(exist_ok=True)
 
         # Count files recursively for logging
         total_files_count = sum([len(files) for r, d, files in os.walk(raw_folder)])
@@ -63,12 +62,14 @@ class Preprocessor:
 
             # Create subdirectories
             for subdir in dirs:
-                # Create paths for subdirectory
+                # Create paths for subdirectories
                 subdir_raw = root / subdir
                 relative_path = subdir_raw.relative_to(raw_folder)
                 subdir_processed = preprocessed_folder / relative_path
-                if not subdir_processed.exists():
-                    subdir_processed.mkdir()
+                subdir_processed.mkdir(exist_ok=True)
+                for size in RESOLUTIONS:
+                    subdir_res = root_folder / ('preprocessed' + str(size)) / relative_path
+                    subdir_res.mkdir(exist_ok=True)
 
             # Convert images
             for file in files:
@@ -95,37 +96,57 @@ class Preprocessor:
                     # Check if extraction found a face
                     if extracted_image is None:
                         continue
-                    # Convert landmarks into normalized list
-                    landmarks = (np.array(extracted_information.landmarks).reshape(-1) / extracted_information.size_fine).tolist()
+                    # Normalized histogram as list
+                    histo_r = cv2.calcHist([np.array(extracted_image)], [0], None, [256], [0, 256])
+                    histo_g = cv2.calcHist([np.array(extracted_image)], [1], None, [256], [0, 256])
+                    histo_b = cv2.calcHist([np.array(extracted_image)], [2], None, [256], [0, 256])
+                    histo = np.vstack((histo_r, histo_g, histo_b)) / extracted_information.size_fine**2
+                    histo = histo.reshape(-1).tolist()
+                    # Normalized landmarks as list
+                    landmarks = np.array(extracted_information.landmarks) / extracted_information.size_fine
+                    landmarks = landmarks.reshape(-1).tolist()
+                    # Buffer histogram in CSV file
+                    with open(histo_buffer, 'a') as h_buffer:
+                        h_buffer.write(str(relative_path) + separator + str(histo) + '\n')
                     # Buffer landmarks in CSV file
                     with open(landmarks_buffer, 'a') as lm_buffer:
                         lm_buffer.write(str(relative_path) + separator + str(landmarks) + '\n')
+                    # Store different resolutions
+                    for size in RESOLUTIONS:
+                        resized_img = extracted_image.resize((size, size))
+                        resized_img.save(root_folder / ('preprocessed' + str(size)) / relative_path,
+                                         format='JPEG')
                     # Save extraction result in PROCESSED folder
                     extracted_image.save(preprocessed_folder / relative_path, format='JPEG')
 
         # Convert landmarks to json
         landmarks_storage = convert_buffer_to_dict(landmarks_buffer)
-
         # Save json file
         with open(landmarks_json, 'w') as lm_json:
             json.dump(landmarks_storage, lm_json)
 
+        # Convert histo to json
+        histo_storage = convert_buffer_to_dict(histo_buffer)
+        # Save json file
+        with open(histo_json, 'w') as h_json:
+            json.dump(histo_storage, h_json)
 
-def convert_buffer_to_dict(landmarks_buffer_file):
+
+def convert_buffer_to_dict(buffer_file):
     """
     Converts the landmarks from the buffer file  to a dict
-    :param landmarks_buffer_file: Path to the landmarks buffer file
+    :param buffer_file: Path to the buffer file
     :return: Landmarks stored in a dict
     """
-    # Extract landmarks from file and remove separator
-    with open(landmarks_buffer_file) as lm_buffer:
-        buffered_landmarks = lm_buffer.readlines()
+    # Extract lines from file and remove separator
+    with open(buffer_file) as buffer:
+        buffered_lines = buffer.readlines()
     # Extract separators
-    buffered_landmarks = [line.strip() for line in buffered_landmarks]
-    buffered_landmarks = [line.split(separator) for line in buffered_landmarks]
+    buffered_lines = [line.strip() for line in buffered_lines]
+    buffered_lines = [line.split(separator) for line in buffered_lines]
     # Save landmarks in dict
-    landmarks_storage = {}
-    for filename, landmarks in buffered_landmarks:
-        landmarks_storage[filename] = ast.literal_eval(landmarks)
-    return landmarks_storage
+    storage = {}
+    for filename, data in buffered_lines:
+        storage[filename] = ast.literal_eval(data)
+    return storage
 
