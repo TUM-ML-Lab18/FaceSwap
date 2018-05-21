@@ -114,14 +114,22 @@ class HistTuple:
     Class to get a tuple that contains the input image as well as the histogram of it
     """
 
-    def __init__(self):
+    def __init__(self, bins=10):
         """
         Initializer for HistTuple class
         """
         self.toTensor = transforms.ToTensor()
+        self.bins = bins
 
     def __call__(self, img):
-        return np.array(img.histogram()), self.toTensor(img)
+        img = np.array(img)
+        r = img[:, :, 0]
+        g = img[:, :, 1]
+        b = img[:, :, 2]
+        r = np.histogram(r, bins=self.bins, range=(0, 255), density=True)[0]
+        g = np.histogram(g, bins=self.bins, range=(0, 255), density=True)[0]
+        b = np.histogram(b, bins=self.bins, range=(0, 255), density=True)[0]
+        return np.concatenate((r, g, b)), self.toTensor(img)
 
 
 class TupleToTensor(object):

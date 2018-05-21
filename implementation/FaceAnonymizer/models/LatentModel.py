@@ -1,8 +1,13 @@
+from abc import abstractmethod
 from pathlib import Path
 
 import random
+
+import numpy as np
 import torch
+from PIL.Image import BICUBIC
 from torch.nn import DataParallel
+from torchvision.transforms import ToTensor
 
 
 class LatentModel:
@@ -114,7 +119,96 @@ class LatentModel:
     def log_validate(self, logger, epoch, loss1):
         logger.log_loss(epoch=epoch, loss={'lossA_val': float(loss1)})
 
-
-class HistogramModel(LatentModel):
+    @abstractmethod
     def img2latent_bridge(self, extracted_face, extracted_information, img_size):
         pass
+
+
+class LowResAnnotationModel(LatentModel):
+    def img2latent_bridge(self, extracted_face, extracted_information, img_size):
+        resized_image_flat = ToTensor()(
+            extracted_face.resize(img_size, BICUBIC).resize((8, 8), BICUBIC)).numpy().flatten()
+        landmarks_normalized_flat = np.reshape(
+            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), -1)
+        latent_vector = np.append(landmarks_normalized_flat, resized_image_flat)
+
+        annotations = [0] * 40
+        # smiling
+        annotations[36] = 1
+        latent_vector = np.append(latent_vector, annotations)
+
+        latent_vector = latent_vector.astype(np.float32)
+        return torch.from_numpy(latent_vector).unsqueeze(0).cuda()
+
+
+class HistAnnotationModel(LatentModel):
+    # this is deprecated
+    def img2latent_bridge(self, extracted_face, extracted_information, img_size):
+        hist_flat = np.array(extracted_face.resize(img_size, BICUBIC).histogram()).flatten() / (
+                img_size[0] * img_size[1] * 3)
+        landmarks_normalized_flat = np.reshape(
+            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), -1)
+        latent_vector = np.append(landmarks_normalized_flat, hist_flat)
+
+        # annotations of pic 000001.jpg
+        annotations = [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1,
+                       1, 0, 1, 0, 1, 0, 0, 1]
+        latent_vector = np.append(latent_vector, annotations)
+
+        latent_vector = latent_vector.astype(np.float32)
+        return torch.from_numpy(latent_vector).unsqueeze(0).cuda()
+
+
+class HistModel(LatentModel):
+    last_hist = None
+    # this is deprecated
+    def img2latent_bridge(self, extracted_face, extracted_information, img_size):
+        hist_flat = np.array(extracted_face.resize(img_size, BICUBIC).histogram()).flatten() / (
+                img_size[0] * img_size[1] * 3)
+        if HistModel.last_hist is None:
+            HistModel.last_hist = hist_flat
+        else:
+            hist_flat = HistModel.last_hist
+
+        landmarks_normalized_flat = np.reshape(
+            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), -1)
+
+        # print(landmarks_normalized_flat)
+        latent_vector = np.append(landmarks_normalized_flat, hist_flat)
+
+        latent_vector = latent_vector.astype(np.float32)
+        return torch.from_numpy(latent_vector).unsqueeze(0).cuda()
+
+
+class LowResModel(LatentModel):
+    def img2latent_bridge(self, extracted_face, extracted_information, img_size):
+        resized_image_flat = ToTensor()(
+            extracted_face.resize(img_size, BICUBIC).resize((8, 8), BICUBIC)).numpy().flatten()
+        landmarks_normalized_flat = np.reshape(
+            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), -1)
+        latent_vector = np.append(landmarks_normalized_flat, resized_image_flat)
+
+        latent_vector = latent_vector.astype(np.float32)
+        return torch.from_numpy(latent_vector).unsqueeze(0).cuda()
+
+
+class HistReducedModel(LatentModel):
+    def img2latent_bridge(self, extracted_face, extracted_information, img_size):
+
+        img = np.array(extracted_face.resize(img_size, BICUBIC))
+        r = img[:, :, 0]
+        g = img[:, :, 1]
+        b = img[:, :, 2]
+        r = np.histogram(r, bins=10, range=(0, 255), density=True)[0]
+        g = np.histogram(g, bins=10, range=(0, 255), density=True)[0]
+        b = np.histogram(b, bins=10, range=(0, 255), density=True)[0]
+        hist_flat = np.concatenate((r, g, b))
+
+        landmarks_normalized_flat = np.reshape(
+            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), -1)
+
+        # print(landmarks_normalized_flat)
+        latent_vector = np.append(landmarks_normalized_flat, hist_flat)
+
+        latent_vector = latent_vector.astype(np.float32)
+        return torch.from_numpy(latent_vector).unsqueeze(0).cuda()
