@@ -58,7 +58,7 @@ class FaceExtractor(object):
 
     def __call__(self, image):
         """
-        Extracts a image with the given configuration
+        Extracts a image with the given Configuration
         :param image: PIL image
         :return: extracted_face: Extracted face
                  extraction_information: namedtuple with the following elements

@@ -6,7 +6,7 @@ from PIL import Image
 from pathlib import Path
 
 from Logging.LoggingUtils import print_progress_bar
-from configuration.run_config import current_config
+from Configuration.config_model import current_config
 
 
 def convert_images():

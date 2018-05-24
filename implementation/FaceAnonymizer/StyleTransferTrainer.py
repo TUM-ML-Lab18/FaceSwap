@@ -7,7 +7,7 @@ from PIL import Image
 import torchvision.transforms as transforms
 import torchvision.models as models
 from Logging.LoggingUtils import Logger
-from configuration.general_config import MOST_RECENT_MODEL
+from Configuration.config_general import MOST_RECENT_MODEL
 
 
 class StyleTransferTrainer:

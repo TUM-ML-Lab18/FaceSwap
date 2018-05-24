@@ -233,6 +233,7 @@ class CGAN(object):
         G_loss_mean, D_loss_mean = 0, 0
         iterations = 0
         for x, y in batches:
+            print('Training')
             z = torch.randn((self.batch_size, self.z_dim, 1, 1))
             y_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
                                                   size=(self.batch_size))

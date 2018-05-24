@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 
 from FaceAnonymizer.Anonymizer import Anonymizer
-from configuration.run_config import current_config
+from Configuration.config_model import current_config
 
 
 class Evaluator:

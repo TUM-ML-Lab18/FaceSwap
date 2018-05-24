@@ -5,7 +5,7 @@ from Preprocessor.FaceExtractor import FaceExtractor
 from pathlib import Path
 import numpy as np
 
-from configuration.general_config import ANNOTATIONS, CELEBA
+from Configuration.config_general import ANNOTATIONS, CELEBA
 
 
 def process_annoations(root_folder):

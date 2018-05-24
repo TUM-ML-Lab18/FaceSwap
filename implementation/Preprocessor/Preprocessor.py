@@ -8,7 +8,7 @@ import numpy as np
 from PIL import Image
 
 from Logging.LoggingUtils import print_progress_bar
-from configuration.general_config import *
+from Configuration.config_general import *
 from Preprocessor.FaceExtractor import FaceExtractor
 
 img_file_extensions = ['.jpg', '.JPG', '.png', '.PNG']

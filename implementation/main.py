@@ -4,9 +4,9 @@ import torch
 
 from FaceAnonymizer.Trainer import Trainer
 
-from configuration.general_config import MEGA_MERKEL_TRUMP, MERKEL_TRUMP_NORMAL_BASE, MERKEL_TRUMP_LANDMARKS, \
+from Configuration.config_general import MEGA_MERKEL_TRUMP, MERKEL_TRUMP_NORMAL_BASE, MERKEL_TRUMP_LANDMARKS, \
     TRUMP_LANDMARKS, CELEBA
-from configuration.run_config import current_config
+from Configuration.config_model import current_config
 
 if __name__ == '__main__':
     #torch.backends.cudnn.benchmark = False
