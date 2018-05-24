@@ -7,15 +7,16 @@ from FaceAnonymizer.DataSplitter import DataSplitter
 class Trainer:
     def __init__(self, root_folder, config):
         self.batch_size = config['batch_size']
+        self.dataset = config['dataset']
+        self.model = config['model']
+        self.data_loader = DataSplitter(self.dataset, self.batch_size, config['num_workers'])
+
         if torch.cuda.device_count() > 1:
             self.batch_size *= torch.cuda.device_count()
             # dataset.size_multiplicator *= torch.cuda.device_count()
 
-        dataset = config['dataset'](root_folder, config['img_size'])
-        self.data_loader = DataSplitter(dataset, self.batch_size, config['num_workers'])
-        self.model = config['model'](config['img_size'])
 
-        self.logger = Logger(len(dataset) // dataset.size_multiplicator, self.model, save_model_every_nth=100,
+        self.logger = Logger(len(self.dataset), self.model, save_model_every_nth=100,
                              shared_model_path=MOST_RECENT_MODEL)
         self.logger.log_config(config)
 

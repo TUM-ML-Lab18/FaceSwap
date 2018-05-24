@@ -37,3 +37,17 @@ VIDEO_DOWNLOADER_MERKEL = "/nfs/students/summer-term-2018/project_2/data/VideoDo
 SAMPLE_MODEL = "./model"
 
 MOST_RECENT_MODEL = "."
+
+
+
+ROOT_CELEBA = '/nfs/students/summer-term-2018/project_2/data/CelebA/'
+ARRAY_CELEBA_IMAGES_4 = ROOT_CELEBA + 'data4.npy'
+ARRAY_CELEBA_IMAGES_8 = ROOT_CELEBA + 'data8.npy'
+ARRAY_CELEBA_IMAGES_16 = ROOT_CELEBA + 'data16.npy'
+ARRAY_CELEBA_IMAGES_32 = ROOT_CELEBA + 'data32.npy'
+ARRAY_CELEBA_IMAGES_64 = ROOT_CELEBA + 'data64.npy'
+ARRAY_CELEBA_IMAGES_128 = ROOT_CELEBA + 'data128.npy'
+ARRAY_CELEBA_LANDMARKS = ROOT_CELEBA + 'landmarks.npy'
+ARRAY_CELEBA_LANDMARKS_5 = ROOT_CELEBA + 'landmarks5.npy'
+ARRAY_CELEBA_HISTO = ROOT_CELEBA + 'histo.npy'
+ARRAY_CELEBA_ATTRIBUTES = ROOT_CELEBA + 'attributes.npy'

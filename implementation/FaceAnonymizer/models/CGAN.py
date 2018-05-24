@@ -206,8 +206,8 @@ class CGAN(object):
 
         # gaussian distribution of our landmarks
         # todo fix this shit
-        self.y_mean = StaticLandmarks32x32Dataset.y_mean.copy()
-        self.y_cov = StaticLandmarks32x32Dataset.y_cov.copy()
+        #self.y_mean = StaticLandmarks32x32Dataset.y_mean.copy()
+        #self.y_cov = StaticLandmarks32x32Dataset.y_cov.copy()
 
         # Label vectors for loss function
         self.y_real, self.y_fake = (torch.ones(self.batch_size, 1), torch.zeros(self.batch_size, 1))
@@ -235,11 +235,11 @@ class CGAN(object):
         for x, y in batches:
             print('Training')
             z = torch.randn((self.batch_size, self.z_dim, 1, 1))
-            y_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
-                                                  size=(self.batch_size))
-            y_gen = torch.from_numpy(y_gen[:, :, None, None]).type(torch.FloatTensor)
+            #y_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
+            #                                      size=(self.batch_size))
+            #y_gen = torch.from_numpy(y_gen[:, :, None, None]).type(torch.FloatTensor)
             if self.cuda:
-                x, y, y_gen, z = x.cuda(), y.cuda(), y_gen.cuda(), z.cuda()
+                x, y, z = x.cuda(), y.cuda(), z.cuda()
 
             # ========== Training discriminator
             self.D_optimizer.zero_grad()

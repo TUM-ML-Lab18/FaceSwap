@@ -67,7 +67,7 @@ class Logger:
         text = f"batchsize: {config['batch_size']}\n\nnum_gpus: {torch.cuda.device_count()}\n\nimg_size: {config['img_size']}"
         self.writer.add_text("hyperparameters",
                              text)
-        text = inspect.getsource(config['model']).replace('\n', '\n\t')
+        #text = inspect.getsource(config['model']).replace('\n', '\n\t')
         self.writer.add_text("config", text)
 
 def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):

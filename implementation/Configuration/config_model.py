@@ -14,6 +14,7 @@ from FaceAnonymizer.models.Encoder import Encoder
 from FaceAnonymizer.models.LatentModel import LatentModel, LowResAnnotationModel, HistAnnotationModel, HistModel, \
     LowResModel, HistReducedModel
 from Preprocessor.ImageDataset import *
+from Configuration.config_general import *
 
 standart_config = {'batch_size': 64,
                    'img_size': (128, 128),
@@ -136,8 +137,8 @@ lm_lowres_annotations_config['model'] = lambda img_size: LowResAnnotationModel(
 
 cgan_config = {'batch_size': 64,
                'img_size': (32, 32),
-               'model': lambda img_size: CGAN(batch_size=64, y_dim=10, z_dim=100),
-               'dataset': lambda root_folder, img_size: StaticLandmarks32x32Dataset(),
+               'model': CGAN(batch_size=64, y_dim=10, z_dim=100),
+               'dataset': ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_5),
                'num_workers': 12}
 
 current_config = cgan_config
