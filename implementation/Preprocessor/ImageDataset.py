@@ -148,19 +148,24 @@ class ImageFeatureDataset(Dataset):
     * only features
     from stored NumPy array
     """
-    def __init__(self, path_to_image_array, path_to_feature_array):
+    def __init__(self, path_to_image_array, paths_to_feature_arrays):
         """
         Initialize a dataset
         :param path_to_image_array: None if no images should be loaded
-        :param path_to_feature_array: None if no features should be loaded
+        :param paths_to_feature_arrays: List of feature arrays to be loaded
+                                        None if no features should be loaded
         """
         if path_to_image_array is not None:
             self.images = np.load(path_to_image_array)
             self.images = torch.from_numpy(self.images).type(torch.FloatTensor)
         else:
             self.images = None
-        if path_to_feature_array is not None:
-            self.features = np.load(path_to_feature_array)
+        if paths_to_feature_arrays is not None:
+            features = []
+            for path in paths_to_feature_arrays:
+                feature = np.load(path)
+                features.append(feature)
+            self.features = np.hstack(features)
             self.features = torch.from_numpy(self.features).type(torch.FloatTensor)
         else:
             self.features = None
