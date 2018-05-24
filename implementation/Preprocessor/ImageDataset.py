@@ -140,23 +140,6 @@ class LandmarksLowResAnnotationsDataset(LandmarksLowResDataset):
         latent = np.append(latent, self.annotations[file_name_a]).astype(np.float32)
         return latent, img
 
-
-class StaticLandmarks32x32Dataset(Dataset):
-    def __init__(self, *args, **kwargs):
-        self.data_X = np.load('/nfs/students/summer-term-2018/project_2/data/CelebA/data64.npy')
-        self.data_Y = np.load('/nfs/students/summer-term-2018/project_2/data/CelebA/landmarks5.npy')
-        StaticLandmarks32x32Dataset.y_mean = np.mean(self.data_Y, axis=0)
-        StaticLandmarks32x32Dataset.y_cov = np.cov(self.data_Y, rowvar=0)
-        self.data_X = torch.from_numpy(self.data_X).type(torch.FloatTensor)
-        self.data_Y = torch.from_numpy(self.data_Y).type(torch.FloatTensor)[:, :, None, None]
-        self.size_multiplicator = 1
-
-    def __len__(self):
-        return len(self.data_X)
-
-    def __getitem__(self, i):
-        return self.data_X[i], self.data_Y[i]
-
 class ImageFeatureDataset(Dataset):
     """
     Generic data set class to load

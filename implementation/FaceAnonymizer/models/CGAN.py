@@ -6,9 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 
-from FaceAnonymizer.models.ModelUtils import weights_init
-from Preprocessor.ImageDataset import StaticLandmarks32x32Dataset
-
+from FaceAnonymizer.models.ModelUtils import weights_init, load_model_dict, save_model_dict
 
 class Generator(nn.Module):
     def __init__(self, input_dim=(100, 10), output_dim=(64, 64, 3), ngf=32):
@@ -70,28 +68,6 @@ class Generator(nn.Module):
             output = self.main(x)
 
         return output
-
-    def save(self, path):
-        """
-        Save model with its parameters to the given path. Conventionally the
-        path should end with "*.model".
-
-        Inputs:
-        - path: path string
-        """
-        print('Saving model... %s' % path)
-        torch.save(self.state_dict(), path)
-
-    def load(self, path):
-        """
-        Load model with its parameters from the given path. Conventionally the
-        path should end with "*.model".
-
-        Inputs:
-        - path: path string
-        """
-        print('Loading model... %s' % path)
-        self.load_state_dict(torch.load(path, map_location=lambda storage, loc: storage))
 
 
 class Discriminator(nn.Module):
@@ -158,28 +134,6 @@ class Discriminator(nn.Module):
             x = self.main(x)
 
         return x
-
-    def save(self, path):
-        """
-        Save model with its parameters to the given path. Conventionally the
-        path should end with "*.model".
-
-        Inputs:
-        - path: path string
-        """
-        print('Saving model... %s' % path)
-        torch.save(self.state_dict(), path)
-
-    def load(self, path):
-        """
-        Load model with its parameters from the given path. Conventionally the
-        path should end with "*.model".
-
-        Inputs:
-        - path: path string
-        """
-        print('Loading model... %s' % path)
-        self.load_state_dict(torch.load(path, map_location=lambda storage, loc: storage))
 
 
 class CGAN(object):
@@ -343,13 +297,12 @@ class CGAN(object):
     def save_model(self, path):
         # Create subfolder for models
         path = Path(path)
-        subfolder = "model"
-        path = path / subfolder
+        path = path / 'model'
         path.mkdir(parents=True, exist_ok=True)
-        self.G.save(path / 'generator.model')
-        self.D.save(path / 'discriminator.model')
+        save_model_dict(self.G.save, path / 'generator.model')
+        save_model_dict(self.D.save, path / 'discriminator.model')
 
     def load_model(self, path):
         path = Path(path)
-        self.G.load(path / 'generator.model')
-        self.D.load(path / 'discriminator.model')
+        load_model_dict(self.G.load, path / 'generator.model')
+        load_model_dict(self.D, path / 'discriminator.model')

@@ -121,10 +121,7 @@ lm_hist_annotations_config['model'] = lambda img_size: HistAnnotationModel(
                                                   cooldown=50))
 ###### config for using landmarks as well as a lowres as well as annotations of the target as input
 lm_lowres_annotations_config = lm_lowres_config.copy()
-lm_lowres_annotations_config['dataset'] = lambda root_folder, img_size: LandmarksLowResAnnotationsDataset(
-    root_folder=root_folder,
-    size_multiplicator=1,
-    target_img_size=img_size)
+lm_lowres_annotations_config['dataset'] = ImageFeatureDataset(ARRAY_CELEBA_IMAGES_8, ARRAY_CELEBA_LANDMARKS_5)
 
 lm_lowres_annotations_config['model'] = lambda img_size: LowResAnnotationModel(
     decoder=lambda: LatentDecoder(72 * 2 + 8 * 8 * 3 + 40),
