@@ -6,22 +6,24 @@ import random
 import numpy as np
 import torch
 from PIL.Image import BICUBIC
+from torch.optim import Adam
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.nn import DataParallel
 from torchvision.transforms import ToTensor
 
 
 class LatentModel:
-    def __init__(self, optimizer, scheduler, decoder, loss_function):
+    def __init__(self, optimizer, scheduler, decoder):
         self.decoder = decoder()
 
         if torch.cuda.device_count() > 1:
             self.decoder = DataParallel(self.decoder)
         self.decoder = self.decoder.cuda()
 
-        self.lossfn = loss_function.cuda()
+        self.lossfn = torch.nn.L1Loss(size_average=True).cuda()
 
-        self.optimizer1 = optimizer(self.decoder.parameters())
-        self.scheduler1 = scheduler(self.optimizer1)
+        self.optimizer = Adam(params=self.decoder.parameters(), lr=1e-4)
+        self.scheduler = ReduceLROnPlateau(self.optimizer, patience=100, cooldown=50)
 
     def set_train_mode(self, mode):
         self.decoder.train(mode)
@@ -36,19 +38,19 @@ class LatentModel:
             face1 = face1.cuda()
             latent_information = latent_information.cuda()
 
-            self.optimizer1.zero_grad()
+            self.optimizer.zero_grad()
             output1 = self.decoder(latent_information)
             loss1 = self.lossfn(output1, face1)
             loss1.backward()
 
-            self.optimizer1.step()
+            self.optimizer.step()
 
             loss1_mean += loss1
             iterations += 1
 
         loss1_mean /= iterations
         loss1_mean = loss1_mean.cpu().data.numpy()
-        self.scheduler1.step(loss1_mean, current_epoch)
+        self.scheduler.step(loss1_mean, current_epoch)
 
         return loss1_mean, [face1, output1]
 

@@ -7,7 +7,8 @@ from FaceAnonymizer.DataSplitter import DataSplitter
 class Trainer:
     def __init__(self, root_folder, config):
         self.batch_size = config['batch_size']
-        self.dataset = config['dataset']
+        self.dataset = config['dataset'](root_folder, config['img_size'])
+        #self.dataset = config['dataset']
         self.model = config['model']
         self.data_loader = DataSplitter(self.dataset, self.batch_size, config['num_workers'])
 

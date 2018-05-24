@@ -1,26 +1,20 @@
 import random
 import torch
+from torch.optim import Adam
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from PIL.Image import BICUBIC
 from torch.nn import DataParallel
 from pathlib import Path
 
 from torchvision.transforms import ToTensor
-
+from FaceAnonymizer.models.ModelUtils import save_model_dict, load_model_dict
 from FaceAnonymizer.models.Autoencoder import AutoEncoder
 
 
 class DeepFakeOriginal:
-    def __init__(self, optimizer, scheduler, encoder, decoder, auto_encoder=AutoEncoder,
-                 loss_function=torch.nn.L1Loss(size_average=True)):
+    def __init__(self, encoder, decoder, auto_encoder=AutoEncoder):
         """
         Initialize a new DeepFakeOriginal.
-
-        Inputs:
-        - data1: dataset of pictures of first face
-        - data2: dataset of pictures of second face
-        - batch_size: batch size
-        - epochs: number of training epochs
-        - learning_rate: learning rate
         """
         self.encoder = encoder().cuda()
         self.decoder1 = decoder().cuda()
@@ -34,12 +28,12 @@ class DeepFakeOriginal:
             self.autoencoder1 = DataParallel(self.autoencoder1)
             self.autoencoder2 = DataParallel(self.autoencoder2)
 
-        self.lossfn = loss_function.cuda()
+        self.lossfn = torch.nn.L1Loss(size_average=True).cuda()
 
-        self.optimizer1 = optimizer(self.autoencoder1.parameters())
-        self.scheduler1 = scheduler(self.optimizer1)
-        self.optimizer2 = optimizer(self.autoencoder2.parameters())
-        self.scheduler2 = scheduler(self.optimizer2)
+        self.optimizer1 = Adam(self.autoencoder1.parameters(), lr=1e-4)
+        self.scheduler1 = ReduceLROnPlateau(self.optimizer1, patience=100, cooldown=50)
+        self.optimizer1 = Adam(self.autoencoder2.parameters(), lr=1e-4)
+        self.scheduler2 = ReduceLROnPlateau(self.optimizer2, patience=100, cooldown=50)
 
     def set_train_mode(self, mode):
         self.autoencoder1.train(mode)
@@ -122,15 +116,15 @@ class DeepFakeOriginal:
         subfolder = "model"  # "#datetime.now().strftime('model__%Y%m%d_%H%M%S')
         path = path / subfolder
         path.mkdir(parents=True, exist_ok=True)
-        self.encoder.save(path / 'encoder.model')
-        self.decoder1.save(path / 'decoder1.model')
-        self.decoder2.save(path / 'decoder2.model')
+        save_model_dict(self.encoder.save, path / 'encoder.model')
+        save_model_dict(self.decoder1.save, path / 'decoder1.model')
+        save_model_dict(self.decoder2.save, path / 'decoder2.model')
 
     def load_model(self, path):
         path = Path(path)
-        self.encoder.load(path / 'encoder.model')
-        self.decoder1.load(path / 'decoder1.model')
-        self.decoder2.load(path / 'decoder2.model')
+        load_model_dict(self.encoder.load, path / 'encoder.model')
+        load_model_dict(self.decoder1.load, path / 'decoder1.model')
+        load_model_dict(self.decoder2.load, path / 'decoder2.model')
 
     def log(self, logger, epoch, loss1, loss2, images, log_images=False):
         """
