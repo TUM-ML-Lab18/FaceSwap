@@ -24,6 +24,7 @@ class Trainer:
 
     def train(self):
         for i in range(self.epochs):
+            self.model.set_train_mode(True)
             batches = self.data_loader.train()
             info = self.model.train(i, batches)
 

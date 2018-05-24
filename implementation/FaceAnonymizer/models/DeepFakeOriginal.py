@@ -1,6 +1,5 @@
 import random
 import torch
-from PIL import Image
 from PIL.Image import BICUBIC
 from torch.nn import DataParallel
 from pathlib import Path
@@ -8,7 +7,6 @@ from pathlib import Path
 from torchvision.transforms import ToTensor
 
 from FaceAnonymizer.models.Autoencoder import AutoEncoder
-from Preprocessor.FaceExtractor import ExtractionInformation
 
 
 class DeepFakeOriginal:

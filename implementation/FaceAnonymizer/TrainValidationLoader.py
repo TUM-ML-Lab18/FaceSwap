@@ -5,7 +5,8 @@ from torch.utils.data.sampler import SubsetRandomSampler
 
 
 class TrainValidationLoader:
-    def __init__(self, dataset, batch_size=64, validation_size=0.2, shuffle=True, num_workers=12, pin_memory=True, drop_last=True):
+    def __init__(self, dataset, batch_size=64, validation_size=0.2, shuffle=True, num_workers=12, pin_memory=True,
+                 drop_last=True):
         if dataset is None:
             return
 
@@ -20,14 +21,13 @@ class TrainValidationLoader:
         train_sampler = SubsetRandomSampler(train_idxs)
         validation_sampler = SubsetRandomSampler(validation_idxs)
 
-        self.train_loader = DataLoader(dataset, sampler=train_sampler, batch_size = batch_size,
+        self.train_loader = DataLoader(dataset, sampler=train_sampler, batch_size=batch_size,
                                        num_workers=num_workers, pin_memory=pin_memory, drop_last=drop_last)
         self.validation_loader = DataLoader(dataset, sampler=validation_sampler, batch_size=batch_size, shuffle=False,
-                                       num_workers=num_workers, pin_memory=pin_memory, drop_last=drop_last)
+                                            num_workers=num_workers, pin_memory=pin_memory, drop_last=drop_last)
 
     def train(self):
         return self.train_loader
 
     def validation(self):
         return self.validation_loader
-

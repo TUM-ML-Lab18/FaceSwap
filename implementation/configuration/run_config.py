@@ -8,6 +8,7 @@ from torchvision.transforms import ToTensor
 from FaceAnonymizer import TrainValidationLoader
 
 from FaceAnonymizer.models.Autoencoder import AutoEncoder
+from FaceAnonymizer.models.CGAN import CGAN
 from FaceAnonymizer.models.Decoder import Decoder, LatentDecoder, LatentReducedDecoder
 from FaceAnonymizer.models.DeepFakeOriginal import DeepFakeOriginal
 from FaceAnonymizer.models.Encoder import Encoder
@@ -15,7 +16,8 @@ from FaceAnonymizer.models.LatentModel import LatentModel, LowResAnnotationModel
     LowResModel, HistReducedModel
 from Preprocessor.FaceExtractor import FaceExtractor
 from Preprocessor.ImageDataset import ImageDatesetCombined, LandmarksDataset, LandmarksLowResDataset, \
-    LandmarksHistDataset, LandmarksHistAnnotationsDataset, LandmarksLowResAnnotationsDataset
+    LandmarksHistDataset, LandmarksHistAnnotationsDataset, LandmarksLowResAnnotationsDataset, \
+    StaticLandmarks32x32Dataset
 from Preprocessor.Preprocessor import Preprocessor
 
 standart_config = {'batch_size': 64,
@@ -121,7 +123,7 @@ lm_hist_reduced_config['dataset'] = lambda root_folder, img_size: LandmarksHistD
                                                                                        img_size=img_size, bins=100)
 
 lm_hist_reduced_config['model'] = lambda img_size: HistReducedModel(
-    decoder=lambda: LatentReducedDecoder(72 * 2 + 100*3),
+    decoder=lambda: LatentReducedDecoder(72 * 2 + 100 * 3),
     loss_function=torch.nn.L1Loss(size_average=True),
     optimizer=lambda params: Adam(params=params, lr=1e-4),
     scheduler=lambda optimizer: ReduceLROnPlateau(optimizer=optimizer,
@@ -160,4 +162,21 @@ lm_lowres_annotations_config['model'] = lambda img_size: LowResAnnotationModel(
                                                   patience=100,
                                                   cooldown=50))
 
-current_config = lm_hist_reduced_config
+cgan_config = {'batch_size': 64,
+               'num_epoch': 5000,
+               'img_size': (32, 32),
+               'validation_freq': 20,
+               'data_loader': lambda dataset, batch_size: TrainValidationLoader(dataset=dataset,
+                                                                                batch_size=batch_size,
+                                                                                validation_size=0.2,
+                                                                                shuffle=True,
+                                                                                num_workers=2,
+                                                                                pin_memory=True,
+                                                                                drop_last=True),
+               'model': lambda img_size: CGAN(batch_size=64, y_dim=10, z_dim=100),
+               'preprocessor': lambda: Preprocessor(face_extractor=lambda: FaceExtractor(margin=0.05,
+                                                                                         mask_type=np.bool,
+                                                                                         mask_factor=10)),
+               'dataset': lambda root_folder, img_size: StaticLandmarks32x32Dataset()}
+
+current_config = cgan_config
