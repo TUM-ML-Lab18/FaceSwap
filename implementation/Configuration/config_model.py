@@ -44,9 +44,6 @@ standart_config = {'batch_size': 64,
                                                                      verbose=True,
                                                                      patience=100,
                                                                      cooldown=50), ),
-                   'preprocessor': lambda: Preprocessor(face_extractor=lambda: FaceExtractor(margin=0.05,
-                                                                                             mask_type=np.bool,
-                                                                                             mask_factor=10)),
                    'dataset': lambda root_folder, img_size: ImageDatesetCombined(root_folder, size_multiplicator=1,
                                                                                  img_size=img_size),
                    'img2latent_bridge:': lambda extracted_face, extracted_information, img_size:
@@ -75,10 +72,6 @@ landmarks_config = {'batch_size': 512,
                                                                       verbose=True,
                                                                       patience=100,
                                                                       cooldown=50)),
-
-                    'preprocessor': lambda: Preprocessor(face_extractor=lambda: FaceExtractor(margin=0.05,
-                                                                                              mask_type=np.bool,
-                                                                                              mask_factor=10)),
                     'dataset': lambda root_folder, img_size: LandmarksDataset(root_folder=root_folder,
                                                                               size_multiplicator=1,
                                                                               img_size=img_size)}
@@ -174,9 +167,6 @@ cgan_config = {'batch_size': 64,
                                                                                 pin_memory=True,
                                                                                 drop_last=True),
                'model': lambda img_size: CGAN(batch_size=64, y_dim=10, z_dim=100),
-               'preprocessor': lambda: Preprocessor(face_extractor=lambda: FaceExtractor(margin=0.05,
-                                                                                         mask_type=np.bool,
-                                                                                         mask_factor=10)),
                'dataset': lambda root_folder, img_size: StaticLandmarks32x32Dataset()}
 
 current_config = cgan_config
