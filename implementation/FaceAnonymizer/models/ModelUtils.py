@@ -1,5 +1,5 @@
 import torch.nn as nn
-
+import torch
 
 class ConvBlock(nn.Module):
     """Convolution followed by a LeakyReLU"""
@@ -122,14 +122,33 @@ class UpscaleBlockBlock(nn.Sequential):
                 UpscaleBlock(num_channels_first_layer // (2 ** (i - 1)), num_channels_first_layer // (2 ** i)))
         super().__init__(*block_list)
 
-def initialize_weights(net):
-    for m in net.modules():
-        if isinstance(m, nn.Conv2d):
-            m.weight.data.normal_(0, 0.02)
-            m.bias.data.zero_()
-        elif isinstance(m, nn.ConvTranspose2d):
-            m.weight.data.normal_(0, 0.02)
-            m.bias.data.zero_()
-        elif isinstance(m, nn.Linear):
-            m.weight.data.normal_(0, 0.02)
-            m.bias.data.zero_()
+
+def weights_init(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        m.weight.data.normal_(0.0, 0.02)
+    elif classname.find('BatchNorm') != -1:
+        m.weight.data.normal_(1.0, 0.02)
+        m.bias.data.fill_(0)
+
+
+def save_model_dict(model, path):
+    """
+    Save model with its parameters to the given path. Conventionally the
+    path should end with "*.model".
+    :param model: PyTorch model to save
+    :param path: Path where to save the model
+    """
+    print('Saving model... {}'.format(path))
+    torch.save(model.state_dict(), path)
+
+
+def load_model_dict(model, path):
+    """
+    Load model with its parameters from the given path. Conventionally the
+    path should end with "*.model".
+    :param model: PyTorch model to load
+    :param path: Path from where to load the model
+    """
+    print('Loading model... {}'.format(path))
+    model.load_state_dict(torch.load(path, map_location=lambda storage, loc: storage))
