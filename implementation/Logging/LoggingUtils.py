@@ -1,17 +1,10 @@
-import _thread
 import datetime
 import json
-
-import random
-
 import inspect
 import torch
 
 from tensorboardX import SummaryWriter
 from torchvision import utils as vutils
-
-from Preprocessor.FaceExtractor import ExtractionInformation
-
 
 def log_first_layer(net, writer, frame_idx):
     first_layer = next(net.parameters()).data.cpu()

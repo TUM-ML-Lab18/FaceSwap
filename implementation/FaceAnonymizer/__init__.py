@@ -1,2 +1,2 @@
 
-from .TrainValidationLoader import TrainValidationLoader
+from .DataSplitter import DataSplitter

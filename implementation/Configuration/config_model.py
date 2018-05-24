@@ -5,7 +5,6 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchvision.transforms import ToTensor
 
-from FaceAnonymizer import TrainValidationLoader
 
 from FaceAnonymizer.models.Autoencoder import AutoEncoder
 from FaceAnonymizer.models.CGAN import CGAN
@@ -14,11 +13,7 @@ from FaceAnonymizer.models.DeepFakeOriginal import DeepFakeOriginal
 from FaceAnonymizer.models.Encoder import Encoder
 from FaceAnonymizer.models.LatentModel import LatentModel, LowResAnnotationModel, HistAnnotationModel, HistModel, \
     LowResModel, HistReducedModel
-from Preprocessor.FaceExtractor import FaceExtractor
-from Preprocessor.ImageDataset import ImageDatesetCombined, LandmarksDataset, LandmarksLowResDataset, \
-    LandmarksHistDataset, LandmarksHistAnnotationsDataset, LandmarksLowResAnnotationsDataset, \
-    StaticLandmarks32x32Dataset
-from Preprocessor.Preprocessor import Preprocessor
+from Preprocessor.ImageDataset import *
 
 standart_config = {'batch_size': 64,
                    'img_size': (128, 128),

@@ -2,7 +2,7 @@ import torch
 
 from Logging.LoggingUtils import Logger
 from Configuration.config_general import MOST_RECENT_MODEL
-from FaceAnonymizer.TrainValidationLoader import TrainValidationLoader
+from FaceAnonymizer.DataSplitter import DataSplitter
 
 class Trainer:
     def __init__(self, root_folder, config):
@@ -12,7 +12,7 @@ class Trainer:
             # dataset.size_multiplicator *= torch.cuda.device_count()
 
         dataset = config['dataset'](root_folder, config['img_size'])
-        self.data_loader = TrainValidationLoader(dataset, self.batch_size, config['num_workers'])
+        self.data_loader = DataSplitter(dataset, self.batch_size, config['num_workers'])
         self.model = config['model'](config['img_size'])
 
         self.logger = Logger(len(dataset) // dataset.size_multiplicator, self.model, save_model_every_nth=100,
@@ -24,14 +24,14 @@ class Trainer:
         validate_every = 20
         for i in range(max_epochs):
             self.model.set_train_mode(True)
-            batches = self.data_loader.train()
+            batches = self.data_loader.get_train_data_loader()
             info = self.model.train(i, batches)
 
             if i % validate_every == 0:
                 self.model.log(self.logger, i, *info, log_images=True)
                 # do validation
                 self.model.set_train_mode(False)
-                batches = self.data_loader.validation()
+                batches = self.data_loader.get_validation_data_loader()
                 info = self.model.validate(batches)
                 self.model.log_validate(self.logger, i, *info)
                 self.model.set_train_mode(True)
