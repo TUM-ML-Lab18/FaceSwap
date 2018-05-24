@@ -155,6 +155,7 @@ class ImageFeatureDataset(Dataset):
         :param paths_to_feature_arrays: List of feature arrays to be loaded
                                         None if no features should be loaded
         """
+        print('Loading data... This may take some time')
         if path_to_image_array is not None:
             self.images = np.load(path_to_image_array)
             self.images = torch.from_numpy(self.images).type(torch.FloatTensor)
@@ -169,6 +170,7 @@ class ImageFeatureDataset(Dataset):
             self.features = torch.from_numpy(self.features).type(torch.FloatTensor)
         else:
             self.features = None
+        print('Data loaded.')
 
     def __len__(self):
         return len(self.images)

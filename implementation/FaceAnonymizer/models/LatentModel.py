@@ -13,7 +13,7 @@ from torchvision.transforms import ToTensor
 
 
 class LatentModel:
-    def __init__(self, optimizer, scheduler, decoder):
+    def __init__(self, decoder):
         self.decoder = decoder()
 
         if torch.cuda.device_count() > 1:
@@ -29,49 +29,49 @@ class LatentModel:
         self.decoder.train(mode)
 
     def train(self, current_epoch, batches):
-        loss1_mean = 0
-        face1 = None
-        output1 = None
+        loss_mean = 0
+        face = None
+        output = None
         iterations = 0
 
-        for (latent_information, face1) in batches:
-            face1 = face1.cuda()
+        for face, latent_information in batches:
+            face1 = face.cuda()
             latent_information = latent_information.cuda()
 
             self.optimizer.zero_grad()
             output1 = self.decoder(latent_information)
-            loss1 = self.lossfn(output1, face1)
-            loss1.backward()
+            loss = self.lossfn(output, face)
+            loss.backward()
 
             self.optimizer.step()
 
-            loss1_mean += loss1
+            loss_mean += loss
             iterations += 1
 
-        loss1_mean /= iterations
-        loss1_mean = loss1_mean.cpu().data.numpy()
-        self.scheduler.step(loss1_mean, current_epoch)
+        loss_mean /= iterations
+        loss_mean = loss_mean.cpu().data.numpy()
+        self.scheduler.step(loss_mean, current_epoch)
 
-        return loss1_mean, [face1, output1]
+        return loss_mean, [face, output]
 
     def validate(self, batches):
-        loss1_valid_mean = 0
+        loss_valid_mean = 0
         iterations = 0
 
-        for (latent_information, face1) in batches:
+        for face, latent_information in batches:
             with torch.no_grad():
-                face1 = face1.cuda()
+                face = face.cuda()
                 latent_information = latent_information.cuda()
 
-                output1 = self.decoder(latent_information)
-                loss1_valid_mean += self.lossfn(output1, face1)
+                output = self.decoder(latent_information)
+                loss_valid_mean += self.lossfn(output, face)
 
                 iterations += 1
 
-        loss1_valid_mean /= iterations
-        loss1_valid_mean = loss1_valid_mean.cpu().data.numpy()
+        loss_valid_mean /= iterations
+        loss_valid_mean = loss_valid_mean.cpu().data.numpy()
 
-        return [loss1_valid_mean]
+        return [loss_valid_mean]
 
     def anonymize(self, x):
         return self.decoder(x)

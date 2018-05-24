@@ -7,15 +7,12 @@ from FaceAnonymizer.DataSplitter import DataSplitter
 class Trainer:
     def __init__(self, root_folder, config):
         self.batch_size = config['batch_size']
-        self.dataset = config['dataset'](root_folder, config['img_size'])
-        #self.dataset = config['dataset']
-        self.model = config['model']
+        self.dataset = config['dataset']
+        self.model = config['model'](config['img_size'])
         self.data_loader = DataSplitter(self.dataset, self.batch_size, config['num_workers'])
 
         if torch.cuda.device_count() > 1:
             self.batch_size *= torch.cuda.device_count()
-            # dataset.size_multiplicator *= torch.cuda.device_count()
-
 
         self.logger = Logger(len(self.dataset), self.model, save_model_every_nth=100,
                              shared_model_path=MOST_RECENT_MODEL)
@@ -26,15 +23,15 @@ class Trainer:
         validate_every = 20
         for i in range(max_epochs):
             self.model.set_train_mode(True)
-            batches = self.data_loader.get_train_data_loader()
-            info = self.model.train(i, batches)
+            train_data_loader = self.data_loader.get_train_data_loader()
+            info = self.model.train(i, train_data_loader)
 
             if i % validate_every == 0:
                 self.model.log(self.logger, i, *info, log_images=True)
                 # do validation
                 self.model.set_train_mode(False)
-                batches = self.data_loader.get_validation_data_loader()
-                info = self.model.validate(batches)
+                val_data_loader = self.data_loader.get_validation_data_loader()
+                info = self.model.validate(val_data_loader)
                 self.model.log_validate(self.logger, i, *info)
                 self.model.set_train_mode(True)
             else:
