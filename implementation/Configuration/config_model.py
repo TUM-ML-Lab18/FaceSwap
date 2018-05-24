@@ -21,16 +21,7 @@ from Preprocessor.ImageDataset import ImageDatesetCombined, LandmarksDataset, La
 from Preprocessor.Preprocessor import Preprocessor
 
 standart_config = {'batch_size': 64,
-                   'num_epoch': 5000,
                    'img_size': (128, 128),
-                   'validation_freq': 20,
-                   'data_loader': lambda dataset, batch_size: TrainValidationLoader(dataset=dataset,
-                                                                                    batch_size=batch_size,
-                                                                                    validation_size=0.2,
-                                                                                    shuffle=True,
-                                                                                    num_workers=12,
-                                                                                    pin_memory=True,
-                                                                                    drop_last=True),
                    'model': lambda img_size: DeepFakeOriginal(
                        encoder=lambda: Encoder(input_dim=(3,) + img_size,
                                                latent_dim=1024,
@@ -44,6 +35,7 @@ standart_config = {'batch_size': 64,
                                                                      verbose=True,
                                                                      patience=100,
                                                                      cooldown=50), ),
+                   'num_workers': 12,
                    'dataset': lambda root_folder, img_size: ImageDatesetCombined(root_folder, size_multiplicator=1,
                                                                                  img_size=img_size),
                    'img2latent_bridge:': lambda extracted_face, extracted_information, img_size:
@@ -54,16 +46,7 @@ standart_config = {'batch_size': 64,
 # todo move the input dimensionality of the network to somewhere als as parameter
 # dim = 72*2
 landmarks_config = {'batch_size': 512,
-                    'num_epoch': 5000,
                     'img_size': (128, 128),
-                    'validation_freq': 20,
-                    'data_loader': lambda dataset, batch_size: TrainValidationLoader(dataset=dataset,
-                                                                                     batch_size=batch_size,
-                                                                                     validation_size=0.2,
-                                                                                     shuffle=True,
-                                                                                     num_workers=12,
-                                                                                     pin_memory=True,
-                                                                                     drop_last=True),
                     'model': lambda img_size: LatentModel(
                         decoder=lambda: LatentDecoder(72 * 2 + 8 * 8 * 3),
                         loss_function=torch.nn.L1Loss(size_average=True),
@@ -74,7 +57,8 @@ landmarks_config = {'batch_size': 512,
                                                                       cooldown=50)),
                     'dataset': lambda root_folder, img_size: LandmarksDataset(root_folder=root_folder,
                                                                               size_multiplicator=1,
-                                                                              img_size=img_size)}
+                                                                              img_size=img_size),
+                    'num_workers': 12}
 
 ####### config for using landmarks as well as a low res image as input
 # dim = 72+2+8+8+3
@@ -156,17 +140,9 @@ lm_lowres_annotations_config['model'] = lambda img_size: LowResAnnotationModel(
                                                   cooldown=50))
 
 cgan_config = {'batch_size': 64,
-               'num_epoch': 5000,
                'img_size': (32, 32),
-               'validation_freq': 20,
-               'data_loader': lambda dataset, batch_size: TrainValidationLoader(dataset=dataset,
-                                                                                batch_size=batch_size,
-                                                                                validation_size=0.2,
-                                                                                shuffle=True,
-                                                                                num_workers=2,
-                                                                                pin_memory=True,
-                                                                                drop_last=True),
                'model': lambda img_size: CGAN(batch_size=64, y_dim=10, z_dim=100),
-               'dataset': lambda root_folder, img_size: StaticLandmarks32x32Dataset()}
+               'dataset': lambda root_folder, img_size: StaticLandmarks32x32Dataset(),
+               'num_workers': 12}
 
 current_config = cgan_config

@@ -163,7 +163,7 @@ class ImageFeatureDataset(Dataset):
     * images with corresponding features
     * only images
     * only features
-    from storred NumPy array
+    from stored NumPy array
     """
     def __init__(self, path_to_image_array, path_to_feature_array):
         """
