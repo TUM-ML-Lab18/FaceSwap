@@ -199,9 +199,9 @@ class HistReducedModel(LatentModel):
         r = img[:, :, 0]
         g = img[:, :, 1]
         b = img[:, :, 2]
-        r = np.histogram(r, bins=10, range=(0, 255), density=True)[0]
-        g = np.histogram(g, bins=10, range=(0, 255), density=True)[0]
-        b = np.histogram(b, bins=10, range=(0, 255), density=True)[0]
+        r = np.histogram(r, bins=100, range=(0, 255), density=True)[0]
+        g = np.histogram(g, bins=100, range=(0, 255), density=True)[0]
+        b = np.histogram(b, bins=100, range=(0, 255), density=True)[0]
         hist_flat = np.concatenate((r, g, b))
 
         landmarks_normalized_flat = np.reshape(

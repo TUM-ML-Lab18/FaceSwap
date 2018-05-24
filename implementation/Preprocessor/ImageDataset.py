@@ -94,11 +94,11 @@ class LandmarksLowResDataset(LandmarksDataset):
 
 
 class LandmarksHistDataset(LandmarksDataset):
-    def __init__(self, root_folder: Path, size_multiplicator=10, img_size=(64, 64)):
+    def __init__(self, root_folder: Path, size_multiplicator=10, img_size=(64, 64), bins=50):
         super().__init__(root_folder=root_folder, size_multiplicator=size_multiplicator, img_size=img_size)
         self.transforms = transforms.Compose([
             transforms.Resize(img_size, interpolation=BICUBIC),
-            HistTuple()
+            HistTuple(bins=bins)
         ])
         self.dataset_a.transform = self.transforms
 

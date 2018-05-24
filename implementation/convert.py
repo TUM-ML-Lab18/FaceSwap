@@ -10,7 +10,7 @@ from configuration.run_config import current_config
 
 
 def convert_images():
-    anonymizer = Anonymizer(model_folder='model',
+    anonymizer = Anonymizer(model_folder='logs/2018-05-21 21:09:02.004979/model',
                             model=current_config['model'],
                             config=current_config)
     path = Path('/nfs/students/summer-term-2018/project_2/test/')
@@ -62,7 +62,6 @@ def convert_video():
         out.release()
 
         cv2.destroyAllWindows()
-
 
 if __name__ == '__main__':
     convert_images()
