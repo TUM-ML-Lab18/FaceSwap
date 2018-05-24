@@ -120,7 +120,7 @@ class LatentDecoder(nn.Module):
 class LatentReducedDecoder(nn.Module):
     def __init__(self, input_dim):
         super().__init__()
-        self.sequ = nn.Sequential(nn.Dropout(p=0.5),
+        self.sequ = nn.Sequential(#nn.Dropout(p=0.5),
             nn.Linear(input_dim,
                                             512),
                                   nn.Linear(512,

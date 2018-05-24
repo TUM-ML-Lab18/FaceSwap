@@ -115,13 +115,13 @@ lm_hist_config['model'] = lambda img_size: HistModel(
 ###### config for using landmarks as well as a histogram of the target as input (reduced with dropout)
 lm_hist_reduced_config = landmarks_config.copy()
 lm_hist_reduced_config['img_size'] = (64, 64)
-lm_hist_reduced_config['batch_size'] = 2048
+lm_hist_reduced_config['batch_size'] = 64
 lm_hist_reduced_config['dataset'] = lambda root_folder, img_size: LandmarksHistDataset(root_folder=root_folder,
                                                                                        size_multiplicator=1,
-                                                                                       img_size=img_size)
+                                                                                       img_size=img_size, bins=100)
 
 lm_hist_reduced_config['model'] = lambda img_size: HistReducedModel(
-    decoder=lambda: LatentReducedDecoder(72 * 2 + 10*3),
+    decoder=lambda: LatentReducedDecoder(72 * 2 + 100*3),
     loss_function=torch.nn.L1Loss(size_average=True),
     optimizer=lambda params: Adam(params=params, lr=1e-4),
     scheduler=lambda optimizer: ReduceLROnPlateau(optimizer=optimizer,
