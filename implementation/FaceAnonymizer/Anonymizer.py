@@ -38,7 +38,7 @@ class Anonymizer:
             latent_information = self.model.img2latent_bridge(extracted_face, extracted_information,
                                                               self.config['img_size'])
             # feed into network
-            face_out = self.model.anonymize(latent_information).squeeze(0)
+            face_out = self.model.anonymize_2(latent_information).squeeze(0)
             # get it back to the cpu and get the data
             face_out = ToPILImage()(face_out.cpu().detach())
             # scale to original resolution

@@ -160,4 +160,4 @@ lm_lowres_annotations_config['model'] = lambda img_size: LowResAnnotationModel(
                                                   patience=100,
                                                   cooldown=50))
 
-current_config = lm_hist_reduced_config
+current_config = standart_config

@@ -1,8 +1,12 @@
 import random
 import torch
 from PIL import Image
+from PIL.Image import BICUBIC
 from torch.nn import DataParallel
 from pathlib import Path
+
+from torchvision.transforms import ToTensor
+
 from FaceAnonymizer.models.Autoencoder import AutoEncoder
 from Preprocessor.FaceExtractor import ExtractionInformation
 
@@ -144,8 +148,8 @@ class DeepFakeOriginal:
             examples = int(len(images[0]))
             example_indices = random.sample(range(0, examples - 1), 5)
 
-            anonymized_images_trump = self.anonymize(images[2][example_indices], None)
-            anonymized_images_cage = self.anonymize_2(images[5][example_indices], None)
+            anonymized_images_trump = self.anonymize(images[2][example_indices])
+            anonymized_images_cage = self.anonymize_2(images[5][example_indices])
             A = []
             B = []
             for idx, i in enumerate(example_indices):
@@ -160,3 +164,6 @@ class DeepFakeOriginal:
 
     def log_validate(self, logger, epoch, loss1, loss2):
         logger.log_loss(epoch=epoch, loss={'lossA_val': float(loss1), 'lossB_val': float(loss2)})
+
+    def img2latent_bridge(self, extracted_face, extracted_information, img_size):
+        return ToTensor()(extracted_face.resize(img_size, resample=BICUBIC)).unsqueeze(0).cuda()
