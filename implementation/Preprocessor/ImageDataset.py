@@ -156,3 +156,39 @@ class StaticLandmarks32x32Dataset(Dataset):
 
     def __getitem__(self, i):
         return self.data_X[i], self.data_Y[i]
+
+class ImageFeatureDataset(Dataset):
+    """
+    Generic data set class to load
+    * images with corresponding features
+    * only images
+    * only features
+    from storred NumPy array
+    """
+    def __init__(self, path_to_image_array, path_to_feature_array):
+        """
+        Initialize a dataset
+        :param path_to_image_array: None if no images should be loaded
+        :param path_to_feature_array: None if no features should be loaded
+        """
+        if path_to_image_array is not None:
+            self.images = np.load(path_to_image_array)
+            self.images = torch.from_numpy(self.images).type(torch.FloatTensor)
+        else:
+            self.images = None
+        if path_to_feature_array is not None:
+            self.features = np.load(path_to_feature_array)
+            self.features = torch.from_numpy(self.features).type(torch.FloatTensor)
+        else:
+            self.features = None
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, index):
+        images, features = None, None
+        if self.images is not None:
+            images = self.images[index]
+        if self.features is not None:
+            features = self.features[index]
+        return images, features
