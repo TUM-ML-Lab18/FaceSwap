@@ -3,10 +3,10 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
-from Models.ModelUtils.ModelUtils import UpscaleBlock, Flatten, View, ConvBlockBlock
+from Models.ModelUtils.ModelUtils import UpscaleBlock, Flatten, View, ConvBlockBlock, CustomModule
 
 
-class Encoder(nn.Module):
+class Encoder(CustomModule):
     def __init__(self, input_dim, latent_dim, num_convblocks=4):
         """
         Initialize a new encoder network.
@@ -52,11 +52,3 @@ class Encoder(nn.Module):
         x = self.upscale(x)
 
         return x
-
-    # TODO: Maybe a superclass only with those common methods
-    @property
-    def is_cuda(self):
-        """
-        Check if model parameters are allocated on the GPU.
-        """
-        return next(self.parameters()).is_cuda

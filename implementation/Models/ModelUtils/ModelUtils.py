@@ -61,8 +61,15 @@ class CombinedModels:
 
     @abstractmethod
     def __str__(self):
+        """
+        TODO
+        :return:
+        """
         # TODO return models
-        pass
+        s = str()
+        for model in self.get_models():
+            s += str(model) + '\n'
+        return s
 
     def set_train_mode(self, mode):
         """
@@ -95,19 +102,6 @@ class CombinedModels:
         path = Path(path)
         for name, model in zip(self.get_model_names(), self.get_models()):
             model.load(path / (name + '.model'))
-
-    def weights_init(self):
-        """
-        TODO
-        :return:
-        """
-        #classname = m.__class__.__name__
-        #if classname.find('Conv') != -1:
-        #    m.weight.data.normal_(0.0, 0.02)
-        #elif classname.find('BatchNorm') != -1:
-        #    m.weight.data.normal_(1.0, 0.02)
-        #    m.bias.data.fill_(0)
-        pass
 
 
 class ConvBlock(nn.Module):

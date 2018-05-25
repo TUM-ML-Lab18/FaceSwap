@@ -180,16 +180,3 @@ class CGAN(CombinedModels):
         for idx, i in enumerate(example_indices):
             A.append(images[i] * 255.00)
         logger.log_images(epoch, A, "sample_output", 4)
-
-    def save_model(self, path):
-        # Create subfolder for models
-        path = Path(path)
-        path = path / 'model'
-        path.mkdir(parents=True, exist_ok=True)
-        save_model_dict(self.G.save, path / 'generator.model')
-        save_model_dict(self.D.save, path / 'discriminator.model')
-
-    def load_model(self, path):
-        path = Path(path)
-        load_model_dict(self.G.load, path / 'generator.model')
-        load_model_dict(self.D, path / 'discriminator.model')
