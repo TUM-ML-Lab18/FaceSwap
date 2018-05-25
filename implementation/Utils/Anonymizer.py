@@ -20,7 +20,7 @@ class Anonymizer:
         self.model.load_model(self.model_folder)
 
         # use extractor and transform later get correct input for network
-        self.extractor = FaceExtractor(mask_type=np.float, margin=0.05, mask_factor=10)
+        self.extractor = FaceExtractor(sharp_edge=False, margin=0.05, mask_factor=10)
         self.reconstructor = FaceReconstructor(mask_factor=-20)
 
     def __call__(self, image):
