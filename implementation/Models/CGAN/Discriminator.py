@@ -1,7 +1,7 @@
 import torch
 from torch import nn as nn
 
-from Models.ModelUtils.ModelUtils import weights_init, CustomModule
+from Models.ModelUtils.ModelUtils import CustomModule
 
 
 class Discriminator(CustomModule):
@@ -47,7 +47,7 @@ class Discriminator(CustomModule):
             nn.Sigmoid()
         )
 
-        self.apply(weights_init)
+        self.apply(self.weights_init)
 
     def forward(self, x, y):
         """

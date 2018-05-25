@@ -33,7 +33,7 @@ landmarks_config = {'batch_size': 512,
                     'img_size': (128, 128),
                     'model': lambda img_size: LatentModel(
                         decoder=lambda: LatentDecoder(72 * 2 + 8 * 8 * 3)),
-                    'dataset': ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS]),
+                    'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS]),
                     'num_workers': 12}
 
 ####### config for using landmarks as well as a low res image as input

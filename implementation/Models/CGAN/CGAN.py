@@ -1,5 +1,4 @@
 import random
-from pathlib import Path
 
 import torch
 import torch.nn as nn
@@ -8,21 +7,21 @@ import numpy as np
 
 from Models.CGAN.Discriminator import Discriminator
 from Models.CGAN.Generator import Generator
-from Models.ModelUtils.ModelUtils import load_model_dict, save_model_dict, CombinedModels
+from Models.ModelUtils.ModelUtils import CombinedModels
 
 
 class CGAN(CombinedModels):
     def get_models(self):
-        pass
+        return [self.G, self.D]
 
     def get_model_names(self):
-        pass
-
-    def log_validation(self, *info):
-        pass
+        return ['generator', 'discriminator']
 
     def __str__(self):
-        pass
+        string = super().__str__()
+        string += "\n" + self.G_optimizer
+        string += "\n" + self.D_optimizer
+        string += "\n" + self.D_optimizer
 
     def __init__(self, batch_size=64, y_dim=10, z_dim=100):
 
@@ -47,8 +46,8 @@ class CGAN(CombinedModels):
 
         # gaussian distribution of our landmarks
         # todo fix this shit
-        #self.y_mean = StaticLandmarks32x32Dataset.y_mean.copy()
-        #self.y_cov = StaticLandmarks32x32Dataset.y_cov.copy()
+        # self.y_mean = StaticLandmarks32x32Dataset.y_mean.copy()
+        # self.y_cov = StaticLandmarks32x32Dataset.y_cov.copy()
 
         # Label vectors for loss function
         self.y_real, self.y_fake = (torch.ones(self.batch_size, 1), torch.zeros(self.batch_size, 1))
@@ -74,11 +73,10 @@ class CGAN(CombinedModels):
         G_loss_mean, D_loss_mean = 0, 0
         iterations = 0
         for x, y in batches:
-            print('Training')
             z = torch.randn((self.batch_size, self.z_dim, 1, 1))
-            #y_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
+            # y_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
             #                                      size=(self.batch_size))
-            #y_gen = torch.from_numpy(y_gen[:, :, None, None]).type(torch.FloatTensor)
+            # y_gen = torch.from_numpy(y_gen[:, :, None, None]).type(torch.FloatTensor)
             if self.cuda:
                 x, y, z = x.cuda(), y.cuda(), z.cuda()
 
@@ -128,11 +126,11 @@ class CGAN(CombinedModels):
         iterations = 0
         for x, y in batches:
             z = torch.randn((self.batch_size, self.z_dim, 1, 1))
-            y_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
-                                                  size=(self.batch_size))
-            y_gen = torch.from_numpy(y_gen[:, :, None, None]).type(torch.FloatTensor)
+            # y_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
+            #                                      size=(self.batch_size))
+            # y_gen = torch.from_numpy(y_gen[:, :, None, None]).type(torch.FloatTensor)
             if self.cuda:
-                x, y, y_gen, z = x.cuda(), y.cuda(), y_gen.cuda(), z.cuda()
+                x, y, z = x.cuda(), y.cuda(), z.cuda()
 
             # ========== Training discriminator
             # Train on real example from dataset
@@ -160,7 +158,7 @@ class CGAN(CombinedModels):
 
         return G_loss_mean.cpu().data.numpy(), D_loss_mean.cpu().data.numpy(), x_fake
 
-    def log(self, logger, epoch, lossG, lossD, log_images=None): # last parameter is not needed anymore
+    def log(self, logger, epoch, lossG, lossD, log_images=None):  # last parameter is not needed anymore
         """
         use logger to log current loss etc...
         :param logger: logger used to log
@@ -170,26 +168,13 @@ class CGAN(CombinedModels):
         logger.log_fps(epoch=epoch)
         logger.save_model(epoch)
 
-    def log_validate(self, logger, epoch, lossG, lossD, images):
+    def log_validation(self, logger, epoch, lossG, lossD, images):
         logger.log_loss(epoch=epoch, loss={'lossG_val': float(lossG), 'lossD_val': float(lossD)})
 
         images = images.cpu()
         examples = int(len(images))
-        example_indices = random.sample(range(0, examples - 1), 4*4)
+        example_indices = random.sample(range(0, examples - 1), 4 * 4)
         A = []
         for idx, i in enumerate(example_indices):
             A.append(images[i] * 255.00)
         logger.log_images(epoch, A, "sample_output", 4)
-
-    def save_model(self, path):
-        # Create subfolder for models
-        path = Path(path)
-        path = path / 'model'
-        path.mkdir(parents=True, exist_ok=True)
-        save_model_dict(self.G.save, path / 'generator.model')
-        save_model_dict(self.D.save, path / 'discriminator.model')
-
-    def load_model(self, path):
-        path = Path(path)
-        load_model_dict(self.G.load, path / 'generator.model')
-        load_model_dict(self.D, path / 'discriminator.model')

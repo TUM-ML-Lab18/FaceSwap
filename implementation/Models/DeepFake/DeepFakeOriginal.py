@@ -7,7 +7,6 @@ from torch.nn import DataParallel
 from pathlib import Path
 
 from torchvision.transforms import ToTensor
-from Models.ModelUtils.ModelUtils import save_model_dict, load_model_dict
 from Models.DeepFake.Autoencoder import AutoEncoder
 
 
@@ -108,23 +107,6 @@ class DeepFakeOriginal:
 
     def anonymize_2(self, x):
         return self.autoencoder1(x)
-
-    # TODO: Use save & load functions from models -> memory independent (RAM vs GPU)
-    def save_model(self, path):
-        # Create subfolder for models
-        path = Path(path)
-        subfolder = "model"  # "#datetime.now().strftime('model__%Y%m%d_%H%M%S')
-        path = path / subfolder
-        path.mkdir(parents=True, exist_ok=True)
-        save_model_dict(self.encoder.save, path / 'encoder.model')
-        save_model_dict(self.decoder1.save, path / 'decoder1.model')
-        save_model_dict(self.decoder2.save, path / 'decoder2.model')
-
-    def load_model(self, path):
-        path = Path(path)
-        load_model_dict(self.encoder.load, path / 'encoder.model')
-        load_model_dict(self.decoder1.load, path / 'decoder1.model')
-        load_model_dict(self.decoder2.load, path / 'decoder2.model')
 
     def log(self, logger, epoch, loss1, loss2, images, log_images=False):
         """

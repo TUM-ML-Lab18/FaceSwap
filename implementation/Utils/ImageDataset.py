@@ -66,12 +66,15 @@ class ImageFeatureDataset(Dataset):
         else:
             self.images = None
         if paths_to_feature_arrays is not None:
+            # convert to list if a single item
+            if type(paths_to_feature_arrays) is not list:
+                paths_to_feature_arrays = [paths_to_feature_arrays]
             features = []
             for path in paths_to_feature_arrays:
                 feature = np.load(path)
                 features.append(feature)
             self.features = np.hstack(features)
-            self.features = torch.from_numpy(self.features).type('Float')
+            self.features = torch.from_numpy(self.features).type(torch.FloatTensor)
         else:
             self.features = None
         print('Data loaded.')

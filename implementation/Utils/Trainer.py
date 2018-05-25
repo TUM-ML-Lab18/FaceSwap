@@ -7,7 +7,7 @@ from Utils.DataSplitter import DataSplitter
 class Trainer:
     def __init__(self, root_folder, config):
         self.batch_size = config['batch_size']
-        self.dataset = config['dataset']
+        self.dataset = config['dataset']()
         self.model = config['model'](config['img_size'])
         self.data_loader = DataSplitter(self.dataset, self.batch_size, config['num_workers'])
 
@@ -32,7 +32,7 @@ class Trainer:
                 self.model.set_train_mode(False)
                 val_data_loader = self.data_loader.get_validation_data_loader()
                 info = self.model.validate(val_data_loader)
-                self.model.log_validate(self.logger, i, *info)
+                self.model.log_validation(self.logger, i, *info)
                 self.model.set_train_mode(True)
             else:
                 self.model.log(self.logger, i, *info)

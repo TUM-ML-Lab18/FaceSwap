@@ -4,7 +4,12 @@ from pathlib import Path
 import torch.nn as nn
 import torch
 
+
 class CustomModule(nn.Module):
+    @abstractmethod
+    def forward(self, *input):
+        pass
+
     @property
     def is_cuda(self):
         """
@@ -33,6 +38,21 @@ class CustomModule(nn.Module):
         """
         print('Loading model... %s' % path)
         self.load_state_dict(torch.load(path, map_location=lambda storage, loc: storage))
+
+    @staticmethod
+    def weights_init(m):
+        """
+        TODO
+        :return:
+        """
+        classname = m.__class__.__name__
+        if classname.find('Conv') != -1:
+            m.weight.data.normal_(0.0, 0.02)
+        elif classname.find('BatchNorm') != -1:
+            m.weight.data.normal_(1.0, 0.02)
+            m.bias.data.fill_(0)
+        pass
+
 
 class CombinedModels:
     @abstractmethod
@@ -84,7 +104,7 @@ class CombinedModels:
         path = path / 'model'
         path.mkdir(parents=True, exist_ok=True)
         for name, model in zip(self.get_model_names(), self.get_models()):
-            model.save(path  / (name + '.model'))
+            model.save(path / (name + '.model'))
 
     def load_model(self, path):
         """
@@ -95,19 +115,6 @@ class CombinedModels:
         path = Path(path)
         for name, model in zip(self.get_model_names(), self.get_models()):
             model.load(path / (name + '.model'))
-
-    def weights_init(self):
-        """
-        TODO
-        :return:
-        """
-        #classname = m.__class__.__name__
-        #if classname.find('Conv') != -1:
-        #    m.weight.data.normal_(0.0, 0.02)
-        #elif classname.find('BatchNorm') != -1:
-        #    m.weight.data.normal_(1.0, 0.02)
-        #    m.bias.data.fill_(0)
-        pass
 
 
 class ConvBlock(nn.Module):
