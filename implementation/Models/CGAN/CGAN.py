@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 
+from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_MEAN, ARRAY_CELEBA_LANDMARKS_COV
 from Models.CGAN.Discriminator import Discriminator
 from Models.CGAN.Generator import Generator
 from Models.ModelUtils.ModelUtils import CombinedModels
@@ -19,74 +20,72 @@ class CGAN(CombinedModels):
 
     def __str__(self):
         string = super().__str__()
-        string += self.G_optimizer + '\n'
-        string += self.D_optimizer + '\n'
-        string += self.BCE_loss + '\n'
+        string += str(self.G_optimizer) + '\n'
+        string += str(self.D_optimizer) + '\n'
+        string += str(self.BCE_loss) + '\n'
         return string
 
-    def __init__(self, batch_size=64, y_dim=10, z_dim=100):
-
-        self.z_dim = z_dim  # 5 landmarks (x,y)
-        self.y_dim = y_dim  # random vector
-        self.batch_size = batch_size
-        if torch.cuda.device_count() > 1:
-            self.batch_size *= torch.cuda.device_count()
-        seed = 547
-        np.random.seed(seed)
-        self.cuda = False
+    def __init__(self, **kwargs):
+        self.z_dim = kwargs.get('z_dim', 100)
+        self.y_dim = kwargs.get('y_dim', 10)
+        path_to_y_mean = kwargs.get('y_mean', ARRAY_CELEBA_LANDMARKS_MEAN)
+        path_to_y_cov = kwargs.get('y_cov', ARRAY_CELEBA_LANDMARKS_COV)
+        lrG = kwargs.get('lrG', 0.0002)
+        lrD = kwargs.get('lrD', 0.0002)
 
         self.G = Generator((self.z_dim, self.y_dim))
         self.D = Discriminator(self.y_dim)
 
         beta1, beta2 = 0.5, 0.999
-        lrG, lrD = 0.0002, 0.0001
         self.G_optimizer = optim.Adam(self.G.parameters(), lr=lrG, betas=(beta1, beta2))
         self.D_optimizer = optim.Adam(self.D.parameters(), lr=lrD, betas=(beta1, beta2))
 
         self.BCE_loss = nn.BCELoss()
 
         # gaussian distribution of our landmarks
-        # todo fix this shit
-        # self.y_mean = StaticLandmarks32x32Dataset.y_mean.copy()
-        # self.y_cov = StaticLandmarks32x32Dataset.y_cov.copy()
-
-        # Label vectors for loss function
-        self.y_real, self.y_fake = (torch.ones(self.batch_size, 1), torch.zeros(self.batch_size, 1))
+        self.y_mean = np.load(path_to_y_mean)
+        self.y_cov = np.load(path_to_y_cov)
 
         if torch.cuda.is_available():
             self.cuda = True
             self.G.cuda()
             self.D.cuda()
             self.BCE_loss.cuda()
-            self.y_real, self.y_fake = self.y_real.cuda(), self.y_fake.cuda()
 
-    def train(self, current_epoch, batches):
+    def train(self, train_data_loader, batch_size, **kwargs):
+
         G_loss_mean, D_loss_mean = 0, 0
         iterations = 0
-        for x, y in batches:
-            z = torch.randn((self.batch_size, self.z_dim, 1, 1))
-            # y_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
-            #                                      size=(self.batch_size))
-            # y_gen = torch.from_numpy(y_gen[:, :, None, None]).type(torch.FloatTensor)
+        # Label vectors for loss function
+        y_real, y_fake = (torch.ones(batch_size, 1), torch.zeros(batch_size, 1))
+        if torch.cuda.is_available():
+            y_real, y_fake = y_real.cuda(), y_fake.cuda()
+
+        for x, y in train_data_loader:
+            z = torch.randn((batch_size, self.z_dim, 1, 1))
+            y_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
+                                                  size=(batch_size))[:, :, None, None]
+            y_gen = torch.from_numpy(y_gen).type(torch.float32)
             if self.cuda:
-                x, y, z = x.cuda(), y.cuda(), z.cuda()
+                x, y, y_gen, z = x.cuda(), y.cuda(), y_gen.cuda(), z.cuda()
 
             # ========== Training discriminator
             self.D_optimizer.zero_grad()
 
-            # Train on real example from dataset
+            # Train on real example with real features
             D_real = self.D(x, y)
-            D_real_loss = self.BCE_loss(D_real, self.y_real)
+            D_real_loss = self.BCE_loss(D_real, y_real)
+
+            # Train on real example with fake features
+            D_fake_feature = self.D(x, y_gen)
+            D_fake_feature_loss = self.BCE_loss(D_fake_feature, y_fake)
 
             # Train on fake example from generator
-            # TODO: UserWarning: Using a target size (torch.Size([64, 1])) that is different
-            # to the input size (torch.Size([64, 1, 1, 1])) is deprecated. Please ensure they have the same size.
-            #   "Please ensure they have the same size.".format(target.size(), input.size()))
-            x_fake = self.G(z, y)  # y_gen)
-            D_fake = self.D(x_fake, y)  # y_gen)
-            D_fake_loss = self.BCE_loss(D_fake, self.y_fake)
+            x_fake = self.G(z, y_gen)
+            D_fake = self.D(x_fake, y_gen)
+            D_fake_loss = self.BCE_loss(D_fake, y_fake)
 
-            D_loss = D_real_loss + D_fake_loss
+            D_loss = D_real_loss + D_fake_loss + D_fake_feature_loss
 
             D_loss.backward()
             self.D_optimizer.step()
@@ -94,10 +93,10 @@ class CGAN(CombinedModels):
             # ========== Training generator
             self.G_optimizer.zero_grad()
 
-            # TODO: Check if reusable from generator training
-            x_fake = self.G(z, y)  # y_gen)
-            D_fake = self.D(x_fake, y)  # y_gen)
-            G_loss = self.BCE_loss(D_fake, self.y_real)
+            # TODO: Try 'retrain_variables=True' in D_loss.backward()
+            x_fake = self.G(z, y_gen)
+            D_fake = self.D(x_fake, y_gen)
+            G_loss = self.BCE_loss(D_fake, y_real)
 
             G_loss.backward()
             self.G_optimizer.step()
@@ -112,32 +111,38 @@ class CGAN(CombinedModels):
 
         return G_loss_mean.cpu().data.numpy(), D_loss_mean.cpu().data.numpy()
 
-    def validate(self, batches):
+    def validate(self, validation_data_loader, batch_size, **kwargs):
         G_loss_mean, D_loss_mean = 0, 0
         iterations = 0
-        for x, y in batches:
-            z = torch.randn((self.batch_size, self.z_dim, 1, 1))
-            # y_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
-            #                                      size=(self.batch_size))
-            # y_gen = torch.from_numpy(y_gen[:, :, None, None]).type(torch.FloatTensor)
+
+        # Label vectors for loss function
+        y_real, y_fake = (torch.ones(batch_size, 1), torch.zeros(batch_size, 1))
+        if torch.cuda.is_available():
+            y_real, y_fake = y_real.cuda(), y_fake.cuda()
+
+        for x, y in validation_data_loader:
+            z = torch.randn((batch_size, self.z_dim, 1, 1))
+            y_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
+                                                  size=(batch_size))
+            y_gen = torch.from_numpy(y_gen[:, :, None, None]).type(torch.float)
             if self.cuda:
-                x, y, z = x.cuda(), y.cuda(), z.cuda()
+                x, y, y_gen, z = x.cuda(), y.cuda(), y_gen.cuda(), z.cuda()
 
             # ========== Training discriminator
             # Train on real example from dataset
             D_real = self.D(x, y)
-            D_real_loss = self.BCE_loss(D_real, self.y_real)
+            D_real_loss = self.BCE_loss(D_real, y_real)
 
-            x_fake = self.G(z, y)  # y_gen)
-            D_fake = self.D(x_fake, y)  # y_gen)
-            D_fake_loss = self.BCE_loss(D_fake, self.y_fake)
+            x_fake = self.G(z, y_gen)
+            D_fake = self.D(x_fake, y_gen)
+            D_fake_loss = self.BCE_loss(D_fake, y_fake)
 
             D_loss = D_real_loss + D_fake_loss
 
             # ========== Training generator
-            x_fake = self.G(z, y)  # y_gen)
-            D_fake = self.D(x_fake, y)  # y_gen)
-            G_loss = self.BCE_loss(D_fake, self.y_real)
+            x_fake = self.G(z, y_gen)
+            D_fake = self.D(x_fake, y_gen)
+            G_loss = self.BCE_loss(D_fake, y_real)
 
             # losses
             G_loss_mean += G_loss

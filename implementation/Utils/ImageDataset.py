@@ -52,6 +52,7 @@ class ImageFeatureDataset(Dataset):
     * only features
     from stored NumPy array
     """
+
     def __init__(self, path_to_image_array, paths_to_feature_arrays):
         """
         Initialize a dataset
@@ -62,7 +63,7 @@ class ImageFeatureDataset(Dataset):
         print('Loading data... This may take some time')
         if path_to_image_array is not None:
             self.images = np.load(path_to_image_array)
-            self.images = torch.from_numpy(self.images).type(torch.FloatTensor)
+            self.images = torch.from_numpy(self.images).type(torch.float32)
         else:
             self.images = None
         if paths_to_feature_arrays is not None:
@@ -74,7 +75,7 @@ class ImageFeatureDataset(Dataset):
                 feature = np.load(path)
                 features.append(feature)
             self.features = np.hstack(features)
-            self.features = torch.from_numpy(self.features).type(torch.FloatTensor)
+            self.features = torch.from_numpy(self.features).type(torch.float32)
         else:
             self.features = None
         print('Data loaded.')

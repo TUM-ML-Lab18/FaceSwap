@@ -27,9 +27,6 @@ class LatentModel(CombinedModels):
         self.optimizer = Adam(params=self.decoder.parameters(), lr=1e-4)
         self.scheduler = ReduceLROnPlateau(self.optimizer, patience=100, cooldown=50)
 
-    def set_train_mode(self, mode):
-        self.decoder.train(mode)
-
     def train(self, current_epoch, batches):
         loss_mean = 0
         face = None
@@ -80,25 +77,6 @@ class LatentModel(CombinedModels):
 
     def anonymize_2(self, x):
         return self.anonymize(x)
-
-    # TODO: Use save & load functions from models -> memory independent (RAM vs GPU)
-    def save_model(self, path):
-        # Create subfolder for models
-        path = Path(path)
-        subfolder = "model"  # "#datetime.now().strftime('model__%Y%m%d_%H%M%S')
-        path = path / subfolder
-        path.mkdir(parents=True, exist_ok=True)
-        if torch.cuda.device_count() > 1:
-            self.decoder.module.save(path / 'decoder.model')
-        else:
-            self.decoder.save(path / 'decoder.model')
-
-    def load_model(self, path):
-        path = Path(path)
-        if torch.cuda.device_count() > 1:
-            self.decoder.module.load(path / 'decoder.model')
-        else:
-            self.decoder.load(path / 'decoder.model')
 
     def log(self, logger, epoch, loss1, images, log_images=False):
         """

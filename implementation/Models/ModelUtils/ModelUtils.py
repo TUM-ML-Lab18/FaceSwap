@@ -64,11 +64,11 @@ class CombinedModels:
         pass
 
     @abstractmethod
-    def train(self, train_data_loader, *params):
+    def train(self, train_data_loader, batch_size, **kwargs):
         pass
 
     @abstractmethod
-    def validate(self, validation_data_loader):
+    def validate(self, validation_data_loader, batch_size, **kwargs):
         pass
 
     @abstractmethod

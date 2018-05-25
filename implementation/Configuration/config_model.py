@@ -19,7 +19,6 @@ standard_config = {'batch_size': 64,
                        decoder=lambda: Decoder(input_dim=512,
                                                num_convblocks=4),
                        auto_encoder=AutoEncoder),
-                   'num_workers': 12,
                    'dataset': lambda root_folder, img_size: ImageDatesetCombined(root_folder, size_multiplicator=1,
                                                                                  img_size=img_size),
                    'img2latent_bridge:': lambda extracted_face, extracted_information, img_size:
@@ -33,8 +32,7 @@ landmarks_config = {'batch_size': 512,
                     'img_size': (128, 128),
                     'model': lambda img_size: LatentModel(
                         decoder=lambda: LatentDecoder(72 * 2 + 8 * 8 * 3)),
-                    'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS]),
-                    'num_workers': 12}
+                    'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS])}
 
 ####### config for using landmarks as well as a low res image as input
 # dim = 72+2+8+8+3
@@ -70,7 +68,13 @@ lm_lowres_annotations_config['model'] = lambda img_size: LowResAnnotationModel(d
 
 
 cgan_config = {'batch_size': 64,
-               'model': lambda img_size: CGAN(batch_size=64, y_dim=10, z_dim=100),
-               'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_5)}
+               'model': CGAN,
+               'model_params': {'y_dim': 144,
+                                'z_dim': 100,
+                                'lrG': 0.0002,
+                                'lrD': 0.0001,
+                                'y_mean': ARRAY_CELEBA_LANDMARKS_MEAN,
+                                'y_cov': ARRAY_CELEBA_LANDMARKS_COV,},
+               'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS)}
 
 current_config = cgan_config
