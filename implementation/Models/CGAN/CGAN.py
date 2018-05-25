@@ -61,41 +61,37 @@ class CGAN(CombinedModels):
         if torch.cuda.is_available():
             y_real, y_fake = y_real.cuda(), y_fake.cuda()
 
-        for x, y in train_data_loader:
+        for face, landmarks in train_data_loader:
             z = torch.randn((batch_size, self.z_dim, 1, 1))
-            y_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
+            landmarks_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
                                                   size=(batch_size))[:, :, None, None]
-            y_gen = torch.from_numpy(y_gen).type(torch.float32)
+            landmarks_gen = torch.from_numpy(landmarks_gen).type(torch.float32)
             if self.cuda:
-                x, y, y_gen, z = x.cuda(), y.cuda(), y_gen.cuda(), z.cuda()
+                face, landmarks, landmarks_gen, z = face.cuda(), landmarks.cuda(), landmarks_gen.cuda(), z.cuda()
 
             # ========== Training discriminator
             self.D_optimizer.zero_grad()
 
             # Train on real example with real features
-            D_real = self.D(x, y)
-            D_real_loss = self.BCE_loss(D_real, y_real)
+            D_real = self.D(face, landmarks)
+            D_real_loss = self.BCE_loss(D_real, y_real)  # real correspsonds to log(D_real)
 
             # Train on real example with fake features
-            D_fake_feature = self.D(x, y_gen)
+            D_fake_feature = self.D(face, landmarks_gen)
             D_fake_feature_loss = self.BCE_loss(D_fake_feature, y_fake)
 
             # Train on fake example from generator
-            x_fake = self.G(z, y_gen)
-            D_fake = self.D(x_fake, y_gen)
-            D_fake_loss = self.BCE_loss(D_fake, y_fake)
+            x_fake = self.G(z, landmarks)  # landmarks_gen)
+            D_fake = self.D(x_fake, landmarks)  # landmarks_gen)
+            D_fake_loss = self.BCE_loss(D_fake, y_fake)  # face corresponds to log(1-D_fake)
 
-            D_loss = D_real_loss + D_fake_loss + D_fake_feature_loss
+            D_loss = D_real_loss + (D_fake_loss + D_fake_feature_loss) / 2
 
             D_loss.backward()
             self.D_optimizer.step()
 
             # ========== Training generator
             self.G_optimizer.zero_grad()
-
-            # TODO: Try 'retrain_variables=True' in D_loss.backward()
-            x_fake = self.G(z, y_gen)
-            D_fake = self.D(x_fake, y_gen)
             G_loss = self.BCE_loss(D_fake, y_real)
 
             G_loss.backward()

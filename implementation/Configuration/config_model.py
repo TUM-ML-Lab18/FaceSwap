@@ -70,11 +70,11 @@ lm_lowres_annotations_config['model'] = lambda img_size: LowResAnnotationModel(d
 cgan_config = {'batch_size': 64,
                'model': CGAN,
                'model_params': {'y_dim': 144,
-                                'z_dim': 100,
+                                'z_dim': 62,
                                 'lrG': 0.0002,
                                 'lrD': 0.0001,
                                 'y_mean': ARRAY_CELEBA_LANDMARKS_MEAN,
-                                'y_cov': ARRAY_CELEBA_LANDMARKS_COV,},
+                                'y_cov': ARRAY_CELEBA_LANDMARKS_COV},
                'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS)}
 
 current_config = cgan_config
