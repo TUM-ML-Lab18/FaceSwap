@@ -1,5 +1,114 @@
+from abc import abstractmethod
+from pathlib import Path
+
 import torch.nn as nn
 import torch
+
+class CustomModule(nn.Module):
+    @property
+    def is_cuda(self):
+        """
+        Check if model parameters are allocated on the GPU.
+        """
+        return next(self.parameters()).is_cuda
+
+    def save(self, path):
+        """
+        Save model with its parameters to the given path. Conventionally the
+        path should end with "*.model".
+
+        Inputs:
+        - path: path string
+        """
+        print('Saving model... %s' % path)
+        torch.save(self.state_dict(), path)
+
+    def load(self, path):
+        """
+        Load model with its parameters from the given path. Conventionally the
+        path should end with "*.model".
+
+        Inputs:
+        - path: path string
+        """
+        print('Loading model... %s' % path)
+        self.load_state_dict(torch.load(path, map_location=lambda storage, loc: storage))
+
+class CombinedModels:
+    @abstractmethod
+    def get_models(self):
+        pass
+
+    @abstractmethod
+    def get_model_names(self):
+        pass
+
+    @abstractmethod
+    def train(self, current_epoch, train_data_loader):
+        pass
+
+    @abstractmethod
+    def validate(self, validation_data_loader):
+        pass
+
+    @abstractmethod
+    def log(self, *info):
+        pass
+
+    @abstractmethod
+    def log_validation(self, *info):
+        pass
+
+    @abstractmethod
+    def __str__(self):
+        # TODO return models
+        pass
+
+    def set_train_mode(self, mode):
+        """
+        TODO
+        :param mode:
+        :return:
+        """
+        for model in self.get_models():
+            model.train(mode)
+        torch.set_grad_enabled(mode)
+
+    def save_model(self, path):
+        """
+        TODO
+        :param path:
+        :return:
+        """
+        path = Path(path)
+        path = path / 'model'
+        path.mkdir(parents=True, exist_ok=True)
+        for name, model in zip(self.get_model_names(), self.get_models()):
+            model.save(path  / (name + '.model'))
+
+    def load_model(self, path):
+        """
+        TODO
+        :param path:
+        :return:
+        """
+        path = Path(path)
+        for name, model in zip(self.get_model_names(), self.get_models()):
+            model.load(path / (name + '.model'))
+
+    def weights_init(self):
+        """
+        TODO
+        :return:
+        """
+        #classname = m.__class__.__name__
+        #if classname.find('Conv') != -1:
+        #    m.weight.data.normal_(0.0, 0.02)
+        #elif classname.find('BatchNorm') != -1:
+        #    m.weight.data.normal_(1.0, 0.02)
+        #    m.bias.data.fill_(0)
+        pass
+
 
 class ConvBlock(nn.Module):
     """Convolution followed by a LeakyReLU"""
@@ -121,34 +230,3 @@ class UpscaleBlockBlock(nn.Sequential):
             block_list.append(
                 UpscaleBlock(num_channels_first_layer // (2 ** (i - 1)), num_channels_first_layer // (2 ** i)))
         super().__init__(*block_list)
-
-
-def weights_init(m):
-    classname = m.__class__.__name__
-    if classname.find('Conv') != -1:
-        m.weight.data.normal_(0.0, 0.02)
-    elif classname.find('BatchNorm') != -1:
-        m.weight.data.normal_(1.0, 0.02)
-        m.bias.data.fill_(0)
-
-
-def save_model_dict(model, path):
-    """
-    Save model with its parameters to the given path. Conventionally the
-    path should end with "*.model".
-    :param model: PyTorch model to save
-    :param path: Path where to save the model
-    """
-    print('Saving model... {}'.format(path))
-    torch.save(model.state_dict(), path)
-
-
-def load_model_dict(model, path):
-    """
-    Load model with its parameters from the given path. Conventionally the
-    path should end with "*.model".
-    :param model: PyTorch model to load
-    :param path: Path from where to load the model
-    """
-    print('Loading model... {}'.format(path))
-    model.load_state_dict(torch.load(path, map_location=lambda storage, loc: storage))

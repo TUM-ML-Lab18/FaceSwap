@@ -71,7 +71,7 @@ class ImageFeatureDataset(Dataset):
                 feature = np.load(path)
                 features.append(feature)
             self.features = np.hstack(features)
-            self.features = torch.from_numpy(self.features).type(torch.FloatTensor)
+            self.features = torch.from_numpy(self.features).type('Float')
         else:
             self.features = None
         print('Data loaded.')

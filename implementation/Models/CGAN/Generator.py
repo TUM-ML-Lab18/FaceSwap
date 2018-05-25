@@ -1,10 +1,10 @@
 import torch
 from torch import nn as nn
 
-from Models.ModelUtils.ModelUtils import weights_init
+from Models.ModelUtils.ModelUtils import weights_init, CustomModule
 
 
-class Generator(nn.Module):
+class Generator(CustomModule):
     def __init__(self, input_dim=(100, 10), output_dim=(64, 64, 3), ngf=32):
         """
         Initializer for a Generator object

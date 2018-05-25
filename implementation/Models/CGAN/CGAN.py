@@ -8,10 +8,22 @@ import numpy as np
 
 from Models.CGAN.Discriminator import Discriminator
 from Models.CGAN.Generator import Generator
-from Models.ModelUtils.ModelUtils import load_model_dict, save_model_dict
+from Models.ModelUtils.ModelUtils import load_model_dict, save_model_dict, CombinedModels
 
 
-class CGAN(object):
+class CGAN(CombinedModels):
+    def get_models(self):
+        pass
+
+    def get_model_names(self):
+        pass
+
+    def log_validation(self, *info):
+        pass
+
+    def __str__(self):
+        pass
+
     def __init__(self, batch_size=64, y_dim=10, z_dim=100):
 
         self.z_dim = z_dim  # 5 landmarks (x,y)

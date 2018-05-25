@@ -1,10 +1,10 @@
 import torch
 from torch import nn as nn
 
-from Models.ModelUtils.ModelUtils import weights_init
+from Models.ModelUtils.ModelUtils import weights_init, CustomModule
 
 
-class Discriminator(nn.Module):
+class Discriminator(CustomModule):
     def __init__(self, y_dim=10, input_dim=(64, 64, 3), ndf=32):
         """
         Initializer for a Discriminator object
