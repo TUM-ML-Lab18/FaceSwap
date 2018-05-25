@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from FaceAnonymizer.Anonymizer import Anonymizer
+from Utils.Anonymizer import Anonymizer
 from PIL import Image
 from pathlib import Path
 

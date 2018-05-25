@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
-from FaceAnonymizer.models.ModelUtils import ConvBlock, UpscaleBlock, Flatten, View, ConvBlockBlock
+from Models.ModelUtils.ModelUtils import UpscaleBlock, Flatten, View, ConvBlockBlock
 
 
 class Encoder(nn.Module):

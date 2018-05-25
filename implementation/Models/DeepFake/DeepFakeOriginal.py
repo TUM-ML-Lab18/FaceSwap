@@ -7,8 +7,8 @@ from torch.nn import DataParallel
 from pathlib import Path
 
 from torchvision.transforms import ToTensor
-from FaceAnonymizer.models.ModelUtils import save_model_dict, load_model_dict
-from FaceAnonymizer.models.Autoencoder import AutoEncoder
+from Models.ModelUtils.ModelUtils import save_model_dict, load_model_dict
+from Models.DeepFake.Autoencoder import AutoEncoder
 
 
 class DeepFakeOriginal:

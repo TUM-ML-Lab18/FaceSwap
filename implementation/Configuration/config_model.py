@@ -1,12 +1,13 @@
 from torchvision.transforms import ToTensor
-from FaceAnonymizer.models.CGAN import CGAN
-from FaceAnonymizer.models.Decoder import Decoder, LatentDecoder, LatentReducedDecoder
-from FaceAnonymizer.models.DeepFakeOriginal import DeepFakeOriginal
-from FaceAnonymizer.models.Encoder import Encoder
-from FaceAnonymizer.models.Autoencoder import AutoEncoder
-from FaceAnonymizer.models.LatentModel import LatentModel, LowResAnnotationModel, HistAnnotationModel, HistModel, \
+from Models.CGAN.CGAN import CGAN
+from Models.DeepFake.Decoder import Decoder
+from Models.LatentModel.Decoder import LatentDecoder, LatentReducedDecoder
+from Models.DeepFake.DeepFakeOriginal import DeepFakeOriginal
+from Models.DeepFake.Encoder import Encoder
+from Models.DeepFake.Autoencoder import AutoEncoder
+from Models.LatentModel.LatentModel import LatentModel, LowResAnnotationModel, HistAnnotationModel, HistModel, \
     LowResModel, HistReducedModel
-from Preprocessor.ImageDataset import *
+from Utils.ImageDataset import *
 from Configuration.config_general import *
 
 standard_config = {'batch_size': 64,
@@ -74,4 +75,4 @@ cgan_config = {'batch_size': 64,
                'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_5),
                'num_workers': 12}
 
-current_config = landmarks_config
+current_config = cgan_config

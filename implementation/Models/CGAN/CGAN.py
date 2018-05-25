@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 
-from FaceAnonymizer.models.ModelUtils import weights_init, load_model_dict, save_model_dict
+from Models.ModelUtils.ModelUtils import weights_init, load_model_dict, save_model_dict
 
 class Generator(nn.Module):
     def __init__(self, input_dim=(100, 10), output_dim=(64, 64, 3), ngf=32):

@@ -1,4 +1,4 @@
-from FaceAnonymizer.Trainer import Trainer
+from Utils.Trainer import Trainer
 from Configuration.config_model import current_config
 
 if __name__ == '__main__':

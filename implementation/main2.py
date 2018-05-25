@@ -1,8 +1,7 @@
-from pathlib import Path
 import torch
 import torchvision.transforms as transforms
-from FaceAnonymizer.StyleTransferTrainer import StyleTransferTrainer
-from FaceAnonymizer.models.Encoder import Encoder
+from StyleTransferTrainer import StyleTransferTrainer
+from Models.DeepFake.Encoder import Encoder
 from PIL import Image
 
 if __name__ == '__main__':

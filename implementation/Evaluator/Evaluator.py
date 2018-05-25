@@ -4,7 +4,7 @@ import face_recognition
 import numpy as np
 from PIL import Image
 
-from FaceAnonymizer.Anonymizer import Anonymizer
+from Utils.Anonymizer import Anonymizer
 from Configuration.config_model import current_config
 
 
