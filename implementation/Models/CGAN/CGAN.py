@@ -19,9 +19,10 @@ class CGAN(CombinedModels):
 
     def __str__(self):
         string = super().__str__()
-        string += "\n" + self.G_optimizer
-        string += "\n" + self.D_optimizer
-        string += "\n" + self.D_optimizer
+        string += self.G_optimizer + '\n'
+        string += self.D_optimizer + '\n'
+        string += self.BCE_loss + '\n'
+        return string
 
     def __init__(self, batch_size=64, y_dim=10, z_dim=100):
 
@@ -58,16 +59,6 @@ class CGAN(CombinedModels):
             self.D.cuda()
             self.BCE_loss.cuda()
             self.y_real, self.y_fake = self.y_real.cuda(), self.y_fake.cuda()
-
-    def set_train_mode(self, mode):
-        if mode:
-            self.G.train()
-            self.D.train()
-            torch.set_grad_enabled(True)
-        else:
-            self.G.eval()
-            self.D.eval()
-            torch.set_grad_enabled(False)
 
     def train(self, current_epoch, batches):
         G_loss_mean, D_loss_mean = 0, 0

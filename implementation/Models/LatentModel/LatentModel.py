@@ -11,8 +11,10 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.nn import DataParallel
 from torchvision.transforms import ToTensor
 
+from Models.ModelUtils.ModelUtils import CombinedModels
 
-class LatentModel:
+
+class LatentModel(CombinedModels):
     def __init__(self, decoder):
         self.decoder = decoder()
 

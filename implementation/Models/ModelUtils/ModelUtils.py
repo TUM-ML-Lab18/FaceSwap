@@ -64,7 +64,7 @@ class CombinedModels:
         pass
 
     @abstractmethod
-    def train(self, current_epoch, train_data_loader):
+    def train(self, train_data_loader, *params):
         pass
 
     @abstractmethod
@@ -86,10 +86,10 @@ class CombinedModels:
         :return:
         """
         # TODO return models
-        s = str()
+        string = str()
         for model in self.get_models():
-            s += str(model) + '\n'
-        return s
+            string += str(model) + '\n'
+        return string
 
     def set_train_mode(self, mode):
         """
