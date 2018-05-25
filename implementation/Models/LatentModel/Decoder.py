@@ -1,10 +1,10 @@
 import torch
 from torch import nn as nn
 
-from Models.ModelUtils.ModelUtils import View, UpscaleBlockBlock
+from Models.ModelUtils.ModelUtils import View, UpscaleBlockBlock, CustomModule
 
 
-class LatentDecoder(nn.Module):
+class LatentDecoder(CustomModule):
     def __init__(self, input_dim):
         super().__init__()
         self.sequ = nn.Sequential(nn.Linear(input_dim,
@@ -23,48 +23,15 @@ class LatentDecoder(nn.Module):
         Inputs:
         - x: PyTorch input Variable
         """
-
         return self.sequ(x)
 
-    @property
-    def is_cuda(self):
-        """
-        Check if model parameters are allocated on the GPU.
-        """
-        return next(self.parameters()).is_cuda
 
-    def save(self, path):
-        """
-        Save model with its parameters to the given path. Conventionally the
-        path should end with "*.model".
-
-        Inputs:
-        - path: path string
-        """
-        print('Saving model... %s' % path)
-        torch.save(self.state_dict(), path)
-
-    def load(self, path):
-        """
-        Load model with its parameters from the given path. Conventionally the
-        path should end with "*.model".
-
-        Inputs:
-        - path: path string
-        """
-        print('Loading model... %s' % path)
-        self.load_state_dict(torch.load(path, map_location=lambda storage, loc: storage))
-
-
-class LatentReducedDecoder(nn.Module):
+class LatentReducedDecoder(CustomModule):
     def __init__(self, input_dim):
         super().__init__()
         self.sequ = nn.Sequential(#nn.Dropout(p=0.5),
-            nn.Linear(input_dim,
-                                            512),
-                                  nn.Linear(512,
-                                            2 * 2 * 512
-                                            ),
+            nn.Linear(input_dim,512),
+            nn.Linear(512,2 * 2 * 512),
                                   View(-1, 512, 2, 2),
                                   UpscaleBlockBlock(512, 256, 5),
                                   nn.Conv2d(16, 3, kernel_size=5, padding=2),
@@ -78,12 +45,4 @@ class LatentReducedDecoder(nn.Module):
         Inputs:
         - x: PyTorch input Variable
         """
-
         return self.sequ(x)
-
-    @property
-    def is_cuda(self):
-        """
-        Check if model parameters are allocated on the GPU.
-        """
-        return next(self.parameters()).is_cuda

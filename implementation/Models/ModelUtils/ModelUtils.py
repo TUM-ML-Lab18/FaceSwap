@@ -81,8 +81,15 @@ class CombinedModels:
 
     @abstractmethod
     def __str__(self):
+        """
+        TODO
+        :return:
+        """
         # TODO return models
-        pass
+        s = str()
+        for model in self.get_models():
+            s += str(model) + '\n'
+        return s
 
     def set_train_mode(self, mode):
         """
