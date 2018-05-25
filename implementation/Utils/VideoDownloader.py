@@ -2,9 +2,8 @@ import cv2
 from pathlib import Path
 from pytube import YouTube
 
-from Logging.LoggingUtils import print_progress_bar
+from Utils.Logging.LoggingUtils import print_progress_bar
 from Configuration.config_general import VIDEO_DOWNLOADER
-from Configuration.config_general import VIDEO_DOWNLOADER_MERKEL
 
 
 class VideoDownloader:

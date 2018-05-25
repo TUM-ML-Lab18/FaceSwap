@@ -5,7 +5,7 @@ from Utils.Anonymizer import Anonymizer
 from PIL import Image
 from pathlib import Path
 
-from Logging.LoggingUtils import print_progress_bar
+from Utils.Logging.LoggingUtils import print_progress_bar
 from Configuration.config_model import current_config
 
 

@@ -1,6 +1,6 @@
 import torch
 import torchvision.transforms as transforms
-from StyleTransferTrainer import StyleTransferTrainer
+from Utils.StyleTransferTrainer import StyleTransferTrainer
 from Models.DeepFake.Encoder import Encoder
 from PIL import Image
 

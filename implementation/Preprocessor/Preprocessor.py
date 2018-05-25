@@ -7,9 +7,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from Logging.LoggingUtils import print_progress_bar
+from Utils.Logging.LoggingUtils import print_progress_bar
 from Configuration.config_general import *
-from Preprocessor.FaceExtractor import FaceExtractor
 
 img_file_extensions = ['.jpg', '.JPG', '.png', '.PNG']
 separator = '        '

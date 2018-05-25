@@ -1,6 +1,6 @@
 import torch
 
-from Logging.LoggingUtils import Logger
+from Utils.Logging.LoggingUtils import Logger
 from Configuration.config_general import MOST_RECENT_MODEL
 from Utils.DataSplitter import DataSplitter
 
