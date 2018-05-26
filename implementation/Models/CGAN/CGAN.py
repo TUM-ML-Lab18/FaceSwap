@@ -64,8 +64,8 @@ class CGAN(CombinedModels):
         for face, landmarks in train_data_loader:
             z = torch.randn((batch_size, self.z_dim, 1, 1))
             landmarks_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
-                                                  size=(batch_size))[:, :, None, None]
-            landmarks_gen = torch.from_numpy(landmarks_gen).type(torch.float32)
+                                                          size=batch_size).astype('float32')
+            landmarks_gen = torch.from_numpy(landmarks_gen[:, :, None, None])
             if self.cuda:
                 face, landmarks, landmarks_gen, z = face.cuda(), landmarks.cuda(), landmarks_gen.cuda(), z.cuda()
 
@@ -119,8 +119,8 @@ class CGAN(CombinedModels):
         for x, y in validation_data_loader:
             z = torch.randn((batch_size, self.z_dim, 1, 1))
             y_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
-                                                  size=(batch_size))
-            y_gen = torch.from_numpy(y_gen[:, :, None, None]).type(torch.float)
+                                                  size=batch_size).astype('float32')
+            y_gen = torch.from_numpy(y_gen[:, :, None, None])
             if self.cuda:
                 x, y, y_gen, z = x.cuda(), y.cuda(), y_gen.cuda(), z.cuda()
 

@@ -13,6 +13,7 @@ from Configuration.config_general import *
 img_file_extensions = ['.jpg', '.JPG', '.png', '.PNG']
 separator = '        '
 
+
 class Preprocessor:
     """
     Preprocesses all images in the given directory
@@ -20,6 +21,7 @@ class Preprocessor:
     root/raw: Place, where the unprocessed images are stored
     root/preprocessed: Place, where the processed images get stored
     """
+
     def __init__(self, face_extractor):
         """
         :param face_extractor: Initialized FaceExtractor
@@ -27,7 +29,7 @@ class Preprocessor:
         # Used extractor
         self.extractor = face_extractor
 
-    def __call__(self, root_folder:Path):
+    def __call__(self, root_folder: Path):
         """
         Processes all image classes in the raw folder and saves the results to the preprocessed folder.
         :param root_folder: Path to the dataset that should be processed
@@ -95,15 +97,12 @@ class Preprocessor:
                     # Check if extraction found a face
                     if extracted_image is None:
                         continue
-                    # Normalized histogram as list
-                    histo_r = cv2.calcHist([np.array(extracted_image)], [0], None, [256], [0, 256])
-                    histo_g = cv2.calcHist([np.array(extracted_image)], [1], None, [256], [0, 256])
-                    histo_b = cv2.calcHist([np.array(extracted_image)], [2], None, [256], [0, 256])
-                    histo = np.vstack((histo_r, histo_g, histo_b)) / extracted_information.size_fine**2
-                    histo = histo.reshape(-1).tolist()
+                    # Calculate histogram
+                    histo = self.calculate_masked_histogram(extracted_image)
                     # Normalized landmarks as list
                     landmarks = np.array(extracted_information.landmarks) / extracted_information.size_fine
                     landmarks = landmarks.reshape(-1).tolist()
+
                     # Buffer histogram in CSV file
                     with open(histo_buffer, 'a') as h_buffer:
                         h_buffer.write(str(relative_path) + separator + str(histo) + '\n')
@@ -131,6 +130,32 @@ class Preprocessor:
             json.dump(histo_storage, h_json)
 
 
+    @staticmethod
+    def calculate_masked_histogram(image):
+        """
+        Calculates the histogram of the masked region
+        :param image: PIL image
+        :return:
+        """
+        image = np.array(image)
+        # Calculate histogram of the whole image
+        histo_r = cv2.calcHist([image], [0], None, [256], [0, 256])
+        histo_g = cv2.calcHist([image], [1], None, [256], [0, 256])
+        histo_b = cv2.calcHist([image], [2], None, [256], [0, 256])
+        # Remove masked pixels from histogram
+        histo_r[0] = 0
+        histo_g[0] = 0
+        histo_b[0] = 0
+        # Normalize histogram
+        histo_r /= np.sum(histo_r)
+        histo_g /= np.sum(histo_g)
+        histo_b /= np.sum(histo_b)
+
+        histo = np.vstack((histo_r, histo_g, histo_b))
+        histo = histo.reshape(-1).tolist()
+
+        return histo
+
 def convert_buffer_to_dict(buffer_file):
     """
     Converts the landmarks from the buffer file  to a dict
@@ -148,4 +173,3 @@ def convert_buffer_to_dict(buffer_file):
     for filename, data in buffered_lines:
         storage[filename] = ast.literal_eval(data)
     return storage
-
