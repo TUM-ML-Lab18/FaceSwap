@@ -10,13 +10,13 @@ from Preprocessor.FaceReconstructor import FaceReconstructor
 
 
 class Anonymizer:
-    def __init__(self, model_folder: str, model, config) -> None:
+    def __init__(self, model_folder: str, config) -> None:
         """
         :param model_folder: Path to models folder.
         """
         self.config = config
         self.model_folder = Path(model_folder)
-        self.model = model(self.config['img_size'])
+        self.model = config['model'](**config['model_params'])
         self.model.load_model(self.model_folder)
 
         # use extractor and transform later get correct input for network
@@ -33,12 +33,9 @@ class Anonymizer:
         # Extract face
         extracted_face, extracted_information = self.extractor(image)
         if extracted_face is not None:
-            # latent_information = self.config['img2latent_bridge'](extracted_face, extracted_information,
-            #                                                      self.config['img_size'])
-            latent_information = self.model.img2latent_bridge(extracted_face, extracted_information,
-                                                              self.config['img_size'])
+            latent_information = self.model.img2latent_bridge(extracted_face, extracted_information)
             # feed into network
-            face_out = self.model.anonymize_2(latent_information).squeeze(0)
+            face_out = self.model.anonymize(latent_information).squeeze(0)
             # get it back to the cpu and get the data
             face_out = ToPILImage()(face_out.cpu().detach())
             # scale to original resolution

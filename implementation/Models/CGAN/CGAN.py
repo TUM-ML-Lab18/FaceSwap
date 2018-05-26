@@ -12,6 +12,16 @@ from Models.ModelUtils.ModelUtils import CombinedModels
 
 
 class CGAN(CombinedModels):
+    def anonymize(self, x):
+        #z = torch.ones((x.shape[0], self.z_dim, 1, 1)).cuda() * 0.5
+        z = torch.randn((x.shape[0], self.z_dim, 1, 1)).cuda()
+        return self.G(z, x)
+
+    def img2latent_bridge(self, extracted_face, extracted_information):
+        landmarks_normalized_flat = np.reshape(
+            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), -1).astype(np.float32)
+        return torch.from_numpy(landmarks_normalized_flat).unsqueeze(-1).unsqueeze(-1).unsqueeze(0).cuda()
+
     def get_models(self):
         return [self.G, self.D]
 
@@ -63,21 +73,21 @@ class CGAN(CombinedModels):
 
         for face, landmarks in train_data_loader:
             z = torch.randn((batch_size, self.z_dim, 1, 1))
-            landmarks_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
-                                                          size=batch_size).astype('float32')
-            landmarks_gen = torch.from_numpy(landmarks_gen[:, :, None, None])
+            # landmarks_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
+            #                                      size=(batch_size))[:, :, None, None]
+            # landmarks_gen = torch.from_numpy(landmarks_gen).type(torch.float32)
             if self.cuda:
-                face, landmarks, landmarks_gen, z = face.cuda(), landmarks.cuda(), landmarks_gen.cuda(), z.cuda()
+                face, landmarks, z = face.cuda(), landmarks.cuda(), z.cuda()
 
             # ========== Training discriminator
             self.D_optimizer.zero_grad()
 
             # Train on real example with real features
             D_real = self.D(face, landmarks)
-            D_real_loss = self.BCE_loss(D_real, y_real)  # real correspsonds to log(D_real)
+            D_real_loss = self.BCE_loss(D_real, y_real)  # real corresponds to log(D_real)
 
             # Train on real example with fake features
-            D_fake_feature = self.D(face, landmarks_gen)
+            D_fake_feature = self.D(face, landmarks)
             D_fake_feature_loss = self.BCE_loss(D_fake_feature, y_fake)
 
             # Train on fake example from generator
@@ -92,6 +102,10 @@ class CGAN(CombinedModels):
 
             # ========== Training generator
             self.G_optimizer.zero_grad()
+            # todo fix 2nd path
+            # https://pytorch.org/docs/stable/autograd.html?highlight=backward#torch.Tensor.backward
+            x_fake = self.G(z, landmarks)  # landmarks_gen)
+            D_fake = self.D(x_fake, landmarks)  # landmarks_gen)
             G_loss = self.BCE_loss(D_fake, y_real)
 
             G_loss.backward()

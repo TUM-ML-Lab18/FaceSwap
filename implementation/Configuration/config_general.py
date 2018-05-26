@@ -24,6 +24,8 @@ LANDMARKS_JSON = "landmarks.json"
 LANDMARKS_BUFFER = "landmarks.txt"
 HISTO_BUFFER = "histo.txt"
 HISTO_JSON = "histo.json"
+FACE_EMBEDDINGS_BUFFER = "embeddings.txt"
+FACE_EMBEDDINGS_JSON = "embeddings.json"
 ANNOTATIONS = "list_attr_celeba.txt"
 RESOLUTIONS = [4,8,16,32,64,128]
 

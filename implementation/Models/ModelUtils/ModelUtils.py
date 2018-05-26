@@ -123,6 +123,14 @@ class CombinedModels:
         for name, model in zip(self.get_model_names(), self.get_models()):
             model.load(path / (name + '.model'))
 
+    @abstractmethod
+    def img2latent_bridge(self, extracted_face, extracted_information):
+        pass
+
+    @abstractmethod
+    def anonymize(self, x):
+        pass
+
 
 class ConvBlock(nn.Module):
     """Convolution followed by a LeakyReLU"""

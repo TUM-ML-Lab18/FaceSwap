@@ -4,6 +4,7 @@ import os
 import cv2
 from pathlib import Path
 
+import face_recognition
 import numpy as np
 from PIL import Image
 
@@ -42,6 +43,8 @@ class Preprocessor:
         landmarks_json = root_folder / LANDMARKS_JSON
         histo_buffer = root_folder / HISTO_BUFFER
         histo_json = root_folder / HISTO_JSON
+        embeddings_buffer = root_folder / FACE_EMBEDDINGS_BUFFER
+        embeddings_json = root_folder / FACE_EMBEDDINGS_JSON
 
         # Check root path
         if not raw_folder.exists():
@@ -98,17 +101,25 @@ class Preprocessor:
                     if extracted_image is None:
                         continue
                     # Calculate histogram
-                    histo = self.calculate_masked_histogram(extracted_image)
+                    # histo = self.calculate_masked_histogram(extracted_image)
                     # Normalized landmarks as list
-                    landmarks = np.array(extracted_information.landmarks) / extracted_information.size_fine
-                    landmarks = landmarks.reshape(-1).tolist()
+                    # landmarks = np.array(extracted_information.landmarks) / extracted_information.size_fine
+                    # landmarks = landmarks.reshape(-1).tolist()
+
+                    # calculate embeddings
+                    # (top, right, bottom, left)
+                    embedding = face_recognition.face_encodings(np.array(extracted_image), known_face_locations=[(
+                        0, extracted_information.size_fine, extracted_information.size_fine, 0)])[0]
 
                     # Buffer histogram in CSV file
-                    with open(histo_buffer, 'a') as h_buffer:
-                        h_buffer.write(str(relative_path) + separator + str(histo) + '\n')
+                    # with open(histo_buffer, 'a') as h_buffer:
+                    #    h_buffer.write(str(relative_path) + separator + str(histo) + '\n')
                     # Buffer landmarks in CSV file
-                    with open(landmarks_buffer, 'a') as lm_buffer:
-                        lm_buffer.write(str(relative_path) + separator + str(landmarks) + '\n')
+                    # with open(landmarks_buffer, 'a') as lm_buffer:
+                    #    lm_buffer.write(str(relative_path) + separator + str(landmarks) + '\n')
+                    # Buffer embeddings in CSV file
+                    with open(embeddings_buffer, 'a') as em_buffer:
+                        em_buffer.write(str(relative_path) + separator + str(embedding) + '\n')
                     # Store different resolutions
                     for size in RESOLUTIONS:
                         resized_img = extracted_image.resize((size, size))
@@ -118,17 +129,22 @@ class Preprocessor:
                     extracted_image.save(preprocessed_folder / relative_path, format='JPEG')
 
         # Convert landmarks to json
-        landmarks_storage = convert_buffer_to_dict(landmarks_buffer)
+        # landmarks_storage = convert_buffer_to_dict(landmarks_buffer)
         # Save json file
-        with open(landmarks_json, 'w') as lm_json:
-            json.dump(landmarks_storage, lm_json)
+        # with open(landmarks_json, 'w') as lm_json:
+        #    json.dump(landmarks_storage, lm_json)
 
         # Convert histo to json
-        histo_storage = convert_buffer_to_dict(histo_buffer)
+        # histo_storage = convert_buffer_to_dict(histo_buffer)
         # Save json file
-        with open(histo_json, 'w') as h_json:
-            json.dump(histo_storage, h_json)
+        # with open(histo_json, 'w') as h_json:
+        #    json.dump(histo_storage, h_json)
 
+        # Convert embeddings to json
+        embeddings_storage = convert_buffer_to_dict(embeddings_buffer)
+        # Save json file
+        with open(embeddings_json, 'w') as em_json:
+            json.dump(embeddings_storage, em_json)
 
     @staticmethod
     def calculate_masked_histogram(image):
@@ -155,6 +171,7 @@ class Preprocessor:
         histo = histo.reshape(-1).tolist()
 
         return histo
+
 
 def convert_buffer_to_dict(buffer_file):
     """
