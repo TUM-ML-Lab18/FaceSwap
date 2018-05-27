@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import torch
-
 from FaceAnonymizer.Trainer import Trainer
 
 from configuration.general_config import MEGA_MERKEL_TRUMP, MERKEL_TRUMP_NORMAL_BASE, MERKEL_TRUMP_LANDMARKS, \
