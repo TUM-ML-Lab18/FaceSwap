@@ -48,7 +48,7 @@ class Evaluator:
         """
         enconding1 = face_recognition.face_encodings(np.array(img1))[0]
         enconding2 = face_recognition.face_encodings(np.array(img2))[0]
-        dist = face_recognition.face_distance(enconding1, enconding2)
+        dist = face_recognition.face_distance(np.array(enconding1), np.array(enconding2))
         return dist
 
     @staticmethod
