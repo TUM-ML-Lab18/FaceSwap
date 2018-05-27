@@ -11,7 +11,7 @@ from configuration.run_config import current_config
 class Evaluator:
     @staticmethod
     def evaluate_model(model_folder='model', image_folder='/nfs/students/summer-term-2018/project_2/test/',
-                       output_path='/nfs/students/summer-term-2018/project_2/test_sebi/'):
+                       output_path='/nfs/students/summer-term-2018/project_2/test_alex/'):
         """
         Evaluates a model by comparing input images with output images
         :param model_folder: path to the model to evaluate
