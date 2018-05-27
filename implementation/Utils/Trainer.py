@@ -21,8 +21,8 @@ class Trainer:
     def train(self):
         max_epochs = 5000
         validate_index = 0
-        validation_frequencies = [2, 20]
-        validation_periods = [0, 20, max_epochs + 1]
+        validation_frequencies = [2, 5, 20]
+        validation_periods = [0, 10, 20, max_epochs + 1]
 
         for current_epoch in range(max_epochs):
             self.model.set_train_mode(True)
@@ -30,7 +30,7 @@ class Trainer:
             info = self.model.train(train_data_loader, self.batch_size)
 
             # update frequency
-            if current_epoch >= validation_periods[validate_index + 1] :
+            if current_epoch >= validation_periods[validate_index + 1]:
                 validate_index += 1
 
             if current_epoch % validation_frequencies[validate_index] == 0:
