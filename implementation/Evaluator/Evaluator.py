@@ -22,7 +22,6 @@ class Evaluator:
         image_folder = Path(image_folder)
         output_path = Path(output_path)
         anonymizer = Anonymizer(model_folder=model_folder,
-                                model=current_config['model'],
                                 config=current_config)
         print("The authors of the package recommend 0.6 as max distance for the same person.")
         distances = []

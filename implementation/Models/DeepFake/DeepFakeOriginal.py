@@ -31,7 +31,7 @@ class DeepFakeOriginal:
 
         self.optimizer1 = Adam(self.autoencoder1.parameters(), lr=1e-4)
         self.scheduler1 = ReduceLROnPlateau(self.optimizer1, patience=100, cooldown=50)
-        self.optimizer1 = Adam(self.autoencoder2.parameters(), lr=1e-4)
+        self.optimizer2 = Adam(self.autoencoder2.parameters(), lr=1e-4)
         self.scheduler2 = ReduceLROnPlateau(self.optimizer2, patience=100, cooldown=50)
 
     def train(self, current_epoch, batches):
