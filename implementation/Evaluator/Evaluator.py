@@ -33,26 +33,22 @@ class Evaluator:
             print('Processing image:', image_file.name)
             input_image = Image.open(image_file)
             anonymized_image = anonymizer(input_image)
-            anonymized_image.save(output_path / (image_file.name.__str__()))
-            distances.append(Evaluator.evaluate_list_of_images(input_image, anonymized_image))
+            anonymized_image.save(output_path / ('anonymized_' + image_file.name.__str__()))
+            distances.append(Evaluator.evaluate_image_pair(input_image, anonymized_image))
             print('Current image distance:', distances[-1])
         return distances
 
     @staticmethod
-    def evaluate_list_of_images(img1, img2):
+    def evaluate_image_pair(img1, img2):
         """
         computes distances between img1 and img2
         :param img1: a single image
         :param img2: a single image
-        :return: distances of images
+        :return: distance of images
         """
-        if not type(img1) is list:
-            img1 = [img1]
-        if not type(img2) is list:
-            img2 = [img2]
-        enconding1 = [face_recognition.face_encodings(np.array(img))[0] for img in img1]
-        enconding2 = [face_recognition.face_encodings(np.array(img))[0] for img in img2]
-        dist = face_recognition.face_distance(np.array(enconding1), np.array(enconding2))
+        enconding1 = face_recognition.face_encodings(np.array(img1))[0]
+        enconding2 = face_recognition.face_encodings(np.array(img2))[0]
+        dist = face_recognition.face_distance(enconding1, enconding2)
         return dist
 
     @staticmethod
