@@ -20,19 +20,26 @@ class Trainer:
 
     def train(self):
         max_epochs = 5000
-        validate_every = 20
-        for i in range(max_epochs):
+        validate_index = 0
+        validation_frequencies = [2, 20]
+        validation_periods = [0, 20, max_epochs + 1]
+
+        for current_epoch in range(max_epochs):
             self.model.set_train_mode(True)
             train_data_loader = self.data_loader.get_train_data_loader()
             info = self.model.train(train_data_loader, self.batch_size)
 
-            if i % validate_every == 0:
-                self.model.log(self.logger, i, *info, log_images=True)
+            # update frequency
+            if current_epoch >= validation_periods[validate_index + 1] :
+                validate_index += 1
+
+            if current_epoch % validation_frequencies[validate_index] == 0:
+                self.model.log(self.logger, current_epoch, *info, log_images=True)
                 # do validation
                 self.model.set_train_mode(False)
                 val_data_loader = self.data_loader.get_validation_data_loader()
                 info = self.model.validate(val_data_loader, self.batch_size)
-                self.model.log_validation(self.logger, i, *info)
+                self.model.log_validation(self.logger, current_epoch, *info)
                 self.model.set_train_mode(True)
             else:
-                self.model.log(self.logger, i, *info)
+                self.model.log(self.logger, current_epoch, *info)

@@ -122,7 +122,7 @@ class CGAN(CombinedModels):
         G_loss_mean /= iterations
         D_loss_mean /= iterations
 
-        return G_loss_mean.cpu().data.numpy(), D_loss_mean.cpu().data.numpy()
+        return G_loss_mean.cpu().data.numpy(), D_loss_mean.cpu().data.numpy(), x_fake
 
     def validate(self, validation_data_loader, batch_size, **kwargs):
         G_loss_mean, D_loss_mean = 0, 0
@@ -135,26 +135,27 @@ class CGAN(CombinedModels):
 
         for x, y in validation_data_loader:
             z = torch.randn((batch_size, self.z_dim, 1, 1))
-            y_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
-                                                  size=batch_size).astype('float32')
-            y_gen = torch.from_numpy(y_gen[:, :, None, None])
+            # y_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
+            #                                      size=batch_size).astype('float32')
+            # y_gen = torch.from_numpy(y_gen[:, :, None, None])
             if self.cuda:
-                x, y, y_gen, z = x.cuda(), y.cuda(), y_gen.cuda(), z.cuda()
+                x, y, z = x.cuda(), y.cuda(), z.cuda()
+                # y_gen = y_gen.cuda()
 
             # ========== Training discriminator
             # Train on real example from dataset
             D_real = self.D(x, y)
             D_real_loss = self.BCE_loss(D_real, y_real)
 
-            x_fake = self.G(z, y_gen)
-            D_fake = self.D(x_fake, y_gen)
+            x_fake = self.G(z, y)  # y_gen)
+            D_fake = self.D(x_fake, y)  # y_gen)
             D_fake_loss = self.BCE_loss(D_fake, y_fake)
 
             D_loss = D_real_loss + D_fake_loss
 
             # ========== Training generator
-            x_fake = self.G(z, y_gen)
-            D_fake = self.D(x_fake, y_gen)
+            x_fake = self.G(z, y)  # y_gen)
+            D_fake = self.D(x_fake, y)  # y_gen)
             G_loss = self.BCE_loss(D_fake, y_real)
 
             # losses
@@ -167,7 +168,7 @@ class CGAN(CombinedModels):
 
         return G_loss_mean.cpu().data.numpy(), D_loss_mean.cpu().data.numpy(), x_fake
 
-    def log(self, logger, epoch, lossG, lossD, log_images=None):  # last parameter is not needed anymore
+    def log(self, logger, epoch, lossG, lossD, images, log_images=False):  # last parameter is not needed anymore
         """
         use logger to log current loss etc...
         :param logger: logger used to log
@@ -177,13 +178,20 @@ class CGAN(CombinedModels):
         logger.log_fps(epoch=epoch)
         logger.save_model(epoch)
 
+        if log_images:
+            self.log_images(logger, epoch, images, validation=False)
+
     def log_validation(self, logger, epoch, lossG, lossD, images):
         logger.log_loss(epoch=epoch, loss={'lossG_val': float(lossG), 'lossD_val': float(lossD)})
 
+        self.log_images(logger, epoch, images, validation=True)
+
+    def log_images(self, logger, epoch, images, validation=True):
         images = images.cpu()
         examples = int(len(images))
         example_indices = random.sample(range(0, examples - 1), 4 * 4)
         A = []
         for idx, i in enumerate(example_indices):
             A.append(images[i] * 255.00)
-        logger.log_images(epoch, A, "sample_output", 4)
+        tag = 'validation_output' if validation else 'training_output'
+        logger.log_images(epoch, A, tag, 4)
