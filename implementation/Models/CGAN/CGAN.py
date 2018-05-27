@@ -13,13 +13,14 @@ from Models.ModelUtils.ModelUtils import CombinedModels
 
 class CGAN(CombinedModels):
     def anonymize(self, x):
-        #z = torch.ones((x.shape[0], self.z_dim, 1, 1)).cuda() * 0.5
-        z = torch.randn((x.shape[0], self.z_dim, 1, 1)).cuda()
+        z = torch.ones((x.shape[0], self.z_dim, 1, 1)).cuda() * 0.5
+        # z = torch.randn((x.shape[0], self.z_dim, 1, 1)).cuda()
         return self.G(z, x)
 
     def img2latent_bridge(self, extracted_face, extracted_information):
         landmarks_normalized_flat = np.reshape(
-            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), -1).astype(np.float32)
+            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), -1).astype(
+            np.float32)
         return torch.from_numpy(landmarks_normalized_flat).unsqueeze(-1).unsqueeze(-1).unsqueeze(0).cuda()
 
     def get_models(self):
@@ -33,18 +34,20 @@ class CGAN(CombinedModels):
         string += str(self.G_optimizer) + '\n'
         string += str(self.D_optimizer) + '\n'
         string += str(self.BCE_loss) + '\n'
+        string = string.replace('\n', '\n\n')
         return string
 
     def __init__(self, **kwargs):
         self.z_dim = kwargs.get('z_dim', 100)
         self.y_dim = kwargs.get('y_dim', 10)
+        self.img_dim = kwargs.get('img_dim', (64, 64, 3))
         path_to_y_mean = kwargs.get('y_mean', ARRAY_CELEBA_LANDMARKS_MEAN)
         path_to_y_cov = kwargs.get('y_cov', ARRAY_CELEBA_LANDMARKS_COV)
         lrG = kwargs.get('lrG', 0.0002)
         lrD = kwargs.get('lrD', 0.0002)
 
-        self.G = Generator((self.z_dim, self.y_dim))
-        self.D = Discriminator(self.y_dim)
+        self.G = Generator(input_dim=(self.z_dim, self.y_dim), output_dim=self.img_dim, ngf=32)
+        self.D = Discriminator(y_dim=self.y_dim, input_dim=self.img_dim, ndf=32)
 
         beta1, beta2 = 0.5, 0.999
         self.G_optimizer = optim.Adam(self.G.parameters(), lr=lrG, betas=(beta1, beta2))

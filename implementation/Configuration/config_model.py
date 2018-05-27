@@ -37,12 +37,14 @@ landmarks_config = {'batch_size': 512,
 ####### config for using landmarks as well as a low res image as input
 # dim = 72+2+8+8+3
 lm_lowres_config = landmarks_config.copy()
-lm_lowres_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_LOWRES])
+lm_lowres_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64,
+                                                          [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_LOWRES])
 lm_lowres_config['model'] = lambda img_size: LowResModel(decoder=lambda: LatentDecoder(72 * 2 + 8 * 8 * 3))
 
 ###### config for using landmarks as well as a histogram of the target as input
 lm_hist_config = landmarks_config.copy()
-lm_lowres_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_HISTO])
+lm_lowres_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64,
+                                                          [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_HISTO])
 lm_hist_config['model'] = lambda img_size: HistModel(decoder=lambda: LatentDecoder(72 * 2 + 768))
 
 ###### config for using landmarks as well as a histogram of the target as input (reduced with dropout)
@@ -58,14 +60,19 @@ lm_hist_reduced_config['model'] = lambda img_size: HistReducedModel(
 
 ###### config for using landmarks as well as a histogram as well as annotations of the target as input
 lm_hist_annotations_config = lm_hist_config.copy()
-lm_hist_annotations_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_HISTO, ARRAY_CELEBA_ATTRIBUTES])
-lm_hist_annotations_config['model'] = lambda img_size: HistAnnotationModel(decoder=lambda: LatentDecoder(72 * 2 + 768 + 40))
+lm_hist_annotations_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64,
+                                                                    [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_HISTO,
+                                                                     ARRAY_CELEBA_ATTRIBUTES])
+lm_hist_annotations_config['model'] = lambda img_size: HistAnnotationModel(
+    decoder=lambda: LatentDecoder(72 * 2 + 768 + 40))
 
 ###### config for using landmarks as well as a lowres as well as annotations of the target as input
 lm_lowres_annotations_config = lm_lowres_config.copy()
-lm_lowres_annotations_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_ATTRIBUTES, ARRAY_CELEBA_LOWRES])
-lm_lowres_annotations_config['model'] = lambda img_size: LowResAnnotationModel(decoder=lambda: LatentDecoder(72 * 2 + 8 * 8 * 3 + 40))
-
+lm_lowres_annotations_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64,
+                                                                      [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_ATTRIBUTES,
+                                                                       ARRAY_CELEBA_LOWRES])
+lm_lowres_annotations_config['model'] = lambda img_size: LowResAnnotationModel(
+    decoder=lambda: LatentDecoder(72 * 2 + 8 * 8 * 3 + 40))
 
 cgan_config = {'batch_size': 64,
                'model': CGAN,
