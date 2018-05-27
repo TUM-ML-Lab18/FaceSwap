@@ -46,15 +46,21 @@ class Evaluator:
         :param img2: a single image
         :return: distance of images
         """
-        enconding1 = [face_recognition.face_encodings(np.array(img1))[0]]
-        enconding2 = [face_recognition.face_encodings(np.array(img2))[0]]
-        dist = face_recognition.face_distance(np.array(enconding1), np.array(enconding2))
-        return dist
+        similarity_score = Evaluator.get_similarity_score(img1, img2)
+        emotion_score = Evaluator.get_emotion_score(img1, img2)
+
+        #TODO apply formula
+
+        return similarity_score
+
 
     @staticmethod
     def get_emotion_score(img1, img2):
-        pass
+        return 0.0
 
     @staticmethod
     def get_similarity_score(img1, img2):
-        pass
+        enconding1 = [face_recognition.face_encodings(np.array(img1))[0]]
+        enconding2 = [face_recognition.face_encodings(np.array(img2))[0]]
+        dist = face_recognition.face_distance(np.array(enconding1), np.array(enconding2))[0]
+        return dist
