@@ -46,8 +46,8 @@ class Evaluator:
         :param img2: a single image
         :return: distance of images
         """
-        enconding1 = face_recognition.face_encodings(np.array(img1))[0]
-        enconding2 = face_recognition.face_encodings(np.array(img2))[0]
+        enconding1 = [face_recognition.face_encodings(np.array(img1))[0]]
+        enconding2 = [face_recognition.face_encodings(np.array(img2))[0]]
         dist = face_recognition.face_distance(np.array(enconding1), np.array(enconding2))
         return dist
 
