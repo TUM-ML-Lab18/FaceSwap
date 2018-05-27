@@ -42,8 +42,8 @@ class Evaluator:
     def evaluate_list_of_images(img1, img2):
         """
         computes distances between img1 and img2
-        :param img1: list of images or a single image
-        :param img2: list of images or a single image
+        :param img1: a single image
+        :param img2: a single image
         :return: distances of images
         """
         if not type(img1) is list:
@@ -54,3 +54,11 @@ class Evaluator:
         enconding2 = [face_recognition.face_encodings(np.array(img))[0] for img in img2]
         dist = face_recognition.face_distance(np.array(enconding1), np.array(enconding2))
         return dist
+
+    @staticmethod
+    def get_emotion_score(img1, img2):
+        pass
+
+    @staticmethod
+    def get_similarity_score(img1, img2):
+        pass
