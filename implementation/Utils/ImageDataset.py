@@ -64,6 +64,7 @@ class ImageFeatureDataset(Dataset):
         if path_to_image_array is not None:
             self.images = np.load(path_to_image_array)
             self.images = torch.from_numpy(self.images).type(torch.float32)
+            self.images /= 255
         else:
             self.images = None
         if paths_to_feature_arrays is not None:
