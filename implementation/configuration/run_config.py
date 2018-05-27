@@ -179,4 +179,4 @@ cgan_config = {'batch_size': 64,
                                                                                          mask_factor=10)),
                'dataset': lambda root_folder, img_size: StaticLandmarks32x32Dataset()}
 
-current_config = cgan_config
+current_config = standart_config
