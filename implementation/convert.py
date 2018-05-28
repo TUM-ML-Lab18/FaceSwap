@@ -64,4 +64,4 @@ def convert_video():
 
 
 if __name__ == '__main__':
-    convert_video()
+    convert_images()
