@@ -1,13 +1,13 @@
 import random
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import numpy as np
 
 from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_MEAN, ARRAY_CELEBA_LANDMARKS_COV
 from Models.CGAN.Discriminator import Discriminator
-from Models.CGAN.Generator import Generator
+from Models.CGAN.Generator import LatentDecoderGAN
 from Models.ModelUtils.ModelUtils import CombinedModels
 
 
@@ -21,7 +21,24 @@ class CGAN(CombinedModels):
         landmarks_normalized_flat = np.reshape(
             (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), -1).astype(
             np.float32)
-        return torch.from_numpy(landmarks_normalized_flat).unsqueeze(-1).unsqueeze(-1).unsqueeze(0).cuda()
+        # landmarks_5
+        landmarks_X = landmarks_normalized_flat[::2]
+        landmarks_Y = landmarks_normalized_flat[1::2]
+        eye_left_X = np.mean(landmarks_X[36:42])
+        eye_left_Y = np.mean(landmarks_Y[36:42])
+        eye_right_X = np.mean(landmarks_X[42:48])
+        eye_right_Y = np.mean(landmarks_Y[42:48])
+        nose_X = np.mean(landmarks_X[31:36])
+        nose_Y = np.mean(landmarks_Y[31:36])
+        mouth_left_X = landmarks_X[48]
+        mouth_left_Y = landmarks_Y[48]
+        mouth_right_X = landmarks_X[60]
+        mouth_right_Y = landmarks_Y[60]
+        landmarks_5 = np.vstack((eye_left_X, eye_left_Y, eye_right_X, eye_right_Y, nose_X, nose_Y, mouth_left_X,
+                                 mouth_left_Y, mouth_right_X, mouth_right_Y)).T
+
+        return torch.from_numpy(landmarks_5).unsqueeze(-1).unsqueeze(-1).cuda()
+        #return torch.from_numpy(landmarks_normalized_flat).unsqueeze(-1).unsqueeze(-1).unsqueeze(0).cuda()
 
     def get_models(self):
         return [self.G, self.D]
@@ -46,7 +63,8 @@ class CGAN(CombinedModels):
         lrG = kwargs.get('lrG', 0.0002)
         lrD = kwargs.get('lrD', 0.0002)
 
-        self.G = Generator(input_dim=(self.z_dim, self.y_dim), output_dim=self.img_dim, ngf=32)
+        self.G = LatentDecoderGAN(input_dim=self.z_dim + self.y_dim)
+        # Generator(input_dim=(self.z_dim, self.y_dim), output_dim=self.img_dim, ngf=32)
         self.D = Discriminator(y_dim=self.y_dim, input_dim=self.img_dim, ndf=32)
 
         beta1, beta2 = 0.5, 0.999

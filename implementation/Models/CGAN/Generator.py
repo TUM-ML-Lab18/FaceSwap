@@ -1,7 +1,7 @@
 import torch
 from torch import nn as nn
 
-from Models.ModelUtils.ModelUtils import CustomModule
+from Models.ModelUtils.ModelUtils import CustomModule, View, UpscaleBlockBlock
 
 
 class Generator(CustomModule):
@@ -63,4 +63,25 @@ class Generator(CustomModule):
         else:
             output = self.main(x)
 
+        return output
+
+
+class LatentDecoderGAN(CustomModule):
+    def __init__(self, input_dim):
+        super().__init__()
+        self.ngpu = torch.cuda.device_count()
+        self.sequ = nn.Sequential(nn.Linear(input_dim,
+                                            1024),
+                                  nn.Linear(1024, 4 * 4 * 1024),
+                                  View(-1, 1024, 4, 4),
+                                  UpscaleBlockBlock(1024, 512, 4),
+                                  nn.Conv2d(64, 3, kernel_size=5, padding=2),
+                                  nn.Sigmoid())
+
+    def forward(self, z, y):
+        x = torch.cat([z, y], 1).squeeze(-1).squeeze(-1)
+        if x.is_cuda and self.ngpu > 1:
+            output = nn.parallel.data_parallel(self.sequ, x, range(self.ngpu))
+        else:
+            output = self.sequ(x)
         return output
