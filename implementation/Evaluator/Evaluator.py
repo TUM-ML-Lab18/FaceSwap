@@ -29,7 +29,7 @@ class Evaluator:
         for image_file in image_folder.iterdir():
             if image_file.is_dir():
                 continue
-            print('#'*10)
+            print('#' * 10)
             print('Processing image:', image_file.name)
             input_image = Image.open(image_file)
             anonymized_image = anonymizer(input_image)
@@ -49,10 +49,9 @@ class Evaluator:
         similarity_score = Evaluator.get_similarity_score(img1, img2)
         emotion_score = Evaluator.get_emotion_score(img1, img2)
 
-        #TODO apply formula
+        # TODO apply formula
 
         return similarity_score
-
 
     @staticmethod
     def get_emotion_score(img1, img2):
@@ -60,7 +59,11 @@ class Evaluator:
 
     @staticmethod
     def get_similarity_score(img1, img2):
-        enconding1 = [face_recognition.face_encodings(np.array(img1))[0]]
-        enconding2 = [face_recognition.face_encodings(np.array(img2))[0]]
+        enconding1 = [
+            face_recognition.face_encodings(np.array(img1), known_face_locations=[(0, img1.size[0], img1.size[0], 0)])[
+                0]]
+        enconding2 = [
+            face_recognition.face_encodings(np.array(img2), known_face_locations=[(0, img2.size[0], img2.size[0], 0)])[
+                0]]
         dist = face_recognition.face_distance(np.array(enconding1), np.array(enconding2))[0]
         return dist
