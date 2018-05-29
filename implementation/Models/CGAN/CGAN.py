@@ -170,21 +170,21 @@ class CGAN(CombinedModels):
             # landmarks_gen[:-1:] = (landmarks_gen[:-1:] + landmarks_gen[1::]) / 2
             if self.cuda:
                 face, landmarks, z = face.cuda(), landmarks.cuda(), z.cuda()
-                y_gen = landmarks.cuda()
+                landmarks_gen = landmarks.cuda()
 
             # ========== Training discriminator
             # Train on real example from dataset
             D_real = self.D(face, landmarks)
             D_real_loss = self.BCE_loss(D_real, y_real)
 
-            x_fake = self.G(z, y_gen)
-            D_fake = self.D(x_fake, y_gen)
+            x_fake = self.G(z, landmarks_gen)
+            D_fake = self.D(x_fake.detach(), landmarks_gen)
             D_fake_loss = self.BCE_loss(D_fake, y_fake)
 
             D_loss = D_real_loss + D_fake_loss
 
             # ========== Training generator
-            D_fake = self.D(x_fake, y_gen)
+            D_fake = self.D(x_fake, landmarks_gen)
             G_loss = self.BCE_loss(D_fake, y_real)
 
             # losses

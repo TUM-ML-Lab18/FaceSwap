@@ -1,9 +1,10 @@
 import datetime
 import json
-import torch
 
+import torch
 from tensorboardX import SummaryWriter
 from torchvision import utils as vutils
+
 
 def log_first_layer(net, writer, frame_idx):
     first_layer = next(net.parameters()).data.cpu()
@@ -56,6 +57,8 @@ class Logger:
         """
         grid = vutils.make_grid(images, normalize=False, scale_each=True, nrow=columns)
         self.writer.add_image(tag_name, grid, epoch)
+        grid_normalized = vutils.make_grid(images, normalize=True, scale_each=True, nrow=columns)
+        self.writer.add_image(tag_name + "_normalized", grid_normalized, epoch)
 
     def save_model(self, epoch):
         if epoch % self.save_model_every_nth == 0:# and epoch > 0:

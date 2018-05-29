@@ -1,14 +1,15 @@
 from torchvision.transforms import ToTensor
+
+from Configuration.config_general import *
 from Models.CGAN.CGAN import CGAN
+from Models.DeepFake.Autoencoder import AutoEncoder
 from Models.DeepFake.Decoder import Decoder
-from Models.LatentModel.Decoder import LatentDecoder, LatentReducedDecoder
 from Models.DeepFake.DeepFakeOriginal import DeepFakeOriginal
 from Models.DeepFake.Encoder import Encoder
-from Models.DeepFake.Autoencoder import AutoEncoder
+from Models.LatentModel.Decoder import LatentDecoder, LatentReducedDecoder
 from Models.LatentModel.LatentModel import LatentModel, LowResAnnotationModel, HistAnnotationModel, HistModel, \
     LowResModel, HistReducedModel
 from Utils.ImageDataset import *
-from Configuration.config_general import *
 
 standard_config = {'batch_size': 64,
                    'img_size': (128, 128),
@@ -74,10 +75,10 @@ lm_lowres_annotations_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CELE
 lm_lowres_annotations_config['model'] = lambda img_size: LowResAnnotationModel(
     decoder=lambda: LatentDecoder(72 * 2 + 8 * 8 * 3 + 40))
 
-cgan_config = {'batch_size': 128,
+cgan_config = {'batch_size': 1024,
                'model': CGAN,
                'model_params': {'y_dim': 10,
-                                'z_dim': 62,
+                                'z_dim': 100,
                                 'lrG': 0.0002,
                                 'lrD': 0.0001,
                                 'y_mean': ARRAY_CELEBA_LANDMARKS_5_MEAN,
