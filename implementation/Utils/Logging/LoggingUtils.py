@@ -54,7 +54,7 @@ class Logger:
         :param tag_name: tag_name of images in tensorboard
         :param columns: number of columns to display the images
         """
-        grid = vutils.make_grid(images, normalize=True, scale_each=True, nrow=columns)
+        grid = vutils.make_grid(images, normalize=False, scale_each=True, nrow=columns)
         self.writer.add_image(tag_name, grid, epoch)
 
     def save_model(self, epoch):

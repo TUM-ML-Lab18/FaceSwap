@@ -7,15 +7,15 @@ import torch.optim as optim
 
 from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_MEAN, ARRAY_CELEBA_LANDMARKS_COV
 from Models.CGAN.Discriminator import Discriminator
-from Models.CGAN.Generator import LatentDecoderGAN, Generator
+from Models.CGAN.Generator import Generator
 from Models.ModelUtils.ModelUtils import CombinedModels
 
 
 class CGAN(CombinedModels):
     def anonymize(self, x):
-        z = torch.ones((x.shape[0], self.z_dim, 1, 1)).cuda() * 0.5
-        # z = torch.randn((x.shape[0], self.z_dim, 1, 1)).cuda()
-        return self.G(z, x)
+        # z = torch.ones((x.shape[0], self.z_dim, 1, 1)).cuda() * 0.25
+        z = torch.randn((x.shape[0], self.z_dim, 1, 1)).cuda()
+        return (self.G(z, x) + 1.) / 2.
 
     def img2latent_bridge(self, extracted_face, extracted_information):
         landmarks_normalized_flat = np.reshape(
@@ -37,6 +37,10 @@ class CGAN(CombinedModels):
         landmarks_5 = np.vstack((eye_left_X, eye_left_Y, eye_right_X, eye_right_Y, nose_X, nose_Y, mouth_left_X,
                                  mouth_left_Y, mouth_right_X, mouth_right_Y)).T
 
+        mean = np.array([0.18269604, 0.2612222, 0.5438053, 0.2612222, 0.28630707,
+                         0.5341739, 0.18333682, 0.70732147, 0.45070747, 0.69178724]).astype(np.float32)
+
+        # return torch.from_numpy(mean).unsqueeze(-1).unsqueeze(-1).unsqueeze(0).cuda()
         return torch.from_numpy(landmarks_5).unsqueeze(-1).unsqueeze(-1).cuda()
         # return torch.from_numpy(landmarks_normalized_flat).unsqueeze(-1).unsqueeze(-1).unsqueeze(0).cuda()
 
@@ -97,8 +101,8 @@ class CGAN(CombinedModels):
             # landmarks_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
             #                                              size=(batch_size))[:, :, None, None]
             # landmarks_gen = torch.from_numpy(landmarks_gen).type(torch.float32)
-            #landmarks_gen = landmarks.clone()
-            #landmarks_gen[:-1:] = (landmarks_gen[:-1:] + landmarks_gen[1::]) / 2
+            # landmarks_gen = landmarks.clone()
+            # landmarks_gen[:-1:] = (landmarks_gen[:-1:] + landmarks_gen[1::]) / 2
             if self.cuda:
                 face, landmarks, z = face.cuda(), landmarks.cuda(), z.cuda()
                 landmarks_gen = landmarks.cuda()
@@ -162,8 +166,8 @@ class CGAN(CombinedModels):
             # y_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
             #                                      size=batch_size).astype('float32')
             # y_gen = torch.from_numpy(y_gen[:, :, None, None])
-            #landmarks_gen = landmarks.clone()
-            #landmarks_gen[:-1:] = (landmarks_gen[:-1:] + landmarks_gen[1::]) / 2
+            # landmarks_gen = landmarks.clone()
+            # landmarks_gen[:-1:] = (landmarks_gen[:-1:] + landmarks_gen[1::]) / 2
             if self.cuda:
                 face, landmarks, z = face.cuda(), landmarks.cuda(), z.cuda()
                 y_gen = landmarks.cuda()
