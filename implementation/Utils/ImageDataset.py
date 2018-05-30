@@ -1,14 +1,14 @@
-import torch
 from pathlib import Path
 
 import numpy as np
+import torch
+import torchvision.transforms as transforms
+from PIL.Image import BICUBIC
 from torch.utils.data import Dataset
 from torchvision.datasets import ImageFolder
-import torchvision.transforms as transforms
-from Preprocessor.Transforms import RandomWarp, TupleToTensor, TupleResize
-from PIL.Image import BICUBIC
 
 from Configuration.config_general import A, B, PREPROCESSED
+from Preprocessor.Transforms import RandomWarp, TupleToTensor, TupleResize
 
 
 class ImageDatesetCombined(Dataset):
@@ -78,6 +78,8 @@ class ImageFeatureDataset(Dataset):
                 features.append(feature)
             self.features = np.hstack(features)
             self.features = torch.from_numpy(self.features).type(torch.float32)
+            self.features *= 2.
+            self.features /= 2.
         else:
             self.features = None
         print('Data loaded.')
