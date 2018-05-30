@@ -87,115 +87,81 @@ class CGAN(CombinedModels):
             self.D.cuda()
             self.BCE_loss.cuda()
 
-    def train(self, train_data_loader, batch_size, **kwargs):
+    def _train(self, data_loader, batch_size, **kwargs):
+        # indicates if the graph should get updated
+        validate = kwargs.get('validate', False)
 
-        G_loss_mean, D_loss_mean = 0, 0
-        iterations = 0
+        # sum the loss for logging
+        g_loss_summed, d_loss_summed = 0, 0
+
         # Label vectors for loss function
-        y_real, y_fake = (torch.ones(batch_size, 1), torch.zeros(batch_size, 1))
-        if torch.cuda.is_available():
-            y_real, y_fake = y_real.cuda(), y_fake.cuda()
+        real_landmarks_label, landmarks_fake_label = (torch.ones(batch_size, 1), torch.zeros(batch_size, 1))
+        if self.cuda:
+            real_landmarks_label, landmarks_fake_label = real_landmarks_label.cuda(), landmarks_fake_label.cuda()
 
-        for face, landmarks in train_data_loader:
+        for faces, landmarks in data_loader:
+            # generate random vector
             z = torch.randn((batch_size, self.z_dim, 1, 1))
-            # landmarks_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
-            #                                              size=(batch_size))[:, :, None, None]
-            # landmarks_gen = torch.from_numpy(landmarks_gen).type(torch.float32)
-            # landmarks_gen = landmarks.clone()
-            # landmarks_gen[:-1:] = (landmarks_gen[:-1:] + landmarks_gen[1::]) / 2
+
+            # transfer everything to the gpu
             if self.cuda:
-                face, landmarks, z = face.cuda(), landmarks.cuda(), z.cuda()
+                faces, landmarks, z = faces.cuda(), landmarks.cuda(), z.cuda()
                 landmarks_gen = landmarks.cuda()
 
             # ========== Training discriminator
-            self.D_optimizer.zero_grad()
+            if not validate:
+                self.D_optimizer.zero_grad()
 
             # Train on real example with real features
-            D_real = self.D(face, landmarks)
-            D_real_loss = self.BCE_loss(D_real, y_real)  # real corresponds to log(D_real)
-            # make backward instantly
-            D_real_loss.backward()
-
-            # Train on real example with fake features
-            # D_fake_feature = self.D(face, landmarks)
-            # D_fake_feature_loss = self.BCE_loss(D_fake_feature, y_fake)
+            real_predictions = self.D(faces, landmarks)
+            d_real_predictions_loss = self.BCE_loss(real_predictions,
+                                                    real_landmarks_label)  # real corresponds to log(D_real)
+            if not validate:
+                # make backward instantly
+                d_real_predictions_loss.backward()
 
             # Train on fake example from generator
-            x_fake = self.G(z, landmarks_gen)
-            D_fake = self.D(x_fake.detach(), landmarks_gen)
-            D_fake_loss = self.BCE_loss(D_fake, y_fake)  # face corresponds to log(1-D_fake)
-            # make backward instantly
-            D_fake_loss.backward()
+            generated_images = self.G(z, landmarks_gen)
+            fake_predictions = self.D(generated_images.detach(),
+                                      landmarks_gen)  # todo what happens if we detach the output of the Discriminator
+            d_fake_predictions_loss = self.BCE_loss(fake_predictions,
+                                                    landmarks_fake_label)  # face corresponds to log(1-D_fake)
 
-            D_loss = D_real_loss + (D_fake_loss)  # + D_fake_feature_loss) / 2
+            if not validate:
+                # make backward instantly
+                d_fake_predictions_loss.backward()
 
-            # D_loss.backward()
-            self.D_optimizer.step()
+            d_loss = d_real_predictions_loss + d_fake_predictions_loss
+
+            if not validate:
+                # D_loss.backward()
+                self.D_optimizer.step()
 
             # ========== Training generator
-            self.G_optimizer.zero_grad()
-            # todo fix 2nd path
-            # https://pytorch.org/docs/stable/autograd.html?highlight=backward#torch.Tensor.backward
-            D_fake = self.D(x_fake, landmarks_gen)
-            G_loss = self.BCE_loss(D_fake, y_real)
+            if not validate:
+                self.G_optimizer.zero_grad()
 
-            G_loss.backward()
-            self.G_optimizer.step()
+            # Train on fooling the Discriminator
+            fake_predictions = self.D(generated_images, landmarks_gen)
+            g_loss = self.BCE_loss(fake_predictions, real_landmarks_label)
+
+            if not validate:
+                g_loss.backward()
+                self.G_optimizer.step()
 
             # losses
-            G_loss_mean += G_loss
-            D_loss_mean += D_loss
-            iterations += 1
+            g_loss_summed += g_loss
+            d_loss_summed += d_loss
 
-        G_loss_mean /= iterations
-        D_loss_mean /= iterations
+        return g_loss_summed.mean().cpu().data.numpy(), d_loss_summed.mean().cpu().data.numpy(), generated_images
 
-        return G_loss_mean.cpu().data.numpy(), D_loss_mean.cpu().data.numpy(), x_fake
+    def train(self, train_data_loader, batch_size, **kwargs):
+        g_loss, d_loss, generated_images = self._train(train_data_loader, batch_size, validate=False, **kwargs)
+        return g_loss, d_loss, generated_images
 
     def validate(self, validation_data_loader, batch_size, **kwargs):
-        G_loss_mean, D_loss_mean = 0, 0
-        iterations = 0
-
-        # Label vectors for loss function
-        y_real, y_fake = (torch.ones(batch_size, 1), torch.zeros(batch_size, 1))
-        if torch.cuda.is_available():
-            y_real, y_fake = y_real.cuda(), y_fake.cuda()
-
-        for face, landmarks in validation_data_loader:
-            z = torch.randn((batch_size, self.z_dim, 1, 1))
-            # y_gen = np.random.multivariate_normal(self.y_mean, self.y_cov,
-            #                                      size=batch_size).astype('float32')
-            # y_gen = torch.from_numpy(y_gen[:, :, None, None])
-            # landmarks_gen = landmarks.clone()
-            # landmarks_gen[:-1:] = (landmarks_gen[:-1:] + landmarks_gen[1::]) / 2
-            if self.cuda:
-                face, landmarks, z = face.cuda(), landmarks.cuda(), z.cuda()
-                landmarks_gen = landmarks.cuda()
-
-            # ========== Training discriminator
-            # Train on real example from dataset
-            D_real = self.D(face, landmarks)
-            D_real_loss = self.BCE_loss(D_real, y_real)
-
-            x_fake = self.G(z, landmarks_gen)
-            D_fake = self.D(x_fake.detach(), landmarks_gen)
-            D_fake_loss = self.BCE_loss(D_fake, y_fake)
-
-            D_loss = D_real_loss + D_fake_loss
-
-            # ========== Training generator
-            D_fake = self.D(x_fake, landmarks_gen)
-            G_loss = self.BCE_loss(D_fake, y_real)
-
-            # losses
-            G_loss_mean += G_loss
-            D_loss_mean += D_loss
-            iterations += 1
-
-        G_loss_mean /= iterations
-        D_loss_mean /= iterations
-
-        return G_loss_mean.cpu().data.numpy(), D_loss_mean.cpu().data.numpy(), x_fake
+        g_loss, d_loss, generated_images = self._train(validation_data_loader, batch_size, validate=True, **kwargs)
+        return g_loss, d_loss, generated_images
 
     def log(self, logger, epoch, lossG, lossD, images, log_images=False):  # last parameter is not needed anymore
         """
@@ -223,6 +189,6 @@ class CGAN(CombinedModels):
         example_indices = random.sample(range(0, examples - 1), 4 * 4)
         A = []
         for idx, i in enumerate(example_indices):
-            A.append(images[i] * 255.00)
+            A.append(images[i])
         tag = 'validation_output' if validation else 'training_output'
         logger.log_images(epoch, A, tag, 4)

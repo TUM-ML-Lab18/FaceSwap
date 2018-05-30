@@ -1,9 +1,7 @@
-import torch
 from pathlib import Path
 
-import numpy as np
-from PIL.Image import BICUBIC, LANCZOS
-from torchvision.transforms import ToTensor, ToPILImage
+from PIL.Image import BICUBIC
+from torchvision.transforms import ToPILImage
 
 from Preprocessor.FaceExtractor import FaceExtractor
 from Preprocessor.FaceReconstructor import FaceReconstructor
@@ -40,7 +38,6 @@ class Anonymizer:
             face_out = ToPILImage()(face_out.cpu().detach())
             # scale to original resolution
             face_out = face_out.resize(extracted_face.size, resample=BICUBIC)
-
             # Constructed scene with new face
             constructed_image = self.reconstructor(face_out, extracted_information)
 
