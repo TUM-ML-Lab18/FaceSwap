@@ -51,14 +51,12 @@ class Logger:
         """
         logs images to the tensorboard
         :param epoch: current epoch
-        :param images: list of images
+        :param images: list of images, scaled to 0-1
         :param tag_name: tag_name of images in tensorboard
         :param columns: number of columns to display the images
         """
         grid = vutils.make_grid(images, normalize=False, scale_each=False, nrow=columns)
         self.writer.add_image(tag_name, grid, epoch)
-        grid_normalized = vutils.make_grid(images, normalize=True, scale_each=False, nrow=columns)
-        self.writer.add_image(tag_name + "_normalized", grid_normalized, epoch)
 
     def save_model(self, epoch):
         if epoch % self.save_model_every_nth == 0:# and epoch > 0:

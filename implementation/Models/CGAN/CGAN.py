@@ -169,7 +169,7 @@ class CGAN(CombinedModels):
     def anonymize(self, x):
         # z = torch.ones((x.shape[0], self.z_dim, 1, 1)).cuda() * 0.25
         z = torch.randn((x.shape[0], self.z_dim, 1, 1)).cuda()
-        return (self.G(z, x) + 1.) / 2.
+        return self.G(z, x) * 0.5 + 0.5
 
     def img2latent_bridge(self, extracted_face, extracted_information):
         landmarks_normalized_flat = np.reshape(
