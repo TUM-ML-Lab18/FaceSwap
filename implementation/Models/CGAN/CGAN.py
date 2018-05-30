@@ -12,52 +12,6 @@ from Models.ModelUtils.ModelUtils import CombinedModels
 
 
 class CGAN(CombinedModels):
-    def anonymize(self, x):
-        # z = torch.ones((x.shape[0], self.z_dim, 1, 1)).cuda() * 0.25
-        z = torch.randn((x.shape[0], self.z_dim, 1, 1)).cuda()
-        return (self.G(z, x) + 1.) / 2.
-
-    def img2latent_bridge(self, extracted_face, extracted_information):
-        landmarks_normalized_flat = np.reshape(
-            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), -1).astype(
-            np.float32)
-        # landmarks_5
-        landmarks_X = landmarks_normalized_flat[::2]
-        landmarks_Y = landmarks_normalized_flat[1::2]
-        eye_left_X = np.mean(landmarks_X[36:42])
-        eye_left_Y = np.mean(landmarks_Y[36:42])
-        eye_right_X = np.mean(landmarks_X[42:48])
-        eye_right_Y = np.mean(landmarks_Y[42:48])
-        nose_X = np.mean(landmarks_X[31:36])
-        nose_Y = np.mean(landmarks_Y[31:36])
-        mouth_left_X = landmarks_X[48]
-        mouth_left_Y = landmarks_Y[48]
-        mouth_right_X = landmarks_X[60]
-        mouth_right_Y = landmarks_Y[60]
-        landmarks_5 = np.vstack((eye_left_X, eye_left_Y, eye_right_X, eye_right_Y, nose_X, nose_Y, mouth_left_X,
-                                 mouth_left_Y, mouth_right_X, mouth_right_Y)).T
-
-        mean = np.array([0.18269604, 0.2612222, 0.5438053, 0.2612222, 0.28630707,
-                         0.5341739, 0.18333682, 0.70732147, 0.45070747, 0.69178724]).astype(np.float32)
-
-        # return torch.from_numpy(mean).unsqueeze(-1).unsqueeze(-1).unsqueeze(0).cuda()
-        return torch.from_numpy(landmarks_5).unsqueeze(-1).unsqueeze(-1).cuda()
-        # return torch.from_numpy(landmarks_normalized_flat).unsqueeze(-1).unsqueeze(-1).unsqueeze(0).cuda()
-
-    def get_models(self):
-        return [self.G, self.D]
-
-    def get_model_names(self):
-        return ['generator', 'discriminator']
-
-    def __str__(self):
-        string = super().__str__()
-        string += str(self.G_optimizer) + '\n'
-        string += str(self.D_optimizer) + '\n'
-        string += str(self.BCE_loss) + '\n'
-        string = string.replace('\n', '\n\n')
-        return string
-
     def __init__(self, **kwargs):
         self.z_dim = kwargs.get('z_dim', 100)
         self.y_dim = kwargs.get('y_dim', 10)
@@ -86,6 +40,14 @@ class CGAN(CombinedModels):
             self.G.cuda()
             self.D.cuda()
             self.BCE_loss.cuda()
+
+    def __str__(self):
+        string = super().__str__()
+        string += str(self.G_optimizer) + '\n'
+        string += str(self.D_optimizer) + '\n'
+        string += str(self.BCE_loss) + '\n'
+        string = string.replace('\n', '\n\n')
+        return string
 
     def _train(self, data_loader, batch_size, **kwargs):
         # indicates if the graph should get updated
@@ -163,6 +125,12 @@ class CGAN(CombinedModels):
         g_loss, d_loss, generated_images = self._train(validation_data_loader, batch_size, validate=True, **kwargs)
         return g_loss, d_loss, generated_images
 
+    def get_models(self):
+        return [self.G, self.D]
+
+    def get_model_names(self):
+        return ['generator', 'discriminator']
+
     def log(self, logger, epoch, lossG, lossD, images, log_images=False):  # last parameter is not needed anymore
         """
         use logger to log current loss etc...
@@ -192,3 +160,35 @@ class CGAN(CombinedModels):
             A.append(images[i])
         tag = 'validation_output' if validation else 'training_output'
         logger.log_images(epoch, A, tag, 4)
+
+    def anonymize(self, x):
+        # z = torch.ones((x.shape[0], self.z_dim, 1, 1)).cuda() * 0.25
+        z = torch.randn((x.shape[0], self.z_dim, 1, 1)).cuda()
+        return (self.G(z, x) + 1.) / 2.
+
+    def img2latent_bridge(self, extracted_face, extracted_information):
+        landmarks_normalized_flat = np.reshape(
+            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), -1).astype(
+            np.float32)
+        # landmarks_5
+        landmarks_X = landmarks_normalized_flat[::2]
+        landmarks_Y = landmarks_normalized_flat[1::2]
+        eye_left_X = np.mean(landmarks_X[36:42])
+        eye_left_Y = np.mean(landmarks_Y[36:42])
+        eye_right_X = np.mean(landmarks_X[42:48])
+        eye_right_Y = np.mean(landmarks_Y[42:48])
+        nose_X = np.mean(landmarks_X[31:36])
+        nose_Y = np.mean(landmarks_Y[31:36])
+        mouth_left_X = landmarks_X[48]
+        mouth_left_Y = landmarks_Y[48]
+        mouth_right_X = landmarks_X[60]
+        mouth_right_Y = landmarks_Y[60]
+        landmarks_5 = np.vstack((eye_left_X, eye_left_Y, eye_right_X, eye_right_Y, nose_X, nose_Y, mouth_left_X,
+                                 mouth_left_Y, mouth_right_X, mouth_right_Y)).T
+
+        mean = np.array([0.18269604, 0.2612222, 0.5438053, 0.2612222, 0.28630707,
+                         0.5341739, 0.18333682, 0.70732147, 0.45070747, 0.69178724]).astype(np.float32)
+
+        # return torch.from_numpy(mean).unsqueeze(-1).unsqueeze(-1).unsqueeze(0).cuda()
+        return torch.from_numpy(landmarks_5).unsqueeze(-1).unsqueeze(-1).cuda()
+        # return torch.from_numpy(landmarks_normalized_flat).unsqueeze(-1).unsqueeze(-1).unsqueeze(0).cuda()
