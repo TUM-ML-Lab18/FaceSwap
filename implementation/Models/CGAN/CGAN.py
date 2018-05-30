@@ -55,6 +55,7 @@ class CGAN(CombinedModels):
 
         # sum the loss for logging
         g_loss_summed, d_loss_summed = 0, 0
+        iterations = 0
 
         # Label vectors for loss function
         real_landmarks_label, landmarks_fake_label = (torch.ones(batch_size, 1), torch.zeros(batch_size, 1))
@@ -114,8 +115,12 @@ class CGAN(CombinedModels):
             # losses
             g_loss_summed += g_loss
             d_loss_summed += d_loss
+            iterations += 1
 
-        return g_loss_summed.mean().cpu().data.numpy(), d_loss_summed.mean().cpu().data.numpy(), generated_images
+        g_loss_summed /= iterations
+        d_loss_summed /= iterations
+
+        return g_loss_summed.cpu().data.numpy(), d_loss_summed.cpu().data.numpy(), generated_images
 
     def train(self, train_data_loader, batch_size, **kwargs):
         g_loss, d_loss, generated_images = self._train(train_data_loader, batch_size, validate=False, **kwargs)
