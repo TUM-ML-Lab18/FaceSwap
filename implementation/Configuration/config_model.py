@@ -75,7 +75,7 @@ lm_lowres_annotations_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CELE
 lm_lowres_annotations_config['model'] = lambda img_size: LowResAnnotationModel(
     decoder=lambda: LatentDecoder(72 * 2 + 8 * 8 * 3 + 40))
 
-cgan_config = {'batch_size': 1024,
+cgan_config = {'batch_size': 64,
                'model': CGAN,
                'model_params': {'y_dim': 10,
                                 'z_dim': 100,
