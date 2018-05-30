@@ -156,8 +156,8 @@ class CGAN(CombinedModels):
 
     def log_images(self, logger, epoch, images, validation=True):
         images = images.cpu()
-        images += 1.0
-        images *= 127.5
+        images *= .5
+        images += .5
         examples = int(len(images))
         example_indices = random.sample(range(0, examples - 1), 4 * 4)
         A = []
