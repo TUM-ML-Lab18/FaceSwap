@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.distributions import MultivariateNormal
 
 from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_MEAN, ARRAY_CELEBA_LANDMARKS_COV
 from Models.CGAN.Discriminator import Discriminator
@@ -32,8 +33,9 @@ class CGAN(CombinedModels):
         self.BCE_loss = nn.BCELoss()
 
         # gaussian distribution of our landmarks
-        self.y_mean = np.load(path_to_y_mean)
-        self.y_cov = np.load(path_to_y_cov)
+        self.landmarks_mean = torch.from_numpy(np.load(path_to_y_mean))
+        self.landmarks_cov = torch.from_numpy(np.load(path_to_y_cov))
+        self.distribution = MultivariateNormal(loc=self.landmarks_mean, covariance_matrix=self.landmarks_cov)
 
         if torch.cuda.is_available():
             self.cuda = True
@@ -66,10 +68,14 @@ class CGAN(CombinedModels):
             # generate random vector
             z = torch.randn((batch_size, self.z_dim, 1, 1))
 
+            # generate landmarks
+            landmarks_gen = self.distribution.sample(sample_shape=(batch_size,)).type(torch.float32).unsqueeze(
+                -1).unsqueeze(-1)
+
             # transfer everything to the gpu
             if self.cuda:
                 faces, landmarks, z = faces.cuda(), landmarks.cuda(), z.cuda()
-                landmarks_gen = landmarks.cuda()
+                landmarks_gen = landmarks_gen.cuda()
 
             # ========== Training discriminator
             if not validate:
@@ -79,22 +85,31 @@ class CGAN(CombinedModels):
             real_predictions = self.D(faces, landmarks)
             d_real_predictions_loss = self.BCE_loss(real_predictions,
                                                     real_landmarks_label)  # real corresponds to log(D_real)
+
             if not validate:
                 # make backward instantly
                 d_real_predictions_loss.backward()
 
-            # Train on fake example from generator
-            generated_images = self.G(z, landmarks_gen)
-            fake_predictions = self.D(generated_images.detach(),
-                                      landmarks_gen)  # todo what happens if we detach the output of the Discriminator
-            d_fake_predictions_loss = self.BCE_loss(fake_predictions,
-                                                    landmarks_fake_label)  # face corresponds to log(1-D_fake)
+            # Train on real example with fake features
+            fake_labels_predictions = self.D(faces, landmarks_gen)
+            d_fake_labels_loss = self.BCE_loss(fake_labels_predictions, landmarks_fake_label) / 2
 
             if not validate:
                 # make backward instantly
-                d_fake_predictions_loss.backward()
+                d_fake_labels_loss.backward()
 
-            d_loss = d_real_predictions_loss + d_fake_predictions_loss
+            # Train on fake example from generator
+            generated_images = self.G(z, landmarks)
+            fake_images_predictions = self.D(generated_images.detach(),
+                                             landmarks)  # todo what happens if we detach the output of the Discriminator
+            d_fake_images_loss = self.BCE_loss(fake_images_predictions,
+                                               landmarks_fake_label) / 2  # face corresponds to log(1-D_fake)
+
+            if not validate:
+                # make backward instantly
+                d_fake_images_loss.backward()
+
+            d_loss = d_real_predictions_loss + (d_fake_labels_loss + d_fake_images_loss) / 2
 
             if not validate:
                 # D_loss.backward()
@@ -105,8 +120,8 @@ class CGAN(CombinedModels):
                 self.G_optimizer.zero_grad()
 
             # Train on fooling the Discriminator
-            fake_predictions = self.D(generated_images, landmarks_gen)
-            g_loss = self.BCE_loss(fake_predictions, real_landmarks_label)
+            fake_images_predictions = self.D(generated_images, landmarks)
+            g_loss = self.BCE_loss(fake_images_predictions, real_landmarks_label)
 
             if not validate:
                 g_loss.backward()

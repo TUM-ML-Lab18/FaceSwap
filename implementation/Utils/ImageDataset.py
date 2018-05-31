@@ -78,8 +78,8 @@ class ImageFeatureDataset(Dataset):
                 features.append(feature)
             self.features = np.hstack(features)
             self.features = torch.from_numpy(self.features).type(torch.float32)
-            self.features *= 2.
-            self.features /= 2.
+            # self.features *= 2.
+            # self.features /= 2.
         else:
             self.features = None
         print('Data loaded.')
