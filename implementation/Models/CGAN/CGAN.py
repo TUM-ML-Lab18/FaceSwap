@@ -109,7 +109,7 @@ class CGAN(CombinedModels):
                 # make backward instantly
                 d_fake_images_loss.backward()
 
-            d_loss = d_real_predictions_loss + (d_fake_labels_loss + d_fake_images_loss) / 2
+            d_loss = d_real_predictions_loss + d_fake_labels_loss + d_fake_images_loss
 
             if not validate:
                 # D_loss.backward()
