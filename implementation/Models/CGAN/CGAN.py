@@ -99,9 +99,9 @@ class CGAN(CombinedModels):
                 d_fake_labels_loss.backward()
 
             # Train on fake example from generator
-            generated_images = self.G(z, landmarks_gen)
+            generated_images = self.G(z, landmarks)
             fake_images_predictions = self.D(generated_images.detach(),
-                                             landmarks_gen)  # todo what happens if we detach the output of the Discriminator
+                                             landmarks)  # todo what happens if we detach the output of the Discriminator
             d_fake_images_loss = self.BCE_loss(fake_images_predictions,
                                                landmarks_fake_label) / 2  # face corresponds to log(1-D_fake)
 
@@ -120,7 +120,7 @@ class CGAN(CombinedModels):
                 self.G_optimizer.zero_grad()
 
             # Train on fooling the Discriminator
-            fake_images_predictions = self.D(generated_images, landmarks_gen)
+            fake_images_predictions = self.D(generated_images, landmarks)
             g_loss = self.BCE_loss(fake_images_predictions, real_landmarks_label)
 
             if not validate:

@@ -1,9 +1,10 @@
-import cv2
 from pathlib import Path
+
+import cv2
 from pytube import YouTube
 
-from Utils.Logging.LoggingUtils import print_progress_bar
 from Configuration.config_general import VIDEO_DOWNLOADER
+from Utils.Logging.LoggingUtils import print_progress_bar
 
 
 class VideoDownloader:
@@ -13,8 +14,8 @@ class VideoDownloader:
             VIDEO_DOWNLOADER)
 
     @staticmethod
-    def extract_frames():
-        path = Path(VIDEO_DOWNLOADER)
+    def extract_frames(path=VIDEO_DOWNLOADER):
+        path = Path(path)
         for video_file in path.iterdir():
             if video_file.is_dir():
                 continue
@@ -28,15 +29,17 @@ class VideoDownloader:
 
             frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 
-            f = int(frames // 4)
+            record_every_nth_frame = 30
+
+            f = int(frames // record_every_nth_frame)
 
             for i in range(1, f + 1):
                 print_progress_bar(i, f)
-                cap.set(1, i * 4 - 1)
+                cap.set(1, i * record_every_nth_frame - 1)
                 success, image = cap.read(1)
                 if not success:
                     break
-                cv2.imwrite(str(folder / f"{i*4}.jpg"), image)
+                cv2.imwrite(str(folder / f"{i*record_every_nth_frame}.jpg"), image)
 
             cap.release()
 
