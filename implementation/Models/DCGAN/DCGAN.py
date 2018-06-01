@@ -51,7 +51,7 @@ class DCGAN(CombinedModel):
         validate = kwargs.get('validate', False)
 
         # Label vectors for loss function
-        label_real, label_fake = (torch.ones(batch_size, 1, 1), torch.zeros(batch_size, 1, 1))
+        label_real, label_fake = (torch.ones(batch_size), torch.zeros(batch_size))
         if self.cuda:
             label_real, label_fake = label_real.cuda(), label_fake.cuda()
 
@@ -60,15 +60,16 @@ class DCGAN(CombinedModel):
         iterations = 0
 
         for data in data_loader:
+            noise = torch.randn(batch_size, self.nz, 1, 1)
             if self.cuda:
                 data = data.cuda()
+                noise = noise.cuda()
             ############################
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
             ###########################
             # train with real
             if not validate:
                 self.d.zero_grad()
-            data = data.cuda()
 
             output = self.d(data)
             errD_real = self.BCE_loss(output, label_real)
@@ -77,7 +78,6 @@ class DCGAN(CombinedModel):
                 errD_real.backward()
 
             # train with fake
-            noise = torch.randn(batch_size, self.nz, 1, 1).cuda()
             fake = self.g(noise)
             output = self.d(fake.detach())
             errD_fake = self.BCE_loss(output, label_fake)
