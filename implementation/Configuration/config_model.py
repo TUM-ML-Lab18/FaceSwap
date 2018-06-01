@@ -90,20 +90,20 @@ cgan_config = {'batch_size': 64,
 dcgan_config = {'batch_size': 64,
                 'model': DCGAN,
                 'model_params': {},
-                'dataset2': lambda: CIFAR10(root='./Models/DCGAN/download', download=True,
-                                            transform=transforms.Compose([
-                                                transforms.Resize(64),
-                                                transforms.ToTensor(),
-                                                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                                            ])),
-                'dataset': lambda: ImageFolder(
-                    root='/nfs/students/summer-term-2018/project_2/data/CelebA/preprocessed64',
-                    transform=transforms.Compose([
-                        transforms.Resize(64),
-                        transforms.ToTensor(),
-                        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                    ]))
-                # 'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, None)
+                # 'dataset2': lambda: CIFAR10(root='./Models/DCGAN/download', download=True,
+                #                             transform=transforms.Compose([
+                #                                 transforms.Resize(64),
+                #                                 transforms.ToTensor(),
+                #                                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                #                             ])),
+                # 'dataset': lambda: ImageFolder(
+                #     root='/nfs/students/summer-term-2018/project_2/data/CelebA/preprocessed64',
+                #     transform=transforms.Compose([
+                #         transforms.Resize(64),
+                #         transforms.ToTensor(),
+                #         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                #     ]))
+                'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, None)
                 }
 
 current_config = dcgan_config
