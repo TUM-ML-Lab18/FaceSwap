@@ -1,8 +1,8 @@
 from abc import abstractmethod
 from pathlib import Path
 
-import torch.nn as nn
 import torch
+import torch.nn as nn
 
 
 class CustomModule(nn.Module):
@@ -41,17 +41,12 @@ class CustomModule(nn.Module):
 
     @staticmethod
     def weights_init(m):
-        """
-        TODO
-        :return:
-        """
         classname = m.__class__.__name__
         if classname.find('Conv') != -1:
             m.weight.data.normal_(0.0, 0.02)
         elif classname.find('BatchNorm') != -1:
             m.weight.data.normal_(1.0, 0.02)
             m.bias.data.fill_(0)
-        pass
 
 
 class CombinedModels:
