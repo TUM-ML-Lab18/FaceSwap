@@ -64,8 +64,9 @@ class ImageFeatureDataset(Dataset):
         if path_to_image_array is not None:
             self.images = np.load(path_to_image_array)
             self.images = torch.from_numpy(self.images).type(torch.float32)
-            self.images -= 127.5
-            self.images /= 127.5
+            # self.images -= 127.5
+            # self.images /= 127.5
+            self.images /= 255.
         else:
             self.images = None
         if paths_to_feature_arrays is not None:
@@ -88,9 +89,7 @@ class ImageFeatureDataset(Dataset):
         return len(self.images)
 
     def __getitem__(self, index):
-        images, features = None, None
-        if self.images is not None:
-            images = self.images[index]
-        if self.features is not None:
-            features = self.features[index]
-        return images, features
+        if self.features is None:
+            return self.images[index]
+        else:
+            return self.images[index], self.features[index]

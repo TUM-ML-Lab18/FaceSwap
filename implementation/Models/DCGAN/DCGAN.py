@@ -1,5 +1,3 @@
-import random
-
 import torch
 from torch import optim, nn
 
@@ -59,7 +57,9 @@ class DCGAN(CombinedModel):
         g_loss_summed, d_loss_summed = 0, 0
         iterations = 0
 
-        for i, data in enumerate(data_loader):
+        for data in data_loader:
+            # if self.cuda:
+            # data = data.cuda()
             ############################
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
             ###########################
@@ -140,14 +140,14 @@ class DCGAN(CombinedModel):
             self.log_images(logger, epoch, images, validation=False)
 
     def log_images(self, logger, epoch, images, validation=True):
-        images = images.cpu()
-        examples = int(len(images))
-        example_indices = random.sample(range(0, examples - 1), 4 * 4)
-        A = []
-        for idx, i in enumerate(example_indices):
-            A.append(images[i])
+        # images = images.cpu()
+        # examples = int(len(images))
+        # example_indices = random.sample(range(0, examples - 1), 4 * 4)
+        # A = []
+        # for idx, i in enumerate(example_indices):
+        #    A.append(images[i])
         tag = 'validation_output' if validation else 'training_output'
-        logger.log_images(epoch, A, tag, 4)
+        logger.log_images(epoch, images, tag, 8)
 
     def log_validation(self, logger, epoch, lossG, lossD, g_mean, d_mean, images):
         logger.log_loss(epoch=epoch,
