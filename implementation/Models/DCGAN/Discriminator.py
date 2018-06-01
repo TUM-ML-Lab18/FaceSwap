@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 
 from Models.ModelUtils.ModelUtils import CustomModule
@@ -6,6 +7,7 @@ from Models.ModelUtils.ModelUtils import CustomModule
 class Discriminator(CustomModule):
     def __init__(self, nc=3, ndf=64):
         super(Discriminator, self).__init__()
+        self.ngpu = torch.cuda.device_count()
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
@@ -30,7 +32,7 @@ class Discriminator(CustomModule):
         self.apply(self.weights_init)
 
     def forward(self, input):
-        if input.is_cuda:
+        if input.is_cuda and self.ngpu > 1:
             output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
         else:
             output = self.main(input)

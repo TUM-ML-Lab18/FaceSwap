@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 
 from Models.ModelUtils.ModelUtils import CustomModule
@@ -6,6 +7,7 @@ from Models.ModelUtils.ModelUtils import CustomModule
 class Generator(CustomModule):
     def __init__(self, nc=3, nz=100, ngf=64):
         super(Generator, self).__init__()
+        self.ngpu = torch.cuda.device_count()
         self.main = nn.Sequential(
             # input is Z, going into a convolution
             nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
@@ -31,7 +33,7 @@ class Generator(CustomModule):
         self.apply(self.weights_init)
 
     def forward(self, input):
-        if input.is_cuda:
+        if input.is_cuda and self.ngpu > 1:
             output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
         else:
             output = self.main(input)

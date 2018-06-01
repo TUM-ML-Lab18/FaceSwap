@@ -1,7 +1,9 @@
+from torchvision.datasets import CIFAR10
 from torchvision.transforms import ToTensor
 
 from Configuration.config_general import *
 from Models.CGAN.CGAN import CGAN
+from Models.DCGAN.DCGAN import DCGAN
 from Models.DeepFake.Autoencoder import AutoEncoder
 from Models.DeepFake.Decoder import Decoder
 from Models.DeepFake.DeepFakeOriginal import DeepFakeOriginal
@@ -85,4 +87,14 @@ cgan_config = {'batch_size': 64,
                                 'y_cov': ARRAY_CELEBA_LANDMARKS_5_COV},
                'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_5)}
 
-current_config = cgan_config
+dcgan_config = {'batch_size': 64,
+                'model': DCGAN,
+                'model_params': {},
+                'dataset': lambda: CIFAR10(root='./Models/DCGAN/download', download=True,
+                                           transform=transforms.Compose([
+                                               transforms.Resize(64),
+                                               transforms.ToTensor(),
+                                               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                                           ]))}
+
+current_config = dcgan_config

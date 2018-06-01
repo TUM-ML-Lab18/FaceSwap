@@ -9,7 +9,7 @@ from Models.ModelUtils.ModelUtils import CombinedModel
 
 
 class DCGAN(CombinedModel):
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.batch_size = 64
         self.image_size = (64, 64, 3)
         self.nz = 100
@@ -113,7 +113,7 @@ class DCGAN(CombinedModel):
         g_loss_summed /= iterations
         d_loss_summed /= iterations
 
-        return g_loss_summed.cpu().data.numpy(), d_loss_summed.cpu().data.numpy(), D_G_z1.cpu().data.numpy(), D_G_z2.cpu().data.numpy(), fake
+        return g_loss_summed.cpu().data.numpy(), d_loss_summed.cpu().data.numpy(), D_G_z1, D_G_z2, fake
 
     def train(self, train_data_loader, batch_size, **kwargs):
         g_loss, d_loss, g_mean, d_mean, generated_images = self._train(train_data_loader, batch_size, validate=False,
