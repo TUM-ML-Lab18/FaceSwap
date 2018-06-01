@@ -1,20 +1,18 @@
-from abc import abstractmethod
-from pathlib import Path
-
 import random
+from abc import abstractmethod
 
 import numpy as np
 import torch
 from PIL.Image import BICUBIC
+from torch.nn import DataParallel
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.nn import DataParallel
 from torchvision.transforms import ToTensor
 
-from Models.ModelUtils.ModelUtils import CombinedModels
+from Models.ModelUtils.ModelUtils import CombinedModel
 
 
-class LatentModel(CombinedModels):
+class LatentModel(CombinedModel):
     def __init__(self, decoder):
         self.decoder = decoder()
 

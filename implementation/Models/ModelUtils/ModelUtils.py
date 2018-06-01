@@ -49,7 +49,7 @@ class CustomModule(nn.Module):
             m.bias.data.fill_(0)
 
 
-class CombinedModels:
+class CombinedModel:
     @abstractmethod
     def get_models(self):
         pass

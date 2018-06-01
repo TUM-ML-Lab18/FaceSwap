@@ -9,10 +9,10 @@ from torch.distributions import MultivariateNormal
 from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_MEAN, ARRAY_CELEBA_LANDMARKS_COV
 from Models.CGAN.Discriminator import Discriminator
 from Models.CGAN.Generator import Generator
-from Models.ModelUtils.ModelUtils import CombinedModels
+from Models.ModelUtils.ModelUtils import CombinedModel
 
 
-class CGAN(CombinedModels):
+class CGAN(CombinedModel):
     def __init__(self, **kwargs):
         self.z_dim = kwargs.get('z_dim', 100)
         self.y_dim = kwargs.get('y_dim', 10)
