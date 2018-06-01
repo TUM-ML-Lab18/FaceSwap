@@ -44,9 +44,6 @@ class ImageDatesetCombined(Dataset):
         return self.dataset_a[i][0], self.dataset_b[i][0]
 
 
-Data = namedtuple('Data', ['images', 'features'])
-
-
 class ImageFeatureDataset(Dataset):
     """
     Generic data set class to load
