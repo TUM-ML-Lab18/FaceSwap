@@ -1,16 +1,16 @@
-import cv2
-import numpy as np
-
-from Utils.Anonymizer import Anonymizer
-from PIL import Image
 from pathlib import Path
 
-from Utils.Logging.LoggingUtils import print_progress_bar
+import cv2
+import numpy as np
+from PIL import Image
+
 from Configuration.config_model import current_config
+from Utils.Anonymizer import Anonymizer
+from Utils.Logging.LoggingUtils import print_progress_bar
 
 
 def convert_images():
-    anonymizer = Anonymizer(model_folder='model',
+    anonymizer = Anonymizer(model_folder='logs/2018-05-31 17:07:50.201058/model',
                             config=current_config)
     path = Path('/nfs/students/summer-term-2018/project_2/test/')
     path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')
