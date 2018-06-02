@@ -8,7 +8,6 @@ from Models.ModelUtils.ModelUtils import CombinedModel
 
 class DCGAN(CombinedModel):
     def __init__(self, **kwargs):
-        self.batch_size = 64
         self.image_size = (64, 64, 3)
         self.nz = 100
         self.ngf = 64
