@@ -5,13 +5,13 @@ from Models.ModelUtils.ModelUtils import CustomModule
 
 
 class Discriminator(CustomModule):
-    def __init__(self, y_dim=10, input_dim=(64, 64, 3), ndf=32):
+    def __init__(self, y_dim=10, input_dim=(64, 64, 3), ndf=64):
         """
         Initializer for a Discriminator object
         :param y_dim: Dimensionality of feature vector
         :param input_dim: Size of the input vectors
                           Tuple of integers - (W, H, C)
-        :param ngf: Number of generator filters in the last conv layer
+        :param ndf: Number of generator filters in the last conv layer
                            TODO: Investigate relation to image size => Maybe ngf==W ?
         """
         super(Discriminator, self).__init__()

@@ -1,4 +1,3 @@
-from torchvision.datasets import CIFAR10
 from torchvision.transforms import ToTensor
 
 from Configuration.config_general import *
@@ -8,9 +7,9 @@ from Models.DeepFake.Autoencoder import AutoEncoder
 from Models.DeepFake.Decoder import Decoder
 from Models.DeepFake.DeepFakeOriginal import DeepFakeOriginal
 from Models.DeepFake.Encoder import Encoder
-from Models.LatentModel.Decoder import LatentDecoder, LatentReducedDecoder
+from Models.LatentModel.Decoder import LatentDecoder
 from Models.LatentModel.LatentModel import LatentModel, LowResAnnotationModel, HistAnnotationModel, HistModel, \
-    LowResModel, HistReducedModel
+    LowResModel
 from Utils.ImageDataset import *
 
 standard_config = {'batch_size': 64,
@@ -50,17 +49,6 @@ lm_lowres_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64
                                                           [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_HISTO])
 lm_hist_config['model'] = lambda img_size: HistModel(decoder=lambda: LatentDecoder(72 * 2 + 768))
 
-###### config for using landmarks as well as a histogram of the target as input (reduced with dropout)
-lm_hist_reduced_config = landmarks_config.copy()
-lm_hist_reduced_config['img_size'] = (64, 64)
-lm_hist_reduced_config['batch_size'] = 64
-lm_hist_reduced_config['dataset'] = lambda root_folder, img_size: LandmarksHistDataset(root_folder=root_folder,
-                                                                                       size_multiplicator=1,
-                                                                                       img_size=img_size, bins=100)
-
-lm_hist_reduced_config['model'] = lambda img_size: HistReducedModel(
-    decoder=lambda: LatentReducedDecoder(72 * 2 + 100 * 3))
-
 ###### config for using landmarks as well as a histogram as well as annotations of the target as input
 lm_hist_annotations_config = lm_hist_config.copy()
 lm_hist_annotations_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64,
@@ -79,31 +67,31 @@ lm_lowres_annotations_config['model'] = lambda img_size: LowResAnnotationModel(
 
 cgan_config = {'batch_size': 64,
                'model': CGAN,
-               'model_params': {'y_dim': 10,
+               'model_params': {'y_dim': 20,
                                 'z_dim': 100,
                                 'lrG': 0.0002,
-                                'lrD': 0.0001,
-                                'y_mean': ARRAY_CELEBA_LANDMARKS_5_MEAN,
-                                'y_cov': ARRAY_CELEBA_LANDMARKS_5_COV},
-               'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_5)}
+                                'lrD': 0.0002,
+                                'y_mean': ARRAY_CELEBA_LANDMARKS_10_MEAN,
+                                'y_cov': ARRAY_CELEBA_LANDMARKS_10_COV},
+               'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_10)}
 
 dcgan_config = {'batch_size': 64,
                 'model': DCGAN,
                 'model_params': {},
-                'dataset2': lambda: CIFAR10(root='./Models/DCGAN/download', download=True,
-                                            transform=transforms.Compose([
-                                                transforms.Resize(64),
-                                                transforms.ToTensor(),
-                                                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                                            ])),
-                'dataset': lambda: ImageFolder(
-                    root='/nfs/students/summer-term-2018/project_2/data/CelebA/preprocessed64',
-                    transform=transforms.Compose([
-                        transforms.Resize(64),
-                        transforms.ToTensor(),
-                        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                    ]))
-                # 'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, None)
+                # 'dataset2': lambda: CIFAR10(root='./Models/DCGAN/download', download=True,
+                #                             transform=transforms.Compose([
+                #                                 transforms.Resize(64),
+                #                                 transforms.ToTensor(),
+                #                                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                #                             ])),
+                # 'dataset': lambda: ImageFolder(
+                #     root='/nfs/students/summer-term-2018/project_2/data/CelebA/preprocessed64',
+                #     transform=transforms.Compose([
+                #         transforms.Resize(64),
+                #         transforms.ToTensor(),
+                #         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                #     ]))
+                'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, None)
                 }
 
-current_config = dcgan_config
+current_config = cgan_config

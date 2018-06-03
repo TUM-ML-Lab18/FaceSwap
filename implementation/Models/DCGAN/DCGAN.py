@@ -8,7 +8,6 @@ from Models.ModelUtils.ModelUtils import CombinedModel
 
 class DCGAN(CombinedModel):
     def __init__(self, **kwargs):
-        self.batch_size = 64
         self.image_size = (64, 64, 3)
         self.nz = 100
         self.ngf = 64
@@ -32,9 +31,6 @@ class DCGAN(CombinedModel):
         self.G_optimizer = optim.Adam(self.g.parameters(), lr=lrG, betas=(beta1, beta2))
         self.D_optimizer = optim.Adam(self.d.parameters(), lr=lrD, betas=(beta1, beta2))
 
-        self.real_label = 1
-        self.fake_label = 0
-
     def __str__(self):
         string = super().__str__()
         string += str(self.G_optimizer) + '\n'
@@ -53,37 +49,37 @@ class DCGAN(CombinedModel):
         # indicates if the graph should get updated
         validate = kwargs.get('validate', False)
 
+        # Label vectors for loss function
+        label_real, label_fake = (torch.ones(batch_size), torch.zeros(batch_size))
+        if self.cuda:
+            label_real, label_fake = label_real.cuda(), label_fake.cuda()
+
         # sum the loss for logging
         g_loss_summed, d_loss_summed = 0, 0
         iterations = 0
 
         for data in data_loader:
-            # if self.cuda:
-            # data = data.cuda()
+            noise = torch.randn(batch_size, self.nz, 1, 1)
+            if self.cuda:
+                data = data.cuda()
+                noise = noise.cuda()
             ############################
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
             ###########################
             # train with real
             if not validate:
                 self.d.zero_grad()
-            real_cpu = data[0].cuda()
-            batch_size = real_cpu.size(0)
-            label = torch.full((batch_size,), self.real_label).cuda()
 
-            output = self.d(real_cpu)
-            errD_real = self.BCE_loss(output, label)
+            output = self.d(data)
+            errD_real = self.BCE_loss(output, label_real)
 
             if not validate:
                 errD_real.backward()
 
-            D_x = output.mean().item()
-
             # train with fake
-            noise = torch.randn(batch_size, self.nz, 1, 1).cuda()
             fake = self.g(noise)
-            label.fill_(self.fake_label)
             output = self.d(fake.detach())
-            errD_fake = self.BCE_loss(output, label)
+            errD_fake = self.BCE_loss(output, label_fake)
             if not validate:
                 errD_fake.backward()
             D_G_z1 = output.mean().item()
@@ -96,9 +92,8 @@ class DCGAN(CombinedModel):
             ###########################
             if not validate:
                 self.g.zero_grad()
-            label.fill_(self.real_label)  # fake labels are real for generator cost
             output = self.d(fake)
-            errG = self.BCE_loss(output, label)
+            errG = self.BCE_loss(output, label_real)
             if not validate:
                 errG.backward()
             D_G_z2 = output.mean().item()

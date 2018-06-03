@@ -8,7 +8,7 @@ import torch.nn as nn
 class CustomModule(nn.Module):
     @abstractmethod
     def forward(self, *input):
-        pass
+        raise NotImplementedError
 
     @property
     def is_cuda(self):
@@ -52,27 +52,27 @@ class CustomModule(nn.Module):
 class CombinedModel:
     @abstractmethod
     def get_models(self):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def get_model_names(self):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def train(self, train_data_loader, batch_size, **kwargs):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def validate(self, validation_data_loader, batch_size, **kwargs):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def log(self, *info):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def log_validation(self, *info):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def __str__(self):
@@ -120,11 +120,11 @@ class CombinedModel:
 
     @abstractmethod
     def img2latent_bridge(self, extracted_face, extracted_information):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def anonymize(self, x):
-        pass
+        raise NotImplementedError
 
 
 class ConvBlock(nn.Module):

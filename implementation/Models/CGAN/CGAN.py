@@ -1,5 +1,3 @@
-import random
-
 import numpy as np
 import torch
 import torch.nn as nn
@@ -20,13 +18,14 @@ class CGAN(CombinedModel):
         path_to_y_mean = kwargs.get('y_mean', ARRAY_CELEBA_LANDMARKS_MEAN)
         path_to_y_cov = kwargs.get('y_cov', ARRAY_CELEBA_LANDMARKS_COV)
         lrG = kwargs.get('lrG', 0.0002)
-        lrD = kwargs.get('lrD', 0.0001)
+        lrD = kwargs.get('lrD', 0.0002)
+        beta1 = kwargs.get('beta1', 0.5)
+        beta2 = kwargs.get('beta2', 0.999)
 
         # self.G = LatentDecoderGAN(input_dim=self.z_dim + self.y_dim)
         self.G = Generator(input_dim=(self.z_dim, self.y_dim), output_dim=self.img_dim, ngf=32)
         self.D = Discriminator(y_dim=self.y_dim, input_dim=self.img_dim, ndf=32)
 
-        beta1, beta2 = 0.5, 0.999
         self.G_optimizer = optim.Adam(self.G.parameters(), lr=lrG, betas=(beta1, beta2))
         self.D_optimizer = optim.Adam(self.D.parameters(), lr=lrD, betas=(beta1, beta2))
 
@@ -35,7 +34,8 @@ class CGAN(CombinedModel):
         # gaussian distribution of our landmarks
         self.landmarks_mean = torch.from_numpy(np.load(path_to_y_mean))
         self.landmarks_cov = torch.from_numpy(np.load(path_to_y_cov))
-        self.distribution = MultivariateNormal(loc=self.landmarks_mean, covariance_matrix=self.landmarks_cov)
+        self.distribution = MultivariateNormal(loc=self.landmarks_mean.type(torch.float64),
+                                               covariance_matrix=self.landmarks_cov.type(torch.float64))
 
         if torch.cuda.is_available():
             self.cuda = True
@@ -60,50 +60,51 @@ class CGAN(CombinedModel):
         iterations = 0
 
         # Label vectors for loss function
-        real_landmarks_label, landmarks_fake_label = (torch.ones(batch_size, 1), torch.zeros(batch_size, 1))
+        label_real, label_fake = (torch.ones(batch_size, 1, 1, 1), torch.zeros(batch_size, 1, 1, 1))
         if self.cuda:
-            real_landmarks_label, landmarks_fake_label = real_landmarks_label.cuda(), landmarks_fake_label.cuda()
+            label_real, label_fake = label_real.cuda(), label_fake.cuda()
 
-        for faces, landmarks in data_loader:
+        for images, features in data_loader:
             # generate random vector
             z = torch.randn((batch_size, self.z_dim, 1, 1))
 
-            # generate landmarks
-            landmarks_gen = self.distribution.sample(sample_shape=(batch_size,)).type(torch.float32).unsqueeze(
-                -1).unsqueeze(-1)
+            # generate features
+            landmarks_gen = self.distribution.sample((batch_size,)).view(batch_size, -1, 1, 1).type(torch.float32)
 
             # transfer everything to the gpu
             if self.cuda:
-                faces, landmarks, z = faces.cuda(), landmarks.cuda(), z.cuda()
+                images, features, z = images.cuda(), features.cuda(), z.cuda()
                 landmarks_gen = landmarks_gen.cuda()
 
-            # ========== Training discriminator
+            ############################
+            # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
+            ###########################
             if not validate:
                 self.D_optimizer.zero_grad()
 
             # Train on real example with real features
-            real_predictions = self.D(faces, landmarks)
+            real_predictions = self.D(images, features)
             d_real_predictions_loss = self.BCE_loss(real_predictions,
-                                                    real_landmarks_label)  # real corresponds to log(D_real)
+                                                    label_real)  # real corresponds to log(D_real)
 
             if not validate:
                 # make backward instantly
                 d_real_predictions_loss.backward()
 
             # Train on real example with fake features
-            fake_labels_predictions = self.D(faces, landmarks_gen)
-            d_fake_labels_loss = self.BCE_loss(fake_labels_predictions, landmarks_fake_label) / 2
+            fake_labels_predictions = self.D(images, landmarks_gen)
+            d_fake_labels_loss = self.BCE_loss(fake_labels_predictions, label_fake) / 2
 
             if not validate:
                 # make backward instantly
                 d_fake_labels_loss.backward()
 
             # Train on fake example from generator
-            generated_images = self.G(z, landmarks)
+            generated_images = self.G(z, features)
             fake_images_predictions = self.D(generated_images.detach(),
-                                             landmarks)  # todo what happens if we detach the output of the Discriminator
+                                             features)  # todo what happens if we detach the output of the Discriminator
             d_fake_images_loss = self.BCE_loss(fake_images_predictions,
-                                               landmarks_fake_label) / 2  # face corresponds to log(1-D_fake)
+                                               label_fake) / 2  # face corresponds to log(1-D_fake)
 
             if not validate:
                 # make backward instantly
@@ -115,13 +116,15 @@ class CGAN(CombinedModel):
                 # D_loss.backward()
                 self.D_optimizer.step()
 
-            # ========== Training generator
+            ############################
+            # (2) Update G network: maximize log(D(G(z)))
+            ###########################
             if not validate:
                 self.G_optimizer.zero_grad()
 
             # Train on fooling the Discriminator
-            fake_images_predictions = self.D(generated_images, landmarks)
-            g_loss = self.BCE_loss(fake_images_predictions, real_landmarks_label)
+            fake_images_predictions = self.D(generated_images, features)
+            g_loss = self.BCE_loss(fake_images_predictions, label_real)
 
             if not validate:
                 g_loss.backward()
@@ -170,16 +173,16 @@ class CGAN(CombinedModel):
         self.log_images(logger, epoch, images, validation=True)
 
     def log_images(self, logger, epoch, images, validation=True):
-        images = images.cpu()
-        images *= .5
-        images += .5
-        examples = int(len(images))
-        example_indices = random.sample(range(0, examples - 1), 4 * 4)
-        A = []
-        for idx, i in enumerate(example_indices):
-            A.append(images[i])
+        # images = images.cpu()
+        # images *= .5
+        # images += .5
+        # examples = int(len(images))
+        # example_indices = random.sample(range(0, examples - 1), 4 * 4)
+        # A = []
+        # for idx, i in enumerate(example_indices):
+        #     A.append(images[i])
         tag = 'validation_output' if validation else 'training_output'
-        logger.log_images(epoch, A, tag, 4)
+        logger.log_images(epoch, images, tag, 8)
 
     def anonymize(self, x):
         # z = torch.ones((x.shape[0], self.z_dim, 1, 1)).cuda() * 0.25

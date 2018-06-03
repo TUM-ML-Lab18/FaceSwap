@@ -5,7 +5,7 @@ from Models.ModelUtils.ModelUtils import CustomModule, View, UpscaleBlockBlock
 
 
 class Generator(CustomModule):
-    def __init__(self, input_dim=(100, 10), output_dim=(64, 64, 3), ngf=32):
+    def __init__(self, input_dim=(100, 10), output_dim=(64, 64, 3), ngf=64):
         """
         Initializer for a Generator object
         :param input_dim: Size of the input vectors (latent space)
