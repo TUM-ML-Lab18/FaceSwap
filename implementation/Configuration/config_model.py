@@ -94,4 +94,4 @@ dcgan_config = {'batch_size': 64,
                 'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, None)
                 }
 
-current_config = cgan_config
+current_config = dcgan_config
