@@ -58,7 +58,7 @@ class Evaluator:
         similarity_score = Evaluator.get_similarity_score(img1, img2)
         print(f"Similarity score: {similarity_score}")
         emotion_score = Evaluator.get_emotion_score(img1, img2)
-        print(f"Emotion score: {emotion_score_score}")
+        print(f"Emotion score: {emotion_score}")
 
         score = 1 / (1 + np.exp(alpha * emotion_score - beta * (similarity_score - treshold)))
 
