@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import face_recognition
+import face_recognition, requests
 import numpy as np
 from PIL import Image
 
