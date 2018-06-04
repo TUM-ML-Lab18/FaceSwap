@@ -91,7 +91,7 @@ dcgan_config = {'batch_size': 64,
                 #         transforms.ToTensor(),
                 #         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
                 #     ]))
-                'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, None)
+                'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_5)
                 }
 
 current_config = dcgan_config

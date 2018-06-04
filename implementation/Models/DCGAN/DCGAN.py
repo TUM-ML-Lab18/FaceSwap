@@ -57,13 +57,13 @@ class DCGAN(CombinedModel):
         features = torch.zeros(batch_size, 10, 1, 1)
         if self.cuda:
             label_real, label_fake = label_real.cuda(), label_fake.cuda()
-            features = features.cuda()
+            # features = features.cuda()
 
         # sum the loss for logging
         g_loss_summed, d_loss_summed = 0, 0
         iterations = 0
 
-        for data in data_loader:
+        for data, features in data_loader:
             if validate:
                 noise = self.static_noise
             else:
@@ -71,6 +71,7 @@ class DCGAN(CombinedModel):
             if self.cuda:
                 data = data.cuda()
                 noise = noise.cuda()
+                features = features.cuda()
             ############################
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
             ###########################
