@@ -9,6 +9,7 @@ from configuration.run_config import current_config
 
 
 class Evaluator:
+
     @staticmethod
     def evaluate_model(model_folder='model', image_folder='/nfs/students/summer-term-2018/project_2/test/',
                        output_path='/nfs/students/summer-term-2018/project_2/test_alex/'):
@@ -39,22 +40,26 @@ class Evaluator:
         return distances
 
     @staticmethod
-    def evaluate_image_pair(img1, img2):
+    def evaluate_image_pair(img1, img2, alpha=1, beta=1, treshold=0.6):
         """
         computes distances between img1 and img2
         :param img1: a single image
         :param img2: a single image
+        :param beta
+        :param alpha
+        :param treshold
         :return: distance of images
         """
         similarity_score = Evaluator.get_similarity_score(img1, img2)
         emotion_score = Evaluator.get_emotion_score(img1, img2)
 
-        # TODO apply formula
+        score = 1 / (1 + np.exp(alpha * emotion_score - beta * (similarity_score - treshold)))
 
-        return similarity_score
+        return score
 
     @staticmethod
     def get_emotion_score(img1, img2):
+        #TODO: access API
         return 0.0
 
     @staticmethod

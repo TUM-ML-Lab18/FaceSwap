@@ -6,4 +6,6 @@ from Evaluator import Evaluator
 
 
 if __name__ == '__main__':
-    Evaluator.evaluate_model(model_folder='model', image_folder='/nfs/students/summer-term-2018/project_2/test/')
+    scores = Evaluator.evaluate_model(model_folder='model', image_folder='/nfs/students/summer-term-2018/project_2/test/')
+    avg = sum(scores) / len(scores)
+    print(f"Average score: {avg}")
