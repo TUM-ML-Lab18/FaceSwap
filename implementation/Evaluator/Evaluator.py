@@ -6,6 +6,7 @@ from PIL import Image
 
 from FaceAnonymizer.Anonymizer import Anonymizer
 from configuration.run_config import current_config
+from configuration.evaluation_config import standard_conf
 
 
 class Evaluator:
@@ -68,8 +69,15 @@ class Evaluator:
         img1.save(io1, format='JPEG')
         img2.save(io2, format='JPEG')
 
-        
-        return 0.0
+        headers = {'Ocp-Apim-Subscription-Key': standard_conf['apiKey'], 'Content-Type': 'application/octet-stream'}
+
+        r1 = requests.post(standard_conf['url'], headers=headers, data=io1.getvalue()).json()[0]
+        r2 = requests.post(standard_conf['url'], headers=headers, data=io2.getvalue()).json()[0]
+
+        emotions1 = np.array(list(r1['faceAttributes']['emotion'].values()))
+        emotions2 = np.array(list(r2['faceAttributes']['emotion'].values()))
+
+        return ((emotions1 - emotions2) ** 2).mean()
 
     @staticmethod
     def get_similarity_score(img1, img2):
