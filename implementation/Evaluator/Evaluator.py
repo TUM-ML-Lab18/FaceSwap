@@ -38,13 +38,14 @@ class Evaluator:
             input_image = Image.open(image_file)
 
             anonymized_image = anonymizer(input_image)
-            if anonymized_image is None:
-                print('image is none')
-                continue
-                
-            anonymized_image.save(output_path / ('anonymized_' + image_file.name.__str__()))
 
-            scores.append(Evaluator.evaluate_image_pair(input_image, anonymized_image))
+            try:
+                anonymized_image.save(output_path / ('anonymized_' + image_file.name.__str__()))
+                scores.append(Evaluator.evaluate_image_pair(input_image, anonymized_image))
+            except Exception as ex:
+                print(ex)
+                continue
+
             print('Current image score:', scores[-1])
         return scores
 
