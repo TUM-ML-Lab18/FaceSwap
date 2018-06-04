@@ -2,7 +2,7 @@ import json
 import numpy as np
 from pathlib import Path
 from PIL import Image
-from Evaluator import Evaluator
+from Evaluator.Evaluator import Evaluator
 
 
 if __name__ == '__main__':
