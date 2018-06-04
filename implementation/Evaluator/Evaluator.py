@@ -27,7 +27,7 @@ class Evaluator:
                                 model=current_config['model'],
                                 config=current_config)
         print("The authors of the package recommend 0.6 as max distance for the same person.")
-        distances = []
+        scores = []
         for image_file in image_folder.iterdir():
             if image_file.is_dir():
                 continue
@@ -40,9 +40,9 @@ class Evaluator:
             anonymized_image = anonymizer(input_image)
             anonymized_image.save(output_path / ('anonymized_' + image_file.name.__str__()))
 
-            distances.append(Evaluator.evaluate_image_pair(input_image, anonymized_image))
-            print('Current image distance:', distances[-1])
-        return distances
+            scores.append(Evaluator.evaluate_image_pair(input_image, anonymized_image))
+            print('Current image score:', scores[-1])
+        return scores
 
     @staticmethod
     def evaluate_image_pair(img1, img2, alpha=1, beta=1, treshold=0.6):
