@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import face_recognition, requests
+import face_recognition, requests, io
 import numpy as np
 from PIL import Image
 
@@ -30,11 +30,15 @@ class Evaluator:
         for image_file in image_folder.iterdir():
             if image_file.is_dir():
                 continue
+
             print('#' * 10)
             print('Processing image:', image_file.name)
+
             input_image = Image.open(image_file)
+
             anonymized_image = anonymizer(input_image)
             anonymized_image.save(output_path / ('anonymized_' + image_file.name.__str__()))
+
             distances.append(Evaluator.evaluate_image_pair(input_image, anonymized_image))
             print('Current image distance:', distances[-1])
         return distances
@@ -59,7 +63,12 @@ class Evaluator:
 
     @staticmethod
     def get_emotion_score(img1, img2):
-        #TODO: access API
+        # create binary objects
+        io1, io2 = io.BytesIO(), io.BytesIO()
+        img1.save(io1, format='JPEG')
+        img2.save(io2, format='JPEG')
+
+        
         return 0.0
 
     @staticmethod
