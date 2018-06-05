@@ -1,12 +1,14 @@
 import json
 from pathlib import Path
+from Evaluator.Evaluator import Evaluator
 
 import numpy as np
 from PIL import Image
 
 if __name__ == '__main__':
-    MERKEL_DATASET = Path('/nfs/students/summer-term-2018/project_2/data/MEGA_Merkel_Trump/preprocessed/B')
-    reference_image = Image.open('/nfs/students/summer-term-2018/project_2/test/70. bundeskanzlerin-angela-merkel.jpg')
+
+    img1 = Image.open(Path('/nfs/students/summer-term-2018/project_2/test_alex/merkel1.jpg'))
+    img2 = Image.open(Path('/nfs/students/summer-term-2018/project_2/test_alex/merkel2.jpg'))
 
     score_list = []
 
@@ -19,12 +21,6 @@ if __name__ == '__main__':
 
     # with open('./score_list.json', 'w') as h_json:
     #    json.dump(score_list, h_json)
-    with open('./score_list.json', 'r') as h_json:
-        data = json.load(h_json)
-    data = np.array(data)
-    mean = np.mean(data)
-    var = np.var(data)
-    std = np.std(data)
-    hist = np.histogram(data)
-    print(f'mean: {mean}, var: {var}, hist: {hist}')
-    # Evaluator.evaluate_model()
+
+    score = Evaluator.evaluate_image_pair(img1, img2)
+    print(score)
