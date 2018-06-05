@@ -166,6 +166,9 @@ class Preprocessor:
             data = np.array([np.array(Image.open(fname)) for fname in subdir_res.iterdir()])
             data = data.transpose((0, 3, 1, 2))
             np.save(root_folder / ('data' + str(size) + '.npy'), data)
+            if size == 8:
+                lowres = data.reshape((-1, 192)) / 255.0
+                np.save(root_folder / 'lowres.npy', lowres)
 
     @staticmethod
     def calculate_masked_histogram(image):
