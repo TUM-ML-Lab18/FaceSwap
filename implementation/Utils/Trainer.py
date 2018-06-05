@@ -1,8 +1,8 @@
 import torch
 
-from Utils.Logging.LoggingUtils import Logger
 from Configuration.config_general import MOST_RECENT_MODEL
 from Utils.DataSplitter import DataSplitter
+from Utils.Logging.LoggingUtils import Logger
 
 
 class Trainer:
@@ -27,7 +27,7 @@ class Trainer:
         for current_epoch in range(max_epochs):
             self.model.set_train_mode(True)
             train_data_loader = self.data_loader.get_train_data_loader()
-            info = self.model.train(train_data_loader, self.batch_size)
+            info = self.model.train(train_data_loader, self.batch_size, current_epoch=current_epoch)
 
             # update frequency
             if current_epoch >= validation_periods[validate_index + 1]:
