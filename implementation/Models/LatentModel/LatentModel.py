@@ -6,7 +6,6 @@ import torch
 from PIL.Image import BICUBIC
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torchvision.transforms import ToTensor
 
 from Models.ModelUtils.ModelUtils import CombinedModel
 
@@ -83,7 +82,10 @@ class LatentModel(CombinedModel):
         return loss_valid_mean, [face, output]
 
     def anonymize(self, x):
-        return self.decoder(x)
+
+        unnormalized = self.decoder(x)
+        normalized = unnormalized / 2.0 + 0.5
+        return normalized
 
     def anonymize_2(self, x):
         return self.anonymize(x)
@@ -120,24 +122,22 @@ class LatentModel(CombinedModel):
             A.append(images[1].cpu()[i])
 
         tag = 'validation_output' if validation else 'training_output'
-        logger.log_images(epoch, A, tag, 8)
+        logger.log_images(epoch, A, tag, 2)
 
 
 class LowResAnnotationModel(LatentModel):
-    def img2latent_bridge(self, extracted_face, extracted_information, img_size):
-        resized_image_flat = ToTensor()(
-            extracted_face.resize(img_size, BICUBIC).resize((8, 8), BICUBIC)).numpy().flatten()
+    def img2latent_bridge(self, extracted_face, extracted_information):
+        resized_image_flat = np.array(extracted_face.resize((8, 8), BICUBIC))
+        resized_image_flat = resized_image_flat.reshape((len(resized_image_flat), -1)) / 255.0
+
         landmarks_normalized_flat = np.reshape(
             (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), -1)
-        latent_vector = np.append(landmarks_normalized_flat, resized_image_flat)
 
-        annotations = [0] * 40
-        # smiling
-        annotations[36] = 1
-        latent_vector = np.append(latent_vector, annotations)
-
-        latent_vector = latent_vector.astype(np.float32)
-        return torch.from_numpy(latent_vector).unsqueeze(0).cuda()
+        latent_vector = np.hstack([landmarks_normalized_flat, resized_image_flat, ])
+        latent_vector = torch.from_numpy(latent_vector).type(torch.float32)
+        latent_vector -= 0.5
+        latent_vector *= 2.0
+        return latent_vector
 
 
 class HistAnnotationModel(LatentModel):
@@ -181,15 +181,18 @@ class HistModel(LatentModel):
 
 
 class LowResModel(LatentModel):
-    def img2latent_bridge(self, extracted_face, extracted_information, img_size):
-        resized_image_flat = ToTensor()(
-            extracted_face.resize(img_size, BICUBIC).resize((8, 8), BICUBIC)).numpy().flatten()
-        landmarks_normalized_flat = np.reshape(
-            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), -1)
-        latent_vector = np.append(landmarks_normalized_flat, resized_image_flat)
+    def img2latent_bridge(self, extracted_face, extracted_information):
+        resized_image_flat = np.array(extracted_face.resize((8, 8), BICUBIC))
+        resized_image_flat = resized_image_flat.reshape((1, -1)) / 255.0
 
-        latent_vector = latent_vector.astype(np.float32)
-        return torch.from_numpy(latent_vector).unsqueeze(0).cuda()
+        landmarks_normalized_flat = np.reshape(
+            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), (1, -1))
+
+        latent_vector = np.hstack([landmarks_normalized_flat, resized_image_flat])
+        latent_vector = torch.from_numpy(latent_vector).type(torch.float32)
+        latent_vector -= 0.5
+        latent_vector *= 2.0
+        return latent_vector.cuda()
 
 
 class HistReducedModel(LatentModel):

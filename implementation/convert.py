@@ -10,9 +10,9 @@ from Utils.Logging.LoggingUtils import print_progress_bar
 
 
 def convert_images():
-    anonymizer = Anonymizer(model_folder='logs/2018-05-31 17:07:50.201058/model',
+    anonymizer = Anonymizer(model_folder='model',
                             config=current_config)
-    path = Path('/nfs/students/summer-term-2018/project_2/test/')
+    path = Path('/nfs/students/summer-term-2018/project_2/test_simone/test_out')
     path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')
     for image_file in path.iterdir():
         if image_file.is_dir():
@@ -20,7 +20,8 @@ def convert_images():
         print('Processing image:', image_file.name)
         image = Image.open(image_file)
         new_image = anonymizer(image)
-        new_image.save(path_sebi / (image_file.name.__str__()))
+        if not new_image is None:
+            new_image.save(path_sebi / (image_file.name.__str__()))
 
 
 def convert_video():
