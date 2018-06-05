@@ -30,7 +30,7 @@ standard_config = {'batch_size': 64,
 ####### config for using only landmarks as input
 # todo move the input dimensionality of the network to somewhere als as parameter
 # dim = 72*2
-landmarks_config = {'batch_size': 64,
+landmarks_config = {'batch_size': 256,
                     'img_size': (128, 128),
                     'model': LatentModel,
                     'model_params': {'decoder': lambda: LatentDecoder(72 * 2 + 8 * 8 * 3)},
@@ -39,8 +39,10 @@ landmarks_config = {'batch_size': 64,
 ####### config for using landmarks as well as a low res image as input
 # dim = 72+2+8+8+3
 lm_lowres_config = landmarks_config.copy()
-lm_lowres_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CAR_IMAGES_128,
-                                                          [ARRAY_CAR_LANDMARKS, ARRAY_CAR_LOWRES])
+lm_lowres_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_128,
+                                                          [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_LOWRES])
+# lm_lowres_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CAR_IMAGES_128,
+#                                                          [ARRAY_CAR_LANDMARKS, ARRAY_CAR_LOWRES])
 lm_lowres_config['model'] = LowResModel
 
 ###### config for using landmarks as well as a histogram of the target as input
