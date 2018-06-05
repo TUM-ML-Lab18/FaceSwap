@@ -173,34 +173,45 @@ class CGAN(CombinedModel):
         tag = 'validation_output' if validation else 'training_output'
         logger.log_images(epoch, images, tag, 8)
 
-    def anonymize(self, x):
-        # z = torch.ones((x.shape[0], self.z_dim, 1, 1)).cuda() * 0.25
-        z = torch.randn((x.shape[0], self.z_dim, 1, 1)).cuda()
-        return self.G(z, x) * 0.5 + 0.5
+    def anonymize(self, feature):
+        z = torch.randn((feature.shape[0], self.z_dim))
+        if self.cuda:
+            z, feature = z.cuda(), feature.cuda()
+        tensor_img = self.G(z, feature)
+        # Denormalize
+        for t in tensor_img:  # loop over mini-batch dimension
+            norm_img(t)
+        tensor_img *= 255
+        tensor_img = tensor_img.type(torch.uint8)
+        return tensor_img
 
     def img2latent_bridge(self, extracted_face, extracted_information):
-        landmarks_normalized_flat = np.reshape(
-            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), -1).astype(
-            np.float32)
+        landmarks = np.array(extracted_information.landmarks) / extracted_information.size_fine
+        landmarks = landmarks.reshape(-1)
+        # Split x,y coordinate
+        landmarks_X, landmarks_Y = landmarks[::2], landmarks[1::2]
         # landmarks_5
-        landmarks_X = landmarks_normalized_flat[::2]
-        landmarks_Y = landmarks_normalized_flat[1::2]
-        eye_left_X = np.mean(landmarks_X[36:42])
-        eye_left_Y = np.mean(landmarks_Y[36:42])
-        eye_right_X = np.mean(landmarks_X[42:48])
-        eye_right_Y = np.mean(landmarks_Y[42:48])
-        nose_X = np.mean(landmarks_X[31:36])
-        nose_Y = np.mean(landmarks_Y[31:36])
-        mouth_left_X = landmarks_X[48]
-        mouth_left_Y = landmarks_Y[48]
-        mouth_right_X = landmarks_X[60]
-        mouth_right_Y = landmarks_Y[60]
-        landmarks_5 = np.vstack((eye_left_X, eye_left_Y, eye_right_X, eye_right_Y, nose_X, nose_Y, mouth_left_X,
-                                 mouth_left_Y, mouth_right_X, mouth_right_Y)).T
+        eye_left_X, eye_left_Y = np.mean(landmarks_X[36:42]), np.mean(landmarks_Y[36:42])
+        eye_right_X, eye_right_Y = np.mean(landmarks_X[42:48]), np.mean(landmarks_Y[42:48])
+        nose_X, nose_Y = np.mean(landmarks_X[31:36]), np.mean(landmarks_Y[31:36])
+        mouth_left_X, mouth_left_Y = landmarks_X[48], landmarks_Y[48]
+        mouth_right_X, mouth_right_Y = landmarks_X[60], landmarks_Y[60]
+        landmarks_5 = np.vstack((eye_left_X, eye_left_Y, eye_right_X, eye_right_Y, nose_X, nose_Y,
+                                 mouth_left_X, mouth_left_Y, mouth_right_X, mouth_right_Y)).T
+        # Zero centering
+        landmarks_5 -= 0.5
+        landmarks_5 *= 2.0
+        # ToTensor
+        feature = torch.from_numpy(landmarks_5).type(torch.float32)
 
-        mean = np.array([0.18269604, 0.2612222, 0.5438053, 0.2612222, 0.28630707,
-                         0.5341739, 0.18333682, 0.70732147, 0.45070747, 0.69178724]).astype(np.float32)
+        return feature
 
-        # return torch.from_numpy(mean).unsqueeze(-1).unsqueeze(-1).unsqueeze(0).cuda()
-        return torch.from_numpy(landmarks_5).unsqueeze(-1).unsqueeze(-1).cuda()
-        # return torch.from_numpy(landmarks_normalized_flat).unsqueeze(-1).unsqueeze(-1).unsqueeze(0).cuda()
+
+def norm_img(img):
+    """
+    Normalize image via min max inplace
+    :param img: Tensor image
+    """
+    min, max = float(img.min()), float(img.max())
+    img.clamp_(min=min, max=max)
+    img.add_(-min).div_(max - min + 1e-5)
