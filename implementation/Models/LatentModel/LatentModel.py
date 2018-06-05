@@ -4,7 +4,6 @@ from abc import abstractmethod
 import numpy as np
 import torch
 from PIL.Image import BICUBIC
-from torch.nn import DataParallel
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchvision.transforms import ToTensor
@@ -13,30 +12,42 @@ from Models.ModelUtils.ModelUtils import CombinedModel
 
 
 class LatentModel(CombinedModel):
-    def __init__(self, decoder):
-        self.decoder = decoder()
+    def get_models(self):
+        return [self.decoder]
 
-        if torch.cuda.device_count() > 1:
-            self.decoder = DataParallel(self.decoder)
-        self.decoder = self.decoder.cuda()
+    def get_model_names(self):
+        return ['decoder']
+
+    def __str__(self):
+        string = super().__str__()
+        string += str(self.optimizer) + '\n'
+        string += str(self.scheduler) + '\n'
+        string += str(self.lossfn) + '\n'
+        string = string.replace('\n', '\n\n')
+        return string
+
+    def __init__(self, decoder):
+        self.decoder = decoder().cuda()
 
         self.lossfn = torch.nn.L1Loss(size_average=True).cuda()
 
         self.optimizer = Adam(params=self.decoder.parameters(), lr=1e-4)
         self.scheduler = ReduceLROnPlateau(self.optimizer, patience=100, cooldown=50)
 
-    def train(self, current_epoch, batches):
+    def train(self, train_data_loader, batch_size, **kwargs):
         loss_mean = 0
         face = None
         output = None
         iterations = 0
 
-        for face, latent_information in batches:
-            face1 = face.cuda()
+        current_epoch = kwargs.get('current_epoch', -1)
+
+        for face, latent_information in train_data_loader:
+            face = face.cuda()
             latent_information = latent_information.cuda()
 
             self.optimizer.zero_grad()
-            output1 = self.decoder(latent_information)
+            output = self.decoder(latent_information)
             loss = self.lossfn(output, face)
             loss.backward()
 
@@ -51,11 +62,12 @@ class LatentModel(CombinedModel):
 
         return loss_mean, [face, output]
 
-    def validate(self, batches):
+    def validate(self, validation_data_loader, batch_size, **kwargs):
         loss_valid_mean = 0
         iterations = 0
-
-        for face, latent_information in batches:
+        face = None
+        output = None
+        for face, latent_information in validation_data_loader:
             with torch.no_grad():
                 face = face.cuda()
                 latent_information = latent_information.cuda()
@@ -68,7 +80,7 @@ class LatentModel(CombinedModel):
         loss_valid_mean /= iterations
         loss_valid_mean = loss_valid_mean.cpu().data.numpy()
 
-        return [loss_valid_mean]
+        return loss_valid_mean, [face, output]
 
     def anonymize(self, x):
         return self.decoder(x)
@@ -87,21 +99,28 @@ class LatentModel(CombinedModel):
 
         # log images
         if log_images:
-            examples = int(len(images[0]))
-            example_indices = random.sample(range(0, examples - 1), 5)
-            A = []
-            for idx, i in enumerate(example_indices):
-                A.append(images[0].cpu()[i] * 255.00)
-                A.append(images[1].cpu()[i] * 255.00)
-            logger.log_images(epoch, A, "sample_input/A", 2)
+            self.log_images(logger, epoch, images, validation=False)
         logger.save_model(epoch)
 
-    def log_validate(self, logger, epoch, loss1):
+    def log_validation(self, logger, epoch, loss1, images):
         logger.log_loss(epoch=epoch, loss={'lossA_val': float(loss1)})
+        self.log_images(logger, epoch, images, validation=True)
 
     @abstractmethod
-    def img2latent_bridge(self, extracted_face, extracted_information, img_size):
+    def img2latent_bridge(self, extracted_face, extracted_information):
         pass
+
+    def log_images(self, logger, epoch, images, validation=True):
+
+        examples = int(len(images[0]))
+        example_indices = random.sample(range(0, examples - 1), 5)
+        A = []
+        for idx, i in enumerate(example_indices):
+            A.append(images[0].cpu()[i])
+            A.append(images[1].cpu()[i])
+
+        tag = 'validation_output' if validation else 'training_output'
+        logger.log_images(epoch, A, tag, 8)
 
 
 class LowResAnnotationModel(LatentModel):
@@ -141,6 +160,7 @@ class HistAnnotationModel(LatentModel):
 
 class HistModel(LatentModel):
     last_hist = None
+
     # this is deprecated
     def img2latent_bridge(self, extracted_face, extracted_information, img_size):
         hist_flat = np.array(extracted_face.resize(img_size, BICUBIC).histogram()).flatten() / (
@@ -174,7 +194,6 @@ class LowResModel(LatentModel):
 
 class HistReducedModel(LatentModel):
     def img2latent_bridge(self, extracted_face, extracted_information, img_size):
-
         img = np.array(extracted_face.resize(img_size, BICUBIC))
         r = img[:, :, 0]
         g = img[:, :, 1]

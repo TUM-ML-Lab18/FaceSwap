@@ -9,9 +9,9 @@ from Utils.Logging.LoggingUtils import print_progress_bar
 
 class VideoDownloader:
     @staticmethod
-    def download_video(url):
+    def download_video(url, path=VIDEO_DOWNLOADER):
         YouTube(url).streams.filter(progressive=True).order_by('resolution').desc().first().download(
-            VIDEO_DOWNLOADER)
+            path)
 
     @staticmethod
     def extract_frames(path=VIDEO_DOWNLOADER):
@@ -29,7 +29,7 @@ class VideoDownloader:
 
             frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 
-            record_every_nth_frame = 30
+            record_every_nth_frame = 15
 
             f = int(frames // record_every_nth_frame)
 

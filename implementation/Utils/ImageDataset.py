@@ -77,12 +77,12 @@ class ImageFeatureDataset(Dataset):
             features = []
             for path in paths_to_feature_arrays:
                 feature = np.load(path)
+                feature = feature.reshape((len(feature), -1))
                 features.append(feature)
             self.features = np.hstack(features)
             self.features = torch.from_numpy(self.features).type(torch.float32)
-            # Normalize to [-1,1]
-            # self.features -= 0.5
-            # self.features *= 2.
+            self.features -= 0.5
+            self.features *= 2.0
         else:
             self.features = None
         print(f"Number of images in datasets:\t{len(self.images)}\n"
