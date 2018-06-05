@@ -10,10 +10,9 @@ from Utils.Logging.LoggingUtils import print_progress_bar
 
 
 def convert_images():
-    anonymizer = Anonymizer(
-        model_folder='/home/stromaxi/ml-lab-summer-18-project-2/implementation/logs/CGAN_128Filter/model/',
-        config=current_config)
-    path = Path('/nfs/students/summer-term-2018/project_2/test_max/')
+    anonymizer = Anonymizer(model_folder='model',
+                            config=current_config)
+    path = Path('/nfs/students/summer-term-2018/project_2/test_simone/test_out')
     for image_file in path.iterdir():
         if image_file.is_dir():
             continue
@@ -21,7 +20,8 @@ def convert_images():
         image = Image.open(image_file)
         image = image.convert('RGB')
         new_image = anonymizer(image)
-        new_image.save(path / ('result/' + image_file.name.__str__()))
+        if new_image is not None:
+            new_image.save(path / ('result/' + image_file.name.__str__()))
 
 
 def convert_video():
