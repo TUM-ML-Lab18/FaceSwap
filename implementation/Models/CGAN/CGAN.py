@@ -83,9 +83,9 @@ class CGAN(CombinedModel):
             d_real_predictions_loss = self.BCE_loss(real_predictions,
                                                     label_real)  # real corresponds to log(D_real)
 
-            # if not validate:
-            #     # make backward instantly
-            #     d_real_predictions_loss.backward()
+            if not validate:
+                # make backward instantly
+                d_real_predictions_loss.backward()
 
             # Train on fake example from generator
             generated_images = self.G(z, features)
@@ -94,14 +94,14 @@ class CGAN(CombinedModel):
             d_fake_images_loss = self.BCE_loss(fake_images_predictions,
                                                label_fake)  # face corresponds to log(1-D_fake)
 
-            # if not validate:
-            #     # make backward instantly
-            #     d_fake_images_loss.backward()
+            if not validate:
+                # make backward instantly
+                d_fake_images_loss.backward()
 
             d_loss = d_real_predictions_loss + d_fake_images_loss
 
             if not validate:
-                d_loss.backward()
+                # D_loss.backward()
                 self.D_optimizer.step()
 
             ############################
@@ -111,7 +111,7 @@ class CGAN(CombinedModel):
                 self.G_optimizer.zero_grad()
 
             # Train on fooling the Discriminator
-            generated_images = self.G(z, features)
+            # generated_images = self.G(z, features)
             fake_images_predictions = self.D(generated_images, features)
             g_loss = self.BCE_loss(fake_images_predictions, label_real)
 
