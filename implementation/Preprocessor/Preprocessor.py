@@ -41,10 +41,13 @@ class Preprocessor:
         preprocessed_folder = root_folder / PREPROCESSED
         landmarks_buffer = root_folder / LANDMARKS_BUFFER
         landmarks_json = root_folder / LANDMARKS_JSON
+        landmarks_npy = root_folder / LANDMARKS_NPY
         histo_buffer = root_folder / HISTO_BUFFER
         histo_json = root_folder / HISTO_JSON
+        histo_npy = root_folder / HISTO_NPY
         embeddings_buffer = root_folder / FACE_EMBEDDINGS_BUFFER
         embeddings_json = root_folder / FACE_EMBEDDINGS_JSON
+        embeddings_npy = root_folder / FACE_EMBEDDINGS_NPY
 
         # Check root path
         if not raw_folder.exists():
@@ -109,7 +112,7 @@ class Preprocessor:
                     # calculate embeddings
                     # (top, right, bottom, left)
                     embedding = face_recognition.face_encodings(np.array(extracted_image), known_face_locations=[(
-                        0, extracted_information.size_fine, extracted_information.size_fine, 0)])[0]
+                        0, extracted_information.size_fine, extracted_information.size_fine, 0)])[0].tolist()
 
                     # Buffer histogram in CSV file
                     with open(histo_buffer, 'a') as h_buffer:
@@ -128,23 +131,39 @@ class Preprocessor:
                     # Save extraction result in PROCESSED folder
                     extracted_image.save(preprocessed_folder / relative_path, format='JPEG')
 
+        # ============= Conversions / Storage
+
         # Convert landmarks to json
         landmarks_storage = convert_buffer_to_dict(landmarks_buffer)
         # Save json file
         with open(landmarks_json, 'w') as lm_json:
             json.dump(landmarks_storage, lm_json)
+        # Save npy file
+        landmarks_array = np.array(list(landmarks_storage.values()))
+        np.save(landmarks_npy, landmarks_array)
 
         # Convert histo to json
         histo_storage = convert_buffer_to_dict(histo_buffer)
         # Save json file
         with open(histo_json, 'w') as h_json:
             json.dump(histo_storage, h_json)
+        histo_array = np.array(list(histo_storage.values()))
+        np.save(histo_npy, histo_array)
 
         # Convert embeddings to json
         embeddings_storage = convert_buffer_to_dict(embeddings_buffer)
         # Save json file
         with open(embeddings_json, 'w') as em_json:
             json.dump(embeddings_storage, em_json)
+        embeddings_array = np.array(list(embeddings_storage.values()))
+        np.save(embeddings_npy, embeddings_array)
+
+        # Convert images folder into arrays
+        for size in RESOLUTIONS:
+            subdir_res = root_folder / ('preprocessed' + str(size) + '/images')
+            data = np.array([np.array(Image.open(fname)) for fname in subdir_res.iterdir()])
+            data = data.transpose((0, 3, 1, 2))
+            np.save(root_folder / ('data' + str(size) + '.npy'), data)
 
     @staticmethod
     def calculate_masked_histogram(image):

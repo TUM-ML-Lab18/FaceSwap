@@ -56,7 +56,8 @@ class Generator(CustomModule):
         :param y: Feature vector
         :return: Tensor Image
         """
-        x = torch.cat([z, y], 1)
+        bs = z.shape[0]
+        x = torch.cat([z, y], 1).view((bs, -1, 1, 1))
 
         if x.is_cuda and self.ngpu > 1:
             output = nn.parallel.data_parallel(self.main, x, range(self.ngpu))

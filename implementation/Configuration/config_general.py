@@ -22,10 +22,13 @@ B = "B"
 PREPROCESSED = "preprocessed"
 LANDMARKS_JSON = "landmarks.json"
 LANDMARKS_BUFFER = "landmarks.txt"
+LANDMARKS_NPY = "landmarks.npy"
 HISTO_BUFFER = "histo.txt"
 HISTO_JSON = "histo.json"
+HISTO_NPY = "histo.npy"
 FACE_EMBEDDINGS_BUFFER = "embeddings.txt"
 FACE_EMBEDDINGS_JSON = "embeddings.json"
+FACE_EMBEDDINGS_NPY = "embeddings.npy"
 ANNOTATIONS = "list_attr_celeba.txt"
 RESOLUTIONS = [4,8,16,32,64,128]
 

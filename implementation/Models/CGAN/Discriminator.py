@@ -21,7 +21,7 @@ class Discriminator(CustomModule):
         self.input_dim = self.C_in + self.y_dim
         self.ndf = ndf
         self.ngpu = torch.cuda.device_count()
-
+        self.input_layer_dim = 32
         self.conv = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(self.C_in, ndf, 4, 2, 1, bias=False),
@@ -57,7 +57,8 @@ class Discriminator(CustomModule):
         :return: Scalar
         """
         # TODO: Make y_fill dynamic
-        y_fill = y.repeat((1, 1, 32, 32))
+        bs = x.shape[0]
+        y_fill = y.view((bs, -1, 1, 1)).repeat((1, 1, self.input_layer_dim, self.input_layer_dim))
         if x.is_cuda and self.ngpu > 1:
             x = nn.parallel.data_parallel(self.conv, x, range(self.ngpu))
             x = torch.cat([x, y_fill], 1)

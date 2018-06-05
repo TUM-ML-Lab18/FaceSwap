@@ -64,9 +64,10 @@ class ImageFeatureDataset(Dataset):
         if path_to_image_array is not None:
             self.images = np.load(path_to_image_array)
             self.images = torch.from_numpy(self.images).type(torch.float32)
+            # Normalize to [-1,1]
             self.images /= 255.
             self.images -= 0.5
-            self.images /= 0.5
+            self.images *= 2.
         else:
             self.images = None
         if paths_to_feature_arrays is not None:
@@ -84,7 +85,9 @@ class ImageFeatureDataset(Dataset):
             self.features /= 0.5
         else:
             self.features = None
-        print('Data loaded.')
+        print(f"Number of images in datasets:\t{len(self.images)}\n"
+              f"Number of features in datasets:\t{len(self.features)}\n"
+              f"Data loaded")
 
     def __len__(self):
         return len(self.images)
