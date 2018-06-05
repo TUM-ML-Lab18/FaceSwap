@@ -23,8 +23,8 @@ class CGAN(CombinedModel):
         beta2 = kwargs.get('beta2', 0.999)
 
         # self.G = LatentDecoderGAN(input_dim=self.z_dim + self.y_dim)
-        self.G = Generator(input_dim=(self.z_dim, self.y_dim), output_dim=self.img_dim, ngf=32)
-        self.D = Discriminator(y_dim=self.y_dim, input_dim=self.img_dim, ndf=32)
+        self.G = Generator(input_dim=(self.z_dim, self.y_dim), output_dim=self.img_dim, ngf=64)
+        self.D = Discriminator(y_dim=self.y_dim, input_dim=self.img_dim, ndf=64)
 
         self.G_optimizer = optim.Adam(self.G.parameters(), lr=lrG, betas=(beta1, beta2))
         self.D_optimizer = optim.Adam(self.D.parameters(), lr=lrD, betas=(beta1, beta2))
@@ -66,15 +66,11 @@ class CGAN(CombinedModel):
 
         for images, features in data_loader:
             # generate random vector
-            z = torch.randn((batch_size, self.z_dim, 1, 1))
-
-            # generate features
-            landmarks_gen = self.distribution.sample((batch_size,)).view(batch_size, -1, 1, 1).type(torch.float32)
+            z = torch.randn((batch_size, self.z_dim))
 
             # transfer everything to the gpu
             if self.cuda:
                 images, features, z = images.cuda(), features.cuda(), z.cuda()
-                landmarks_gen = landmarks_gen.cuda()
 
             ############################
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
@@ -87,33 +83,25 @@ class CGAN(CombinedModel):
             d_real_predictions_loss = self.BCE_loss(real_predictions,
                                                     label_real)  # real corresponds to log(D_real)
 
-            if not validate:
-                # make backward instantly
-                d_real_predictions_loss.backward()
-
-            # Train on real example with fake features
-            fake_labels_predictions = self.D(images, landmarks_gen)
-            d_fake_labels_loss = self.BCE_loss(fake_labels_predictions, label_fake) / 2
-
-            if not validate:
-                # make backward instantly
-                d_fake_labels_loss.backward()
+            # if not validate:
+            #     # make backward instantly
+            #     d_real_predictions_loss.backward()
 
             # Train on fake example from generator
             generated_images = self.G(z, features)
             fake_images_predictions = self.D(generated_images.detach(),
                                              features)  # todo what happens if we detach the output of the Discriminator
             d_fake_images_loss = self.BCE_loss(fake_images_predictions,
-                                               label_fake) / 2  # face corresponds to log(1-D_fake)
+                                               label_fake)  # face corresponds to log(1-D_fake)
+
+            # if not validate:
+            #     # make backward instantly
+            #     d_fake_images_loss.backward()
+
+            d_loss = d_real_predictions_loss + d_fake_images_loss
 
             if not validate:
-                # make backward instantly
-                d_fake_images_loss.backward()
-
-            d_loss = d_real_predictions_loss + d_fake_labels_loss + d_fake_images_loss
-
-            if not validate:
-                # D_loss.backward()
+                d_loss.backward()
                 self.D_optimizer.step()
 
             ############################
@@ -123,6 +111,7 @@ class CGAN(CombinedModel):
                 self.G_optimizer.zero_grad()
 
             # Train on fooling the Discriminator
+            generated_images = self.G(z, features)
             fake_images_predictions = self.D(generated_images, features)
             g_loss = self.BCE_loss(fake_images_predictions, label_real)
 
