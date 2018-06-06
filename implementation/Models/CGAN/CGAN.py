@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.distributions import MultivariateNormal
 
 from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_MEAN, ARRAY_CELEBA_LANDMARKS_COV
 from Models.CGAN.Discriminator import Discriminator
@@ -32,10 +31,12 @@ class CGAN(CombinedModel):
         self.BCE_loss = nn.BCELoss()
 
         # gaussian distribution of our landmarks
-        self.landmarks_mean = torch.from_numpy(np.load(path_to_y_mean))
-        self.landmarks_cov = torch.from_numpy(np.load(path_to_y_cov))
-        self.distribution = MultivariateNormal(loc=self.landmarks_mean.type(torch.float64),
-                                               covariance_matrix=self.landmarks_cov.type(torch.float64))
+        self.landmarks_mean = np.load(path_to_y_mean)
+        self.landmarks_cov = np.load(path_to_y_cov)
+        # self.landmarks_mean = torch.from_numpy(self.landmarks_mean)
+        # self.landmarks_cov = torch.from_numpy(self.landmarks_cov)
+        # self.distribution = MultivariateNormal(loc=self.landmarks_mean.type(torch.float64),
+        #                                        covariance_matrix=self.landmarks_cov.type(torch.float64))
 
         if torch.cuda.is_available():
             self.cuda = True
@@ -67,10 +68,16 @@ class CGAN(CombinedModel):
         for images, features in data_loader:
             # generate random vector
             z = torch.randn((batch_size, self.z_dim))
-
+            # TODO: RuntimeError: Lapack Error in potrf : the leading minor of order 122 is not
+            # TODO: positive definite at /pytorch/aten/src/TH/generic/THTensorLapack.c:617
+            # feature_gen = self.distribution.sample((batch_size,)).type(torch.float32)
+            feature_gen = np.random.multivariate_normal(self.landmarks_mean, self.landmarks_cov, batch_size)
+            feature_gen = torch.from_numpy(feature_gen).type(torch.float32)
+            feature_gen = (feature_gen - 0.5) * 2.0
             # transfer everything to the gpu
             if self.cuda:
                 images, features, z = images.cuda(), features.cuda(), z.cuda()
+                feature_gen = feature_gen.cuda()
 
             ############################
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
@@ -87,18 +94,26 @@ class CGAN(CombinedModel):
                 # make backward instantly
                 d_real_predictions_loss.backward()
 
+            # Train on real example with fake features
+            fake_labels_predictions = self.D(images, feature_gen)
+            d_fake_labels_loss = self.BCE_loss(fake_labels_predictions, label_fake) / 2
+
+            if not validate:
+                # make backward instantly
+                d_fake_labels_loss.backward()
+
             # Train on fake example from generator
             generated_images = self.G(z, features)
             fake_images_predictions = self.D(generated_images.detach(),
                                              features)  # todo what happens if we detach the output of the Discriminator
             d_fake_images_loss = self.BCE_loss(fake_images_predictions,
-                                               label_fake)  # face corresponds to log(1-D_fake)
+                                               label_fake) / 2  # face corresponds to log(1-D_fake)
 
             if not validate:
                 # make backward instantly
                 d_fake_images_loss.backward()
 
-            d_loss = d_real_predictions_loss + d_fake_images_loss
+            d_loss = d_real_predictions_loss + d_fake_labels_loss + d_fake_images_loss
 
             if not validate:
                 # D_loss.backward()
@@ -111,7 +126,6 @@ class CGAN(CombinedModel):
                 self.G_optimizer.zero_grad()
 
             # Train on fooling the Discriminator
-            # generated_images = self.G(z, features)
             fake_images_predictions = self.D(generated_images, features)
             g_loss = self.BCE_loss(fake_images_predictions, label_real)
 
