@@ -1,11 +1,11 @@
 import numpy as np
-from pathlib import Path
-from PIL import Image
 from Evaluator.Evaluator import Evaluator
+from configuration.run_config import current_config
 
 
 if __name__ == '__main__':
-    scores = Evaluator.evaluate_model(model_folder='model', image_folder='/nfs/students/summer-term-2018/project_2/test/')
+    model = current_config['model'](current_config['img_size'])
+    scores = Evaluator.evaluate_model(model, current_config['img_size'])
 
     sim = [s['sim'] for _,s in scores.items()]
     emo = [s['emo'] for _,s in scores.items()]
