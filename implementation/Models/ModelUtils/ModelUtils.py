@@ -78,7 +78,6 @@ class CombinedModel:
     def log_validation(self, *info):
         raise NotImplementedError
 
-    @abstractmethod
     def __str__(self):
         """
         TODO

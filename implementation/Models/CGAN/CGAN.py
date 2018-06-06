@@ -44,14 +44,6 @@ class CGAN(CombinedModel):
             self.D.cuda()
             self.BCE_loss.cuda()
 
-    def __str__(self):
-        string = super().__str__()
-        string += str(self.G_optimizer) + '\n'
-        string += str(self.D_optimizer) + '\n'
-        string += str(self.BCE_loss) + '\n'
-        string = string.replace('\n', '\n\n')
-        return string
-
     def _train(self, data_loader, batch_size, **kwargs):
         # indicates if the graph should get updated
         validate = kwargs.get('validate', False)
