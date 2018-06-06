@@ -3,7 +3,6 @@ from abc import abstractmethod
 
 import numpy as np
 import torch
-from PIL.Image import BICUBIC
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
@@ -110,7 +109,7 @@ class LatentModel(CombinedModel):
 
     @abstractmethod
     def img2latent_bridge(self, extracted_face, extracted_information):
-        pass
+        raise NotImplementedError
 
     def log_images(self, logger, epoch, images, validation=True):
 
@@ -125,63 +124,7 @@ class LatentModel(CombinedModel):
         logger.log_images(epoch, A, tag, 2)
 
 
-class LowResAnnotationModel(LatentModel):
-    def img2latent_bridge(self, extracted_face, extracted_information):
-        resized_image_flat = np.array(extracted_face.resize((8, 8)))
-        resized_image_flat = resized_image_flat.reshape((len(resized_image_flat), -1)) / 255.0
-
-        landmarks_normalized_flat = np.reshape(
-            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), -1)
-
-        latent_vector = np.hstack([landmarks_normalized_flat, resized_image_flat, ])
-        latent_vector = torch.from_numpy(latent_vector).type(torch.float32)
-        latent_vector -= 0.5
-        latent_vector *= 2.0
-        return latent_vector
-
-
-class HistAnnotationModel(LatentModel):
-    # this is deprecated
-    def img2latent_bridge(self, extracted_face, extracted_information, img_size):
-        hist_flat = np.array(extracted_face.resize(img_size, BICUBIC).histogram()).flatten() / (
-                img_size[0] * img_size[1] * 3)
-        landmarks_normalized_flat = np.reshape(
-            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), -1)
-        latent_vector = np.append(landmarks_normalized_flat, hist_flat)
-
-        # annotations of pic 000001.jpg
-        annotations = [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1,
-                       1, 0, 1, 0, 1, 0, 0, 1]
-        latent_vector = np.append(latent_vector, annotations)
-
-        latent_vector = latent_vector.astype(np.float32)
-        return torch.from_numpy(latent_vector).unsqueeze(0).cuda()
-
-
-class HistModel(LatentModel):
-    last_hist = None
-
-    # this is deprecated
-    def img2latent_bridge(self, extracted_face, extracted_information, img_size):
-        hist_flat = np.array(extracted_face.resize(img_size, BICUBIC).histogram()).flatten() / (
-                img_size[0] * img_size[1] * 3)
-        if HistModel.last_hist is None:
-            HistModel.last_hist = hist_flat
-        else:
-            hist_flat = HistModel.last_hist
-
-        landmarks_normalized_flat = np.reshape(
-            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), -1)
-
-        # print(landmarks_normalized_flat)
-        latent_vector = np.append(landmarks_normalized_flat, hist_flat)
-
-        latent_vector = latent_vector.astype(np.float32)
-        return torch.from_numpy(latent_vector).unsqueeze(0).cuda()
-
-
 class LowResModel(LatentModel):
-    # only this one
     def img2latent_bridge(self, extracted_face, extracted_information):
         resized_image_flat = np.array(extracted_face.resize((8, 8))).transpose((2, 0, 1))
         resized_image_flat = resized_image_flat.reshape((1, -1)) / 255.0
@@ -194,24 +137,3 @@ class LowResModel(LatentModel):
         latent_vector -= 0.5
         latent_vector *= 2.0
         return latent_vector.cuda()
-
-
-class HistReducedModel(LatentModel):
-    def img2latent_bridge(self, extracted_face, extracted_information, img_size):
-        img = np.array(extracted_face.resize(img_size, BICUBIC))
-        r = img[:, :, 0]
-        g = img[:, :, 1]
-        b = img[:, :, 2]
-        r = np.histogram(r, bins=100, range=(0, 255), density=True)[0]
-        g = np.histogram(g, bins=100, range=(0, 255), density=True)[0]
-        b = np.histogram(b, bins=100, range=(0, 255), density=True)[0]
-        hist_flat = np.concatenate((r, g, b))
-
-        landmarks_normalized_flat = np.reshape(
-            (np.array(extracted_information.landmarks) / extracted_information.size_fine).tolist(), -1)
-
-        # print(landmarks_normalized_flat)
-        latent_vector = np.append(landmarks_normalized_flat, hist_flat)
-
-        latent_vector = latent_vector.astype(np.float32)
-        return torch.from_numpy(latent_vector).unsqueeze(0).cuda()

@@ -13,6 +13,9 @@ def convert_images():
     anonymizer = Anonymizer(model_folder='model',
                             config=current_config)
     path = Path('/nfs/students/summer-term-2018/project_2/test_simone/test_out')
+    result_path = path / 'result'
+    result_path.mkdir(exist_ok=True)
+
     for image_file in path.iterdir():
         if image_file.is_dir():
             print('Skipping image:', image_file.name)
@@ -22,13 +25,13 @@ def convert_images():
         image = image.convert('RGB')
         new_image = anonymizer(image)
         if new_image is not None:
-            new_image.save(path / ('result/' + image_file.name.__str__()))
+            new_image.save(result_path / image_file.name.__str__())
 
 
 def convert_video():
     anonymizer = Anonymizer(model_folder='model',
                             config=current_config)
-    path = Path('/nfs/students/summer-term-2018/project_2/test_video4/')
+    path = Path('/nfs/students/summer-term-2018/project_2/test_simone/')
     path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')
     for video_file in path.iterdir():
         if video_file.is_dir():
