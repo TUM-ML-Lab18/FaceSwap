@@ -54,7 +54,8 @@ class Evaluator:
 
             try:
                 face_out.save(output_path / ('anonymized_' + image_file.name.__str__()))
-                scores.append(Evaluator.evaluate_image_pair(extracted_face, face_out))
+                score, sim, emo = Evaluator.evaluate_image_pair(extracted_face, face_out)
+                scores.append({'score': score, 'sim': sim, 'emo': emo})
             except Exception as ex:
                 print(ex)
                 continue
@@ -80,7 +81,7 @@ class Evaluator:
 
         score = 1 / (1 + np.exp(alpha * emotion_score - beta * (similarity_score - treshold)))
 
-        return score
+        return score, similarity_score, emotion_score
 
     @staticmethod
     def get_emotion_score(img1, img2):
