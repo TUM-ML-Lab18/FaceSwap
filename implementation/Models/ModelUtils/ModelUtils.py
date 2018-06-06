@@ -59,6 +59,10 @@ class CombinedModel:
         raise NotImplementedError
 
     @abstractmethod
+    def get_remaining_modules(self):
+        raise NotImplementedError
+
+    @abstractmethod
     def train(self, train_data_loader, batch_size, **kwargs):
         raise NotImplementedError
 
@@ -74,7 +78,6 @@ class CombinedModel:
     def log_validation(self, *info):
         raise NotImplementedError
 
-    @abstractmethod
     def __str__(self):
         """
         TODO
@@ -84,6 +87,13 @@ class CombinedModel:
         string = str()
         for model in self.get_models():
             string += str(model) + '\n'
+
+        for module in self.get_remaining_modules():
+            string += str(module) + '\n'
+
+        # tensorbord uses markup to display text
+        string = string.replace('\n', '\n\n')
+
         return string
 
     def set_train_mode(self, mode):
