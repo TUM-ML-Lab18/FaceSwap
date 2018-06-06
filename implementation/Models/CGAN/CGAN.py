@@ -157,6 +157,9 @@ class CGAN(CombinedModel):
     def get_model_names(self):
         return ['generator', 'discriminator']
 
+    def get_remaining_modules(self):
+        return [self.G_optimizer, self.D_optimizer, self.BCE_loss]
+
     def log(self, logger, epoch, lossG, lossD, images, log_images=False):  # last parameter is not needed anymore
         """
         use logger to log current loss etc...

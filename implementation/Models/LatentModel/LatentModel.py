@@ -16,13 +16,8 @@ class LatentModel(CombinedModel):
     def get_model_names(self):
         return ['decoder']
 
-    def __str__(self):
-        string = super().__str__()
-        string += str(self.optimizer) + '\n'
-        string += str(self.scheduler) + '\n'
-        string += str(self.lossfn) + '\n'
-        string = string.replace('\n', '\n\n')
-        return string
+    def get_remaining_modules(self):
+        return [self.optimizer, self.scheduler, self.lossfn]
 
     def __init__(self, decoder):
         self.decoder = decoder().cuda()
@@ -85,9 +80,6 @@ class LatentModel(CombinedModel):
         unnormalized = self.decoder(x)
         normalized = unnormalized / 2.0 + 0.5
         return normalized
-
-    def anonymize_2(self, x):
-        return self.anonymize(x)
 
     def log(self, logger, epoch, loss1, images, log_images=False):
         """

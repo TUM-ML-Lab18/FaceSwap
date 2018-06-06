@@ -34,19 +34,14 @@ class DCGAN(CombinedModel):
 
         self.static_noise = torch.randn(64 * 4, self.nz, 1, 1)
 
-    def __str__(self):
-        string = super().__str__()
-        string += str(self.G_optimizer) + '\n'
-        string += str(self.D_optimizer) + '\n'
-        string += str(self.BCE_loss) + '\n'
-        string = string.replace('\n', '\n\n')
-        return string
-
     def get_models(self):
         return [self.g, self.d]
 
     def get_model_names(self):
         return ['generator', 'discriminator']
+
+    def get_remaining_modules(self):
+        return [self.G_optimizer, self.D_optimizer, self.BCE_loss]
 
     def _train(self, data_loader, batch_size, **kwargs):
         # indicates if the graph should get updated
