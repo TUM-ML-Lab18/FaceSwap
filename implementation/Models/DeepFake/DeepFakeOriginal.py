@@ -1,31 +1,37 @@
 import random
+
 import torch
+from PIL.Image import BICUBIC
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from PIL.Image import BICUBIC
-from torch.nn import DataParallel
-from pathlib import Path
-
 from torchvision.transforms import ToTensor
+
 from Models.DeepFake.Autoencoder import AutoEncoder
+from Models.ModelUtils.ModelUtils import CombinedModel
 
 
-class DeepFakeOriginal:
-    def __init__(self, encoder, decoder, auto_encoder=AutoEncoder):
+class DeepFakeOriginal(CombinedModel):
+    def get_models(self):
+        return [self.encoder, self.decoder1, self.decoder2]
+
+    def get_model_names(self):
+        return ['encoder', 'decoder1', 'decoder2']
+
+    def get_remaining_modules(self):
+        return [self.autoencoder1, self.autoencoder2, self.lossfn, self.optimizer1, self.optimizer2, self.scheduler1,
+                self.scheduler2]
+
+    def __init__(self, encoder, decoder, img_size, auto_encoder=AutoEncoder):
         """
         Initialize a new DeepFakeOriginal.
         """
-        self.encoder = encoder().cuda()
+        self.img_size = img_size
+        self.encoder = encoder(self.img_size).cuda()
         self.decoder1 = decoder().cuda()
         self.decoder2 = decoder().cuda()
 
         self.autoencoder1 = auto_encoder(self.encoder, self.decoder1).cuda()
         self.autoencoder2 = auto_encoder(self.encoder, self.decoder2).cuda()
-
-        # use multiple gpus
-        if torch.cuda.device_count() > 1:
-            self.autoencoder1 = DataParallel(self.autoencoder1)
-            self.autoencoder2 = DataParallel(self.autoencoder2)
 
         self.lossfn = torch.nn.L1Loss(size_average=True).cuda()
 
@@ -34,7 +40,9 @@ class DeepFakeOriginal:
         self.optimizer2 = Adam(self.autoencoder2.parameters(), lr=1e-4)
         self.scheduler2 = ReduceLROnPlateau(self.optimizer2, patience=100, cooldown=50)
 
-    def train(self, current_epoch, batches):
+    def train(self, train_data_loader, batch_size, **kwargs):
+        current_epoch = kwargs.get('current_epoch', -1)
+
         loss1_mean, loss2_mean = 0, 0
         face1 = None
         face1_warped = None
@@ -44,7 +52,7 @@ class DeepFakeOriginal:
         output2 = None
         iterations = 0
 
-        for (face1_warped, face1), (face2_warped, face2) in batches:
+        for (face1_warped, face1), (face2_warped, face2) in train_data_loader:
             # face1 and face2 contain a batch of images of the first and second face, respectively
             face1, face2 = face1.cuda(), face2.cuda()
             face1_warped, face2_warped = face1_warped.cuda(), face2_warped.cuda()
@@ -74,11 +82,17 @@ class DeepFakeOriginal:
 
         return loss1_mean, loss2_mean, [face1_warped, output1, face1, face2_warped, output2, face2]
 
-    def validate(self, batches):
+    def validate(self, validation_data_loader, batch_size, **kwargs):
         loss1_valid_mean, loss2_valid_mean = 0, 0
+        face1 = None
+        face1_warped = None
+        output1 = None
+        face2 = None,
+        face2_warped = None
+        output2 = None
         iterations = 0
 
-        for (face1_warped, face1), (face2_warped, face2) in batches:
+        for (face1_warped, face1), (face2_warped, face2) in validation_data_loader:
             with torch.no_grad():
                 face1, face2 = face1.cuda(), face2.cuda()
                 face1_warped, face2_warped = face1_warped.cuda(), face2_warped.cuda()
@@ -96,7 +110,7 @@ class DeepFakeOriginal:
         loss1_valid_mean = loss1_valid_mean.cpu().data.numpy()
         loss2_valid_mean = loss2_valid_mean.cpu().data.numpy()
 
-        return loss1_valid_mean, loss2_valid_mean
+        return loss1_valid_mean, loss2_valid_mean, [face1_warped, output1, face1, face2_warped, output2, face2]
 
     def anonymize(self, x):
         return self.autoencoder2(x)
@@ -115,25 +129,30 @@ class DeepFakeOriginal:
 
         # log images
         if log_images:
-            examples = int(len(images[0]))
-            example_indices = random.sample(range(0, examples - 1), 5)
-
-            anonymized_images_trump = self.anonymize(images[2][example_indices])
-            anonymized_images_cage = self.anonymize_2(images[5][example_indices])
-            A = []
-            B = []
-            for idx, i in enumerate(example_indices):
-                for j in range(3):
-                    A.append(images[j].cpu()[i] * 255.00)
-                    B.append(images[3 + j].cpu()[i] * 255.00)
-                A.append(anonymized_images_trump.cpu()[idx] * 255.00)
-                B.append(anonymized_images_cage.cpu()[idx] * 255.00)
-            logger.log_images(epoch, A, "sample_input/A", 4)
-            logger.log_images(epoch, B, "sample_input/B", 4)
+            self.log_images(logger, epoch, images, validation=False)
         logger.save_model(epoch)
 
-    def log_validate(self, logger, epoch, loss1, loss2):
-        logger.log_loss(epoch=epoch, loss={'lossA_val': float(loss1), 'lossB_val': float(loss2)})
+    def log_images(self, logger, epoch, images, validation=True):
+        examples = int(len(images[0]))
+        example_indices = random.sample(range(0, examples - 1), 5)
 
-    def img2latent_bridge(self, extracted_face, extracted_information, img_size):
-        return ToTensor()(extracted_face.resize(img_size, resample=BICUBIC)).unsqueeze(0).cuda()
+        anonymized_images_trump = self.anonymize(images[2][example_indices])
+        anonymized_images_cage = self.anonymize_2(images[5][example_indices])
+        A = []
+        B = []
+        for idx, i in enumerate(example_indices):
+            for j in range(3):
+                A.append(images[j].cpu()[i])
+                B.append(images[3 + j].cpu()[i])
+            A.append(anonymized_images_trump.cpu()[idx])
+            B.append(anonymized_images_cage.cpu()[idx])
+            tag = 'validation_output' if validation else 'training_output'
+        logger.log_images(epoch, A, f"{tag}/A", 4)
+        logger.log_images(epoch, B, f"{tag}/B", 4)
+
+    def log_validation(self, logger, epoch, loss1, loss2, images):
+        logger.log_loss(epoch=epoch, loss={'lossA_val': float(loss1), 'lossB_val': float(loss2)})
+        self.log_images(logger, epoch, images, validation=True)
+
+    def img2latent_bridge(self, extracted_face, extracted_information):
+        return ToTensor()(extracted_face.resize(self.img_size, resample=BICUBIC)).unsqueeze(0).cuda()

@@ -8,8 +8,7 @@ from Models.DeepFake.Decoder import Decoder
 from Models.DeepFake.DeepFakeOriginal import DeepFakeOriginal
 from Models.DeepFake.Encoder import Encoder
 from Models.LatentModel.Decoder import LatentDecoder
-from Models.LatentModel.LatentModel import LatentModel, LowResAnnotationModel, HistAnnotationModel, HistModel, \
-    LowResModel
+from Models.LatentModel.LatentModel import LatentModel, LowResModel
 from Utils.ImageDataset import *
 
 standard_config = {'batch_size': 64,
@@ -26,6 +25,20 @@ standard_config = {'batch_size': 64,
                    'img2latent_bridge:': lambda extracted_face, extracted_information, img_size:
                    ToTensor()(extracted_face.resize(img_size, resample=BICUBIC)).unsqueeze(0).cuda()
                    }
+
+deep_fakes_config = {'batch_size': 64,
+                     'img_size': (128, 128),
+                     'model': DeepFakeOriginal,
+                     'model_params': {'encoder': lambda img_size: Encoder(input_dim=(3,) + img_size,
+                                                                          latent_dim=1024,
+                                                                          num_convblocks=5),
+                                      'decoder': lambda: Decoder(input_dim=512,
+                                                                 num_convblocks=4),
+                                      'auto_encoder': AutoEncoder,
+                                      'img_size': (128, 128)},
+                     'dataset': lambda root_folder, img_size: ImageDatesetCombined(root_folder, size_multiplicator=1,
+                                                                                   img_size=img_size)
+                     }
 
 ####### config for using only landmarks as input
 # todo move the input dimensionality of the network to somewhere als as parameter
@@ -80,19 +93,6 @@ cgan_config = {'batch_size': 64,
 dcgan_config = {'batch_size': 64,
                 'model': DCGAN,
                 'model_params': {},
-                # 'dataset2': lambda: CIFAR10(root='./Models/DCGAN/download', download=True,
-                #                             transform=transforms.Compose([
-                #                                 transforms.Resize(64),
-                #                                 transforms.ToTensor(),
-                #                                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                #                             ])),
-                # 'dataset': lambda: ImageFolder(
-                #     root='/nfs/students/summer-term-2018/project_2/data/CelebA/preprocessed64',
-                #     transform=transforms.Compose([
-                #         transforms.Resize(64),
-                #         transforms.ToTensor(),
-                #         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                #     ]))
                 'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_5)
                 }
 
