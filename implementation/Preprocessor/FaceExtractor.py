@@ -1,8 +1,8 @@
-import numpy as np
 import cv2
 import face_recognition
-from recordclass import recordclass
+import numpy as np
 from PIL import Image, ImageDraw
+from recordclass import recordclass
 
 ExtractionInformation = recordclass('ExtractionInformation',
                                     ('image_original', 'image_cropped',
@@ -153,6 +153,22 @@ def dict_landmarks(landmarks_list):
     return landmarks_dict
 
 
+def array_landmarks(landmarks):
+    """
+    Converts landmarks into an array
+    :param landmarks: List or dict of facial landmarks
+    :return: Array with landmarks, shape (N,D)
+    """
+    if list == type(landmarks):
+        landmarks_array = np.array(landmarks)
+    elif dict == type(landmarks):
+        landmarks_array = np.array(list(landmarks.values()))
+    else:
+        raise TypeError
+
+    return landmarks_array
+
+
 def update_landmarks(landmarks_dict, transformation):
     """
     Updates all landmarks based on the given transformation
@@ -170,11 +186,107 @@ def update_landmarks(landmarks_dict, transformation):
         landmarks_dict[feature] = landmarks
 
 
+def extract_5_landmarks(landmarks_array):
+    """
+    Extracts 5 handcrafted landmarks from an array with all landmarks
+    :param landmarks_array: np.array with all landmarks
+    :return: np.array with 5 landmarks
+    """
+    if len(landmarks_array.shape) == 1:
+        landmarks_array = landmarks_array[None, :]
+    # Split x & y coordinate
+    landmarks_X, landmarks_Y = landmarks_array[:, ::2], landmarks_array[:, 1::2]
+    # Eye left
+    lm0_x, lm0_y = np.mean(landmarks_X[:, 36:42], axis=1), np.mean(landmarks_Y[:, 36:42], axis=1)
+    # Eye right
+    lm1_x, lm1_y = np.mean(landmarks_X[:, 42:48], axis=1), np.mean(landmarks_Y[:, 42:48], axis=1)
+    # Nose
+    lm2_x, lm2_y = np.mean(landmarks_X[:, 31:36], axis=1), np.mean(landmarks_Y[:, 31:36], axis=1)
+    # Mouth left
+    lm3_x, lm3_y = landmarks_X[:, 48], landmarks_Y[:, 48]
+    # Mouth right
+    lm4_x, lm4_y = landmarks_X[:, 60], landmarks_Y[:, 60]
+
+    # Stack landmarks
+    landmarks_5 = np.vstack([lm0_x, lm0_y, lm1_x, lm1_y, lm2_x, lm2_y, lm3_x, lm3_y, lm4_x, lm4_y]).T
+
+    return landmarks_5
+
+
+def extract_10_landmarks(landmarks_array):
+    """
+    Extracts 10 handcrafted landmarks from an array with all landmarks
+    :param landmarks_array: np.array with all landmarks
+    :return: np.array with 10 landmarks
+    """
+    if len(landmarks_array.shape) == 1:
+        landmarks_array = landmarks_array[None, :]
+    # Split x & y coordinate
+    landmarks_X, landmarks_Y = landmarks_array[:, ::2], landmarks_array[:, 1::2]
+    # Eye left
+    lm0_x, lm0_y = np.mean(landmarks_X[:, 36:42], axis=1), np.mean(landmarks_Y[:, 36:42], axis=1)
+    # Eye right
+    lm1_x, lm1_y = np.mean(landmarks_X[:, 42:48], axis=1), np.mean(landmarks_Y[:, 42:48], axis=1)
+    # Nose
+    lm2_x, lm2_y = np.mean(landmarks_X[:, 31:36], axis=1), np.mean(landmarks_Y[:, 31:36], axis=1)
+    # Mouth left
+    lm3_x, lm3_y = landmarks_X[:, 48], landmarks_Y[:, 48]
+    # Mouth right
+    lm4_x, lm4_y = landmarks_X[:, 60], landmarks_Y[:, 60]
+    # Mouth top
+    lm5_x, lm5_y = landmarks_X[:, 51], landmarks_Y[:, 51]
+    # Mouth bottom
+    lm6_x, lm6_y = landmarks_X[:, 63], landmarks_Y[:, 63]
+    # Chin
+    lm7_x, lm7_y = landmarks_X[:, 8], landmarks_Y[:, 8]
+    # Face left
+    lm8_x, lm8_y = landmarks_X[:, 2], landmarks_Y[:, 2]
+    # Face right
+    lm9_x, lm9_y = landmarks_X[:, 14], landmarks_Y[:, 14]
+
+    # Stack landmarks
+    landmarks_10 = np.vstack(
+        [lm0_x, lm0_y, lm1_x, lm1_y, lm2_x, lm2_y, lm3_x, lm3_y, lm4_x, lm4_y,
+         lm5_x, lm5_y, lm6_x, lm6_y, lm7_x, lm7_y, lm8_x, lm8_y, lm9_x, lm9_y]).T
+
+    return landmarks_10
+
+
+def extract_28_landmarks(landmarks_array):
+    """
+    Extracts 28 handcrafted landmarks from an array with all landmarks
+    :param landmarks_array: np.array with all landmarks
+    :return: np.array with 28 landmarks
+    """
+    if len(landmarks_array.shape) == 1:
+        landmarks_array = landmarks_array[None, :]
+    # Split x & y coordinate
+    landmarks_X, landmarks_Y = landmarks_array[:, ::2], landmarks_array[:, 1::2]
+    # Right eye
+    right_eye_X, right_eye_Y = landmarks_X[:, 42:48], landmarks_Y[:, 42:48]
+    # Left eye
+    left_eye_X, left_eye_Y = landmarks_X[:, 36:42], landmarks_Y[:, 36:42]
+    # Face contour
+    face_contour_X, face_contour_Y = landmarks_X[:, 0:17:4], landmarks_Y[:, 0:17:4]
+    # Nose
+    nose_X, nose_Y = np.mean(landmarks_X[:, 31:36], axis=1)[:, None], np.mean(landmarks_Y[:, 31:36], axis=1)[:, None]
+    # Mouth
+    mouth_X, mouth_Y = landmarks_X[:, [48, 50, 52, 56, 58, 60, 62, 64, 68, 70]], \
+                       landmarks_Y[:, [48, 50, 52, 56, 58, 60, 62, 64, 68, 70]]
+
+    # Unify X & Y coordinates
+    landmarks_28_X = np.hstack((right_eye_X, left_eye_X, face_contour_X, nose_X, mouth_X))
+    landmarks_28_Y = np.hstack((right_eye_Y, left_eye_Y, face_contour_Y, nose_Y, mouth_Y))
+    landmarks_28 = np.dstack((landmarks_28_X, landmarks_28_Y)).reshape((-1, 56))
+
+    return landmarks_28
+
+
 def draw_landmarks(image, landmarks_dict):
     """
     Draw landmarks into image
     :param image: PIL image
-    :param landmarks_dict: Dict of facial landmarks
+    :param landmarks_dict: Dict of all facial landmarks
     :return: PIL image with the landmarks drawn
     """
     landmarks_face = image.copy()

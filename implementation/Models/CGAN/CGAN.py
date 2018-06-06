@@ -7,6 +7,7 @@ from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_MEAN, ARRAY_CELE
 from Models.CGAN.Discriminator import Discriminator
 from Models.CGAN.Generator import Generator
 from Models.ModelUtils.ModelUtils import CombinedModel
+from Preprocessor.FaceExtractor import extract_5_landmarks
 
 
 class CGAN(CombinedModel):
@@ -200,23 +201,21 @@ class CGAN(CombinedModel):
         return tensor_img
 
     def img2latent_bridge(self, extracted_face, extracted_information):
+        # Normalize landmarks
         landmarks = np.array(extracted_information.landmarks) / extracted_information.size_fine
         landmarks = landmarks.reshape(-1)
-        # Split x,y coordinate
-        landmarks_X, landmarks_Y = landmarks[::2], landmarks[1::2]
-        # landmarks_5
-        eye_left_X, eye_left_Y = np.mean(landmarks_X[36:42]), np.mean(landmarks_Y[36:42])
-        eye_right_X, eye_right_Y = np.mean(landmarks_X[42:48]), np.mean(landmarks_Y[42:48])
-        nose_X, nose_Y = np.mean(landmarks_X[31:36]), np.mean(landmarks_Y[31:36])
-        mouth_left_X, mouth_left_Y = landmarks_X[48], landmarks_Y[48]
-        mouth_right_X, mouth_right_Y = landmarks_X[60], landmarks_Y[60]
-        landmarks_5 = np.vstack((eye_left_X, eye_left_Y, eye_right_X, eye_right_Y, nose_X, nose_Y,
-                                 mouth_left_X, mouth_left_Y, mouth_right_X, mouth_right_Y)).T
+
+        # Extract needed landmarks
+        landmarks = extract_5_landmarks(landmarks)
+        # landmarks = extract_10_landmarks(landmarks)
+        # landmarks = extract_28_landmarks(landmarks)
+
         # Zero centering
-        landmarks_5 -= 0.5
-        landmarks_5 *= 2.0
+        landmarks -= 0.5
+        landmarks *= 2.0
+
         # ToTensor
-        feature = torch.from_numpy(landmarks_5).type(torch.float32)
+        feature = torch.from_numpy(landmarks).type(torch.float32)
 
         return feature
 
