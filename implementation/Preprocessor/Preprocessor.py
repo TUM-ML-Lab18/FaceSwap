@@ -139,7 +139,7 @@ class Preprocessor:
         with open(landmarks_json, 'w') as lm_json:
             json.dump(landmarks_storage, lm_json)
         # Save npy file
-        landmarks_array = np.array(list(landmarks_storage.values()))
+        landmarks_array = np.array(list(landmarks_storage.values())).astype(np.float32)
         np.save(landmarks_npy, landmarks_array)
 
         # Convert histo to json
@@ -147,7 +147,8 @@ class Preprocessor:
         # Save json file
         with open(histo_json, 'w') as h_json:
             json.dump(histo_storage, h_json)
-        histo_array = np.array(list(histo_storage.values()))
+        # Save npy file
+        histo_array = np.array(list(histo_storage.values())).astype(np.float32)
         np.save(histo_npy, histo_array)
 
         # Convert embeddings to json
@@ -155,7 +156,8 @@ class Preprocessor:
         # Save json file
         with open(embeddings_json, 'w') as em_json:
             json.dump(embeddings_storage, em_json)
-        embeddings_array = np.array(list(embeddings_storage.values()))
+        # Save npy file
+        embeddings_array = np.array(list(embeddings_storage.values())).astype(np.float32)
         np.save(embeddings_npy, embeddings_array)
 
         # Convert images folder into arrays
@@ -164,6 +166,9 @@ class Preprocessor:
             data = np.array([np.array(Image.open(fname)) for fname in subdir_res.iterdir()])
             data = data.transpose((0, 3, 1, 2))
             np.save(root_folder / ('data' + str(size) + '.npy'), data)
+            if size == 8:
+                lowres = data.reshape((-1, 192)) / 255.0
+                np.save(root_folder / 'lowres.npy', lowres)
 
     @staticmethod
     def calculate_masked_histogram(image):

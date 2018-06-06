@@ -96,4 +96,4 @@ dcgan_config = {'batch_size': 64,
                 'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_5)
                 }
 
-current_config = lm_lowres_config
+current_config = cgan_config

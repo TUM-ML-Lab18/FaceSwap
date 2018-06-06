@@ -12,17 +12,17 @@ from Utils.Logging.LoggingUtils import print_progress_bar
 def convert_images():
     anonymizer = Anonymizer(model_folder='model',
                             config=current_config)
-    path = Path('/nfs/students/summer-term-2018/project_2/test')
-    path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')
+    path = Path('/nfs/students/summer-term-2018/project_2/test_simone/test_out')
     for image_file in path.iterdir():
         if image_file.is_dir():
             print('Skipping image:', image_file.name)
             continue
         print('Processing image:', image_file.name)
         image = Image.open(image_file)
+        image = image.convert('RGB')
         new_image = anonymizer(image)
-        if not new_image is None:
-            new_image.save(path_sebi / (image_file.name.__str__()))
+        if new_image is not None:
+            new_image.save(path / ('result/' + image_file.name.__str__()))
 
 
 def convert_video():
