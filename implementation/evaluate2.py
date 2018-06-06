@@ -7,8 +7,8 @@ if __name__ == '__main__':
     model = current_config['model'](current_config['img_size'])
     scores = Evaluator.evaluate_model(current_config)
 
-    sim = [s['sim'] for _,s in scores.items()]
-    emo = [s['emo'] for _,s in scores.items()]
+    sim = [s['sim'] for _, s in scores.items()]
+    emo = [s['emo'] for _, s in scores.items()]
 
     sim = np.array(sim)
     emo = np.array(emo)
