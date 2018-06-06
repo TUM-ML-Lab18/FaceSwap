@@ -29,7 +29,7 @@ class Evaluator:
         extractor = FaceExtractor(mask_type=np.float, margin=0.05, mask_factor=10)
 
         print("The authors of the package recommend 0.6 as max distance for the same person.")
-        scores = []
+        scores = {}
         for image_file in image_folder.iterdir():
             if image_file.is_dir():
                 continue
@@ -55,7 +55,7 @@ class Evaluator:
             try:
                 face_out.save(output_path / ('anonymized_' + image_file.name.__str__()))
                 score, sim, emo = Evaluator.evaluate_image_pair(extracted_face, face_out)
-                scores.append({'score': score, 'sim': sim, 'emo': emo})
+                scores[image_file] = {'score': score, 'sim': sim, 'emo': emo}
             except Exception as ex:
                 print(ex)
                 continue
