@@ -1,31 +1,33 @@
-from pathlib import Path
-
 import face_recognition, requests, io
 import numpy as np
-from PIL import Image
 
-from FaceAnonymizer.Anonymizer import Anonymizer
-from configuration.run_config import current_config
+from pathlib import Path
+from PIL import Image
+from PIL.Image import BICUBIC
+from torchvision.transforms import ToTensor, ToPILImage
 from configuration.evaluation_config import standard_conf
+from Preprocessor.FaceExtractor import FaceExtractor
 
 
 class Evaluator:
 
     @staticmethod
-    def evaluate_model(model_folder='model', image_folder='/nfs/students/summer-term-2018/project_2/test/',
+    def evaluate_model(model, img_size, decoder=2,
+                       image_folder='/nfs/students/summer-term-2018/project_2/test_alex/',
                        output_path='/nfs/students/summer-term-2018/project_2/test_alex/'):
         """
         Evaluates a model by comparing input images with output images
-        :param model_folder: path to the model to evaluate
+        :param model: the model used for the evaluation
+        :param img_size: image size from config
+        :param decoder: which decoder to use (1,2)
         :param image_folder: path images used to evaluate the model
-        :param output_path: path where anonymized images should get stored
+        :param output_path: path where anonymized images should be stored
         :return: list of distances
         """
         image_folder = Path(image_folder)
         output_path = Path(output_path)
-        anonymizer = Anonymizer(model_folder=model_folder,
-                                model=current_config['model'],
-                                config=current_config)
+        extractor = FaceExtractor(mask_type=np.float, margin=0.05, mask_factor=10)
+
         print("The authors of the package recommend 0.6 as max distance for the same person.")
         scores = []
         for image_file in image_folder.iterdir():
@@ -36,12 +38,23 @@ class Evaluator:
             print('Processing image:', image_file.name)
 
             input_image = Image.open(image_file)
+            extracted_face, extracted_info = extractor(input_image)
+            if extracted_face is None:
+                continue
+            latent_information = model.img2latent_bridge(extracted_face, extracted_info, img_size)
 
-            anonymized_image = anonymizer(input_image)
+            face_out = None
+            if decoder == 1:
+                face_out = model.anonymize(latent_information).squeeze(0)
+            else:
+                face_out = model.anonymize_2(latent_information).squeeze(0)
+
+            face_out = ToPILImage()(face_out.cpu().detach())
+            face_out = face_out.resize(extracted_face.size, resample=BICUBIC)
 
             try:
-                anonymized_image.save(output_path / ('anonymized_' + image_file.name.__str__()))
-                scores.append(Evaluator.evaluate_image_pair(input_image, anonymized_image))
+                face_out.save(output_path / ('anonymized_' + image_file.name.__str__()))
+                scores.append(Evaluator.evaluate_image_pair(extracted_face, face_out))
             except Exception as ex:
                 print(ex)
                 continue
