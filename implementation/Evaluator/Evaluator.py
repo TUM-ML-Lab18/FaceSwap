@@ -12,20 +12,24 @@ from Preprocessor.FaceExtractor import FaceExtractor
 class Evaluator:
 
     @staticmethod
-    def evaluate_model(model, img_size, decoder=2,
+    def evaluate_model(config, decoder=2,
+                       model_folder='/nfs/students/summer-term-2018/project_2/models/128x128_merkel_klum_beschde',
                        image_folder='/nfs/students/summer-term-2018/project_2/test_alex/',
                        output_path='/nfs/students/summer-term-2018/project_2/test_alex/'):
         """
         Evaluates a model by comparing input images with output images
-        :param model: the model used for the evaluation
-        :param img_size: image size from config
+        :param config: the model configuration
+        :param model_folder: folder of the saved model
         :param decoder: which decoder to use (1,2)
         :param image_folder: path images used to evaluate the model
         :param output_path: path where anonymized images should be stored
         :return: list of distances
         """
+
         image_folder = Path(image_folder)
         output_path = Path(output_path)
+        model = config['model'](config['img_size'])
+        model.load_model(Path(model_folder))
         extractor = FaceExtractor(mask_type=np.float, margin=0.05, mask_factor=10)
 
         print("The authors of the package recommend 0.6 as max distance for the same person.")
@@ -41,7 +45,7 @@ class Evaluator:
             extracted_face, extracted_info = extractor(input_image)
             if extracted_face is None:
                 continue
-            latent_information = model.img2latent_bridge(extracted_face, extracted_info, img_size)
+            latent_information = model.img2latent_bridge(extracted_face, extracted_info, config['img_size'])
 
             face_out = None
             if decoder == 1:
