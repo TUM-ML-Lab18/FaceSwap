@@ -44,6 +44,7 @@ class Evaluator:
             input_image = Image.open(image_file)
             extracted_face, extracted_info = extractor(input_image)
             if extracted_face is None:
+                print('Face could not be extracted')
                 continue
             latent_information = model.img2latent_bridge(extracted_face, extracted_info, config['img_size'])
 
