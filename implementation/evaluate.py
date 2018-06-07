@@ -26,6 +26,7 @@ if __name__ == '__main__':
                 _, sim, emo = Evaluator.evaluate_image_pair(img1, img2)
                 sims.append(sim)
                 emos.append(emo)
+                print('success')
 
             except Exception as ex:
                 print(ex)
