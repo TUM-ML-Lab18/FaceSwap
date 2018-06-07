@@ -1,19 +1,26 @@
-import numpy as np
 import cv2
+import numpy as np
 from PIL import Image
 
 
 class FaceReconstructor(object):
     """
     Inverts the extraction steps of the FaceExtractor
+    0. Sharpen image, if option is selected
     1. Invert fine cropping of the ROI
     2. Invert alignment of eyes
     3. Invert masking of background
     4. Invert coarse cropping of the ROI
     """
 
-    def __init__(self, mask_factor=-10):
-        self.face_sharpener = FaceSharpener()
+    def __init__(self, mask_factor=-10, sharpening=True):
+        """
+        :param mask_factor: Increase or decrease region to insert
+        :param sharpening: Enable sharpening
+        """
+        self.sharpening = sharpening
+        if self.sharpening:
+            self.face_sharpener = FaceSharpener()
         self.face_decropper_fine = FaceDecropperFine()
         self.face_dealigner = FaceDealigner()
         self.face_demasker = FaceDemasker(mask_factor)
@@ -43,7 +50,10 @@ class FaceReconstructor(object):
         original_image = np.array(extraction_information.image_original)
         coarse_cropped_image = np.array(extraction_information.image_cropped)
 
-        sharpened_image = self.face_sharpener(processed_image)
+        if self.sharpening:
+            sharpened_image = self.face_sharpener(processed_image)
+        else:
+            sharpened_image = processed_image
         decropped_image = self.face_decropper_fine(sharpened_image,
                                                    extraction_information.bounding_box_fine,
                                                    extraction_information.offsets_fine,
@@ -161,8 +171,7 @@ class FaceDemasker(object):
         # Erosion -> decrease masked region
         operation = cv2.MORPH_ERODE if self.morphing < 0 else cv2.MORPH_DILATE
         mask = cv2.morphologyEx(mask, op=operation, kernel=kernel)
-        demasked_image = mask[:, :, None] * masked_image + \
-                         (1 - mask[:, :, None]) * cropped_image
+        demasked_image = mask[:, :, None] * masked_image + (1 - mask[:, :, None]) * cropped_image
         demasked_image = demasked_image.astype(np.uint8)
         return demasked_image
 
