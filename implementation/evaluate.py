@@ -22,9 +22,13 @@ if __name__ == '__main__':
             img1 = Image.open(Path(image_a))
             img2 = Image.open(Path(image_b))
 
-            _, sim, emo = Evaluator.evaluate_image_pair(img1, img2)
-            sims.append(sim)
-            emos.append(emo)
+            try:
+                _, sim, emo = Evaluator.evaluate_image_pair(img1, img2)
+                sims.append(sim)
+                emos.append(emo)
+
+            except Exception as ex:
+                print(ex)
 
     sims = np.array(sims)
     emos = np.array(emos)
