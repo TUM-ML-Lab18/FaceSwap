@@ -11,25 +11,15 @@ from Models.ModelUtils.ModelUtils import CombinedModel
 
 
 class DeepFakeOriginal(CombinedModel):
-    def get_models(self):
-        return [self.encoder, self.decoder1, self.decoder2]
-
-    def get_model_names(self):
-        return ['encoder', 'decoder1', 'decoder2']
-
-    def get_remaining_modules(self):
-        return [self.autoencoder1, self.autoencoder2, self.lossfn, self.optimizer1, self.optimizer2, self.scheduler1,
-                self.scheduler2]
-
-    def __init__(self, encoder, decoder, img_size, auto_encoder=AutoEncoder):
+    def __init__(self, encoder, decoder, auto_encoder=AutoEncoder, **kwargs):
         """
         Initialize a new DeepFakeOriginal.
         """
-        self.img_size = img_size
         self.encoder = encoder(self.img_size).cuda()
         self.decoder1 = decoder().cuda()
         self.decoder2 = decoder().cuda()
 
+        self.select_ae = kwargs.get('select_autoencoder', 1)
         self.autoencoder1 = auto_encoder(self.encoder, self.decoder1).cuda()
         self.autoencoder2 = auto_encoder(self.encoder, self.decoder2).cuda()
 
@@ -40,7 +30,17 @@ class DeepFakeOriginal(CombinedModel):
         self.optimizer2 = Adam(self.autoencoder2.parameters(), lr=1e-4)
         self.scheduler2 = ReduceLROnPlateau(self.optimizer2, patience=100, cooldown=50)
 
-    def train(self, train_data_loader, batch_size, **kwargs):
+    def get_models(self):
+        return [self.encoder, self.decoder1, self.decoder2]
+
+    def get_model_names(self):
+        return ['encoder', 'decoder1', 'decoder2']
+
+    def get_remaining_modules(self):
+        return [self.autoencoder1, self.autoencoder2, self.lossfn, self.optimizer1, self.optimizer2, self.scheduler1,
+                self.scheduler2]
+
+    def train(self, train_data_loader, batch_size, validate, **kwargs):
         current_epoch = kwargs.get('current_epoch', -1)
 
         loss1_mean, loss2_mean = 0, 0
@@ -57,17 +57,25 @@ class DeepFakeOriginal(CombinedModel):
             face1, face2 = face1.cuda(), face2.cuda()
             face1_warped, face2_warped = face1_warped.cuda(), face2_warped.cuda()
 
-            self.optimizer1.zero_grad()
+            if not validate:
+                self.optimizer1.zero_grad()
+
             output1 = self.autoencoder1(face1_warped)
             loss1 = self.lossfn(output1, face1)
-            loss1.backward()
-            self.optimizer1.step()
 
-            self.optimizer2.zero_grad()
+            if not validate:
+                loss1.backward()
+                self.optimizer1.step()
+
+            if not validate:
+                self.optimizer2.zero_grad()
+
             output2 = self.autoencoder2(face2_warped)
             loss2 = self.lossfn(output2, face2)
-            loss2.backward()
-            self.optimizer2.step()
+
+            if not validate:
+                loss2.backward()
+                self.optimizer2.step()
 
             loss1_mean += loss1
             loss2_mean += loss2
@@ -77,60 +85,25 @@ class DeepFakeOriginal(CombinedModel):
         loss2_mean /= iterations
         loss1_mean = loss1_mean.cpu().data.numpy()
         loss2_mean = loss2_mean.cpu().data.numpy()
-        self.scheduler1.step(loss1_mean, current_epoch)
-        self.scheduler2.step(loss2_mean, current_epoch)
+        if not validate:
+            self.scheduler1.step(loss1_mean, current_epoch)
+            self.scheduler2.step(loss2_mean, current_epoch)
 
-        return loss1_mean, loss2_mean, [face1_warped, output1, face1, face2_warped, output2, face2]
+        if not validate:
+            log_info = {'lossA': float(loss1_mean), 'lossB': float(loss2_mean)}
+        else:
+            log_info = {'lossA_val': float(loss1_mean), 'lossB_val': float(loss2_mean)}
 
-    def validate(self, validation_data_loader, batch_size, **kwargs):
-        loss1_valid_mean, loss2_valid_mean = 0, 0
-        face1 = None
-        face1_warped = None
-        output1 = None
-        face2 = None,
-        face2_warped = None
-        output2 = None
-        iterations = 0
+        return log_info, [face1_warped, output1, face1, face2_warped, output2, face2]
 
-        for (face1_warped, face1), (face2_warped, face2) in validation_data_loader:
-            with torch.no_grad():
-                face1, face2 = face1.cuda(), face2.cuda()
-                face1_warped, face2_warped = face1_warped.cuda(), face2_warped.cuda()
+    def anonymize(self, extracted_face, **kwargs):
+        extracted_face = ToTensor()(extracted_face.resize((128, 128), resample=BICUBIC)).unsqueeze(0).cuda()
+        if self.select_ae == 1:
+            output = self.autoencoder1(extracted_face)
+        else:
+            output = self.autoencoder2(extracted_face)
 
-                output1 = self.autoencoder1(face1_warped)
-                loss1_valid_mean += self.lossfn(output1, face1)
-
-                output2 = self.autoencoder2(face2_warped)
-                loss2_valid_mean += self.lossfn(output2, face2)
-
-                iterations += 1
-
-        loss1_valid_mean /= iterations
-        loss2_valid_mean /= iterations
-        loss1_valid_mean = loss1_valid_mean.cpu().data.numpy()
-        loss2_valid_mean = loss2_valid_mean.cpu().data.numpy()
-
-        return loss1_valid_mean, loss2_valid_mean, [face1_warped, output1, face1, face2_warped, output2, face2]
-
-    def anonymize(self, x):
-        return self.autoencoder2(x)
-
-    def anonymize_2(self, x):
-        return self.autoencoder1(x)
-
-    def log(self, logger, epoch, loss1, loss2, images, log_images=False):
-        """
-        use logger to log current loss etc...
-        :param logger: logger used to log
-        :param epoch: current epoch
-        """
-        logger.log_loss(epoch=epoch, loss={'lossA': float(loss1), 'lossB': float(loss2)})
-        logger.log_fps(epoch=epoch)
-
-        # log images
-        if log_images:
-            self.log_images(logger, epoch, images, validation=False)
-        logger.save_model(epoch)
+        return output
 
     def log_images(self, logger, epoch, images, validation=True):
         examples = int(len(images[0]))
@@ -149,10 +122,3 @@ class DeepFakeOriginal(CombinedModel):
             tag = 'validation_output' if validation else 'training_output'
         logger.log_images(epoch, A, f"{tag}/A", 4)
         logger.log_images(epoch, B, f"{tag}/B", 4)
-
-    def log_validation(self, logger, epoch, loss1, loss2, images):
-        logger.log_loss(epoch=epoch, loss={'lossA_val': float(loss1), 'lossB_val': float(loss2)})
-        self.log_images(logger, epoch, images, validation=True)
-
-    def img2latent_bridge(self, extracted_face, extracted_information):
-        return ToTensor()(extracted_face.resize(self.img_size, resample=BICUBIC)).unsqueeze(0).cuda()

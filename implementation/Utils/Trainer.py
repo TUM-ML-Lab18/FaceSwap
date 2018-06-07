@@ -27,7 +27,7 @@ class Trainer:
         for current_epoch in range(max_epochs):
             self.model.set_train_mode(True)
             train_data_loader = self.data_loader.get_train_data_loader()
-            info = self.model.train(train_data_loader, self.batch_size, current_epoch=current_epoch)
+            info = self.model.train(train_data_loader, self.batch_size, current_epoch=current_epoch, validate=False)
 
             # update frequency
             if current_epoch >= validation_periods[validate_index + 1]:
@@ -38,7 +38,7 @@ class Trainer:
                 # do validation
                 self.model.set_train_mode(False)
                 val_data_loader = self.data_loader.get_validation_data_loader()
-                info = self.model.validate(val_data_loader, self.batch_size)
+                info = self.model.train(val_data_loader, self.batch_size, current_epoch=current_epoch, validate=True)
                 self.model.log_validation(self.logger, current_epoch, *info)
                 self.model.set_train_mode(True)
             else:

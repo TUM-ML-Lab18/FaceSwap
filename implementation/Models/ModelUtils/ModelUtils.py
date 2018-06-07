@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABCMeta
 from pathlib import Path
 
 import torch
@@ -49,7 +49,7 @@ class CustomModule(nn.Module):
             m.bias.data.fill_(0)
 
 
-class CombinedModel:
+class CombinedModel(metaclass=ABCMeta):
     @abstractmethod
     def get_models(self):
         raise NotImplementedError
@@ -63,27 +63,18 @@ class CombinedModel:
         raise NotImplementedError
 
     @abstractmethod
-    def train(self, train_data_loader, batch_size, **kwargs):
+    def train(self, train_data_loader, batch_size, validate, **kwargs):
         raise NotImplementedError
 
     @abstractmethod
-    def validate(self, validation_data_loader, batch_size, **kwargs):
+    def anonymize(self, extracted_face, extracted_information):
         raise NotImplementedError
 
     @abstractmethod
-    def log(self, *info):
-        raise NotImplementedError
-
-    @abstractmethod
-    def log_validation(self, *info):
+    def log_images(self, logger, epoch, images, validation):
         raise NotImplementedError
 
     def __str__(self):
-        """
-        TODO
-        :return:
-        """
-        # TODO return models
         string = str()
         for model in self.get_models():
             string += str(model) + '\n'
@@ -128,13 +119,23 @@ class CombinedModel:
         for name, model in zip(self.get_model_names(), self.get_models()):
             model.load(path / (name + '.model'))
 
-    @abstractmethod
-    def img2latent_bridge(self, extracted_face, extracted_information):
-        raise NotImplementedError
+    def log(self, logger, epoch, log_info, images, log_images=False):
+        """
+        use logger to log current loss etc...
+        :param logger: logger used to log
+        :param epoch: current epoch
+        """
+        logger.log_loss(epoch=epoch, loss=log_info)
+        logger.log_fps(epoch=epoch)
 
-    @abstractmethod
-    def anonymize(self, x):
-        raise NotImplementedError
+        # log images
+        if log_images:
+            self.log_images(logger, epoch, images, validation=False)
+        logger.save_model(epoch)
+
+    def log_validation(self, logger, epoch, log_info, images):
+        logger.log_loss(epoch=epoch, loss=log_info)
+        self.log_images(logger, epoch, images, validation=True)
 
 
 class ConvBlock(nn.Module):
