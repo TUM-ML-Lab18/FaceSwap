@@ -1,18 +1,19 @@
-import json
 import ast
+import json
 import os
-import cv2
 from pathlib import Path
 
+import cv2
+import face_recognition
 import numpy as np
 from PIL import Image
 
-from Logging.LoggingUtils import print_progress_bar
-from configuration.general_config import *
-from Preprocessor.FaceExtractor import FaceExtractor
+from Configuration.config_general import *
+from Utils.Logging.LoggingUtils import print_progress_bar
 
 img_file_extensions = ['.jpg', '.JPG', '.png', '.PNG']
 separator = '        '
+
 
 class Preprocessor:
     """
@@ -21,6 +22,7 @@ class Preprocessor:
     root/raw: Place, where the unprocessed images are stored
     root/preprocessed: Place, where the processed images get stored
     """
+
     def __init__(self, face_extractor):
         """
         :param face_extractor: Initialized FaceExtractor
@@ -28,7 +30,7 @@ class Preprocessor:
         # Used extractor
         self.extractor = face_extractor
 
-    def __call__(self, root_folder:Path):
+    def __call__(self, root_folder: Path):
         """
         Processes all image classes in the raw folder and saves the results to the preprocessed folder.
         :param root_folder: Path to the dataset that should be processed
@@ -39,8 +41,13 @@ class Preprocessor:
         preprocessed_folder = root_folder / PREPROCESSED
         landmarks_buffer = root_folder / LANDMARKS_BUFFER
         landmarks_json = root_folder / LANDMARKS_JSON
+        landmarks_npy = root_folder / LANDMARKS_NPY
         histo_buffer = root_folder / HISTO_BUFFER
         histo_json = root_folder / HISTO_JSON
+        histo_npy = root_folder / HISTO_NPY
+        embeddings_buffer = root_folder / FACE_EMBEDDINGS_BUFFER
+        embeddings_json = root_folder / FACE_EMBEDDINGS_JSON
+        embeddings_npy = root_folder / FACE_EMBEDDINGS_NPY
 
         # Check root path
         if not raw_folder.exists():
@@ -96,21 +103,26 @@ class Preprocessor:
                     # Check if extraction found a face
                     if extracted_image is None:
                         continue
-                    # Normalized histogram as list
-                    histo_r = cv2.calcHist([np.array(extracted_image)], [0], None, [256], [0, 256])
-                    histo_g = cv2.calcHist([np.array(extracted_image)], [1], None, [256], [0, 256])
-                    histo_b = cv2.calcHist([np.array(extracted_image)], [2], None, [256], [0, 256])
-                    histo = np.vstack((histo_r, histo_g, histo_b)) / extracted_information.size_fine**2
-                    histo = histo.reshape(-1).tolist()
+                    # Calculate histogram
+                    histo = self.calculate_masked_histogram(extracted_image)
                     # Normalized landmarks as list
                     landmarks = np.array(extracted_information.landmarks) / extracted_information.size_fine
                     landmarks = landmarks.reshape(-1).tolist()
+
+                    # calculate embeddings
+                    # (top, right, bottom, left)
+                    embedding = face_recognition.face_encodings(np.array(extracted_image), known_face_locations=[(
+                        0, extracted_information.size_fine, extracted_information.size_fine, 0)])[0].tolist()
+
                     # Buffer histogram in CSV file
                     with open(histo_buffer, 'a') as h_buffer:
                         h_buffer.write(str(relative_path) + separator + str(histo) + '\n')
                     # Buffer landmarks in CSV file
                     with open(landmarks_buffer, 'a') as lm_buffer:
                         lm_buffer.write(str(relative_path) + separator + str(landmarks) + '\n')
+                    # Buffer embeddings in CSV file
+                    with open(embeddings_buffer, 'a') as em_buffer:
+                        em_buffer.write(str(relative_path) + separator + str(embedding) + '\n')
                     # Store different resolutions
                     for size in RESOLUTIONS:
                         resized_img = extracted_image.resize((size, size))
@@ -119,17 +131,70 @@ class Preprocessor:
                     # Save extraction result in PROCESSED folder
                     extracted_image.save(preprocessed_folder / relative_path, format='JPEG')
 
+        # ============= Conversions / Storage
+
         # Convert landmarks to json
         landmarks_storage = convert_buffer_to_dict(landmarks_buffer)
         # Save json file
         with open(landmarks_json, 'w') as lm_json:
             json.dump(landmarks_storage, lm_json)
+        # Save npy file
+        landmarks_array = np.array(list(landmarks_storage.values())).astype(np.float32)
+        np.save(landmarks_npy, landmarks_array)
 
         # Convert histo to json
         histo_storage = convert_buffer_to_dict(histo_buffer)
         # Save json file
         with open(histo_json, 'w') as h_json:
             json.dump(histo_storage, h_json)
+        # Save npy file
+        histo_array = np.array(list(histo_storage.values())).astype(np.float32)
+        np.save(histo_npy, histo_array)
+
+        # Convert embeddings to json
+        embeddings_storage = convert_buffer_to_dict(embeddings_buffer)
+        # Save json file
+        with open(embeddings_json, 'w') as em_json:
+            json.dump(embeddings_storage, em_json)
+        # Save npy file
+        embeddings_array = np.array(list(embeddings_storage.values())).astype(np.float32)
+        np.save(embeddings_npy, embeddings_array)
+
+        # Convert images folder into arrays
+        for size in RESOLUTIONS:
+            subdir_res = root_folder / ('preprocessed' + str(size) + '/images')
+            data = np.array([np.array(Image.open(fname)) for fname in subdir_res.iterdir()])
+            data = data.transpose((0, 3, 1, 2))
+            np.save(root_folder / ('data' + str(size) + '.npy'), data)
+            if size == 8:
+                lowres = data.reshape((-1, 192)) / 255.0
+                np.save(root_folder / 'lowres.npy', lowres)
+
+    @staticmethod
+    def calculate_masked_histogram(image):
+        """
+        Calculates the histogram of the masked region
+        :param image: PIL image
+        :return:
+        """
+        image = np.array(image)
+        # Calculate histogram of the whole image
+        histo_r = cv2.calcHist([image], [0], None, [256], [0, 256])
+        histo_g = cv2.calcHist([image], [1], None, [256], [0, 256])
+        histo_b = cv2.calcHist([image], [2], None, [256], [0, 256])
+        # Remove masked pixels from histogram
+        histo_r[0] = 0
+        histo_g[0] = 0
+        histo_b[0] = 0
+        # Normalize histogram
+        histo_r /= np.sum(histo_r)
+        histo_g /= np.sum(histo_g)
+        histo_b /= np.sum(histo_b)
+
+        histo = np.vstack((histo_r, histo_g, histo_b))
+        histo = histo.reshape(-1).tolist()
+
+        return histo
 
 
 def convert_buffer_to_dict(buffer_file):
@@ -149,4 +214,3 @@ def convert_buffer_to_dict(buffer_file):
     for filename, data in buffered_lines:
         storage[filename] = ast.literal_eval(data)
     return storage
-

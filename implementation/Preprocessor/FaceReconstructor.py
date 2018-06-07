@@ -1,17 +1,26 @@
-import numpy as np
 import cv2
+import numpy as np
 from PIL import Image
+
 
 class FaceReconstructor(object):
     """
     Inverts the extraction steps of the FaceExtractor
+    0. Sharpen image, if option is selected
     1. Invert fine cropping of the ROI
     2. Invert alignment of eyes
     3. Invert masking of background
     4. Invert coarse cropping of the ROI
     """
-    def __init__(self, mask_factor=-10):
-        self.face_sharpener = FaceSharpener()
+
+    def __init__(self, mask_factor=-10, sharpening=True):
+        """
+        :param mask_factor: Increase or decrease region to insert
+        :param sharpening: Enable sharpening
+        """
+        self.sharpening = sharpening
+        if self.sharpening:
+            self.face_sharpener = FaceSharpener()
         self.face_decropper_fine = FaceDecropperFine()
         self.face_dealigner = FaceDealigner()
         self.face_demasker = FaceDemasker(mask_factor)
@@ -41,7 +50,10 @@ class FaceReconstructor(object):
         original_image = np.array(extraction_information.image_original)
         coarse_cropped_image = np.array(extraction_information.image_cropped)
 
-        sharpened_image = self.face_sharpener(processed_image)
+        if self.sharpening:
+            sharpened_image = self.face_sharpener(processed_image)
+        else:
+            sharpened_image = processed_image
         decropped_image = self.face_decropper_fine(sharpened_image,
                                                    extraction_information.bounding_box_fine,
                                                    extraction_information.offsets_fine,
@@ -59,12 +71,14 @@ class FaceReconstructor(object):
         reconstructed_image = Image.fromarray(decropped_image)
         return reconstructed_image
 
+
 class FaceSharpener(object):
     """
     Sharpen the given image
     Sharpening via inverse gaussian filtering on the
     L channel of the image in the CIELab color space
     """
+
     def __init__(self, sharp_factor=5):
         """
         :param sharp_factor: Sharpening degree
@@ -74,20 +88,22 @@ class FaceSharpener(object):
     def __call__(self, image):
         image = cv2.cvtColor(image, cv2.COLOR_RGB2Lab)
         # Extract L channel
-        L = image[:,:,0]
+        L = image[:, :, 0]
         # Inverse filtering
-        L_blur = cv2.GaussianBlur(L, (0,0), self.sharp_factor)
+        L_blur = cv2.GaussianBlur(L, (0, 0), self.sharp_factor)
         L_sharp = cv2.addWeighted(L_blur, -1, L, 2, 0)
         # Substitute L channel with sharpened L channel
-        image[:,:,0] = L_sharp
+        image[:, :, 0] = L_sharp
         image = cv2.cvtColor(image, cv2.COLOR_Lab2RGB)
 
         return image
+
 
 class FaceDecropperFine(object):
     """
     Invert the fine cropping of the aligned and masked image
     """
+
     def __call__(self, cropped_image, bounding_box, offsets, size_coarse):
         """
         :param cropped_image: The constructed image
@@ -100,13 +116,15 @@ class FaceDecropperFine(object):
         decropped_image = np.zeros((size_coarse, size_coarse, cropped_image.shape[2]), dtype=np.uint8)
         # Invert the crop
         decropped_image[bounding_box.top:bounding_box.bottom, bounding_box.left:bounding_box.right] = \
-            cropped_image[offsets.top:offsets.bottom,offsets.left:offsets.right]
+            cropped_image[offsets.top:offsets.bottom, offsets.left:offsets.right]
         return decropped_image
+
 
 class FaceDealigner(object):
     """
     Invert the alignment of the face with the position of the eyes
     """
+
     def __call__(self, aligned_image, rotation):
         """
         :param aligned_image: The uncropped constructed image
@@ -118,12 +136,14 @@ class FaceDealigner(object):
         dealigned_image = cv2.warpAffine(aligned_image, R, (W, H))
         return dealigned_image
 
+
 class FaceDemasker(object):
     """
     Invert the masking of the image
     The mask can be additionally accessed via an morphological operation
     Recommended is an erosion to fit only the center of the face
     """
+
     def __init__(self, morphing=-10):
         """
         :param morphing: Size of the morphological kernel in percent of
@@ -140,35 +160,27 @@ class FaceDemasker(object):
         :param mask: The mask applied to the image
         :return: The reconstructed image in the cropped scene
         """
-        dtype = mask.dtype
         H, W = masked_image.shape[:2]
 
-        # Make boolean mask accessible for morphological operations
-        if np.bool == dtype:
-            mask = np.where(mask, 1.0, 0.0)
-
         # Calculate image resolution dependent kernel (H==W) (odd size)
-        k_size = int(abs(self.morphing)/100 * H)
-        k_size = k_size if (k_size % 2 == 1) else k_size+1
+        k_size = int(abs(self.morphing) / 100 * H)
+        k_size = k_size if (k_size % 2 == 1) else k_size + 1
         kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (k_size, k_size))
         # Execute morphological operations
         # Dilation -> increase masked region
         # Erosion -> decrease masked region
         operation = cv2.MORPH_ERODE if self.morphing < 0 else cv2.MORPH_DILATE
         mask = cv2.morphologyEx(mask, op=operation, kernel=kernel)
-        # Check type of mask
-        if np.bool == dtype:
-            demasked_image = np.where(mask[:,:,None], masked_image, cropped_image)
-        if np.float == dtype:
-            demasked_image = mask[:,:,None] * masked_image + \
-                             (1-mask[:,:,None]) * cropped_image
-            demasked_image = demasked_image.astype(np.uint8)
+        demasked_image = mask[:, :, None] * masked_image + (1 - mask[:, :, None]) * cropped_image
+        demasked_image = demasked_image.astype(np.uint8)
         return demasked_image
+
 
 class FaceDecropperCoarse(object):
     """
     Invert the coarse cropping of the image
     """
+
     def __call__(self, cropped_image, original_image, bounding_box, offsets):
         """
         :param cropped_image: The cropped constructed image

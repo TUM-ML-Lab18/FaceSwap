@@ -1,11 +1,9 @@
 import json
-
-from Preprocessor.Preprocessor import Preprocessor
-from Preprocessor.FaceExtractor import FaceExtractor
 from pathlib import Path
-import numpy as np
 
-from configuration.general_config import ANNOTATIONS, CELEBA
+from Configuration.config_general import ANNOTATIONS
+from Preprocessor.FaceExtractor import FaceExtractor
+from Preprocessor.Preprocessor import Preprocessor
 
 
 def process_annoations(root_folder):
@@ -25,8 +23,7 @@ def process_annoations(root_folder):
 
 
 if __name__ == '__main__':
-    # face_extractor = FaceExtractor(margin=0.05, mask_type=np.bool, mask_factor=10)
-    # preprocessor = Preprocessor(face_extractor)
-    # root = Path('folder to process')
-    # preprocessor(root)
-    process_annoations(CELEBA)
+    face_extractor = FaceExtractor(margin=0.05, sharp_edge=True, mask_factor=10)
+    preprocessor = Preprocessor(face_extractor)
+    root = Path('/nfs/students/summer-term-2018/project_2/data/YT_CAR_DRIVING/')
+    preprocessor(root)

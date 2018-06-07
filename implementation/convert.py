@@ -1,33 +1,38 @@
-import cv2
-import numpy as np
-
-from FaceAnonymizer.Anonymizer import Anonymizer
-from PIL import Image
 from pathlib import Path
 
-from Logging.LoggingUtils import print_progress_bar
-from configuration.run_config import current_config
+import cv2
+import numpy as np
+from PIL import Image
+
+from Configuration.config_model import current_config
+from Utils.Anonymizer import Anonymizer
+from Utils.Logging.LoggingUtils import print_progress_bar
 
 
 def convert_images():
-    anonymizer = Anonymizer(model_folder='logs/2018-05-21 21:09:02.004979/model',
-                            model=current_config['model'],
-                            config=current_config)
-    path = Path('/nfs/students/summer-term-2018/project_2/test/')
-    path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')
+    anonymizer = Anonymizer(
+        model_folder='/home/stromaxi/ml-lab-summer-18-project-2/implementation/logs/CGAN_InstanceNoise/model',
+        config=current_config)
+    path = Path('/nfs/students/summer-term-2018/project_2/test_max')
+    result_path = path / 'result'
+    result_path.mkdir(exist_ok=True)
+
     for image_file in path.iterdir():
         if image_file.is_dir():
+            print('Skipping image:', image_file.name)
             continue
         print('Processing image:', image_file.name)
         image = Image.open(image_file)
+        image = image.convert('RGB')
         new_image = anonymizer(image)
-        new_image.save(path_sebi / (image_file.name.__str__()))
+        if new_image is not None:
+            new_image.save(result_path / image_file.name.__str__())
 
 
 def convert_video():
-    anonymizer = Anonymizer(model_folder='/nfs/students/summer-term-2018/project_2/models/celebA', model=current_config['model'],
+    anonymizer = Anonymizer(model_folder='model',
                             config=current_config)
-    path = Path('/nfs/students/summer-term-2018/project_2/test_obama/')
+    path = Path('/nfs/students/summer-term-2018/project_2/test_simone/')
     path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')
     for video_file in path.iterdir():
         if video_file.is_dir():
@@ -62,6 +67,7 @@ def convert_video():
         out.release()
 
         cv2.destroyAllWindows()
+
 
 if __name__ == '__main__':
     convert_images()

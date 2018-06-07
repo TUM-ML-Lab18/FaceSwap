@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from lib.umeyama import umeyama
+from Utils.lib.umeyama import umeyama
 from PIL import Image
 from PIL.Image import BICUBIC
 import torchvision.transforms as transforms
