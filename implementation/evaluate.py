@@ -1,4 +1,4 @@
-import json
+import json, os
 from pathlib import Path
 from Evaluator.Evaluator import Evaluator
 
@@ -10,6 +10,8 @@ if __name__ == '__main__':
     path = '/nfs/students/summer-term-2018/project_2/test_alex/'
     sims = []
     emos = []
+
+    print('Processing ' + str(len(os.listdir(path)) ** 2) + ' comparisons...')
 
     for image_a in path.iterdir():
         if image_a.is_dir():
@@ -26,7 +28,7 @@ if __name__ == '__main__':
 
     sims = np.array(sims)
     emos = np.array(emos)
-    
+
     print('Mean sim score: ' + sims.mean())
     print('sim score std: ' + sims.std())
 
