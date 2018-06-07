@@ -7,7 +7,7 @@ from PIL import Image
 
 if __name__ == '__main__':
 
-    path = '/nfs/students/summer-term-2018/project_2/test_alex/'
+    path = Path('/nfs/students/summer-term-2018/project_2/test_alex/')
     sims = []
     emos = []
 
