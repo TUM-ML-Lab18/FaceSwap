@@ -33,6 +33,6 @@ if __name__ == '__main__':
     beta = 1
     scores = 1 / (1 + np.exp(alpha * emo - beta * (sim - 0.6)))
 
-    print("2-1")
+    print("4-1")
     print(f"Average score: {scores.mean()}")
     print(f"Std: {scores.std()}")
