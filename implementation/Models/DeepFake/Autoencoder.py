@@ -9,7 +9,7 @@ class AutoEncoder(Module):
         super().__init__()
         self.encoder = encoder
         self.decoder = decoder
-        self.npgp = torch.cuda.device_count()
+        self.ngpu = torch.cuda.device_count()
 
     def forward(self, x):
         if x.is_cuda and self.ngpu > 1:

@@ -15,7 +15,7 @@ class DeepFakeOriginal(CombinedModel):
         """
         Initialize a new DeepFakeOriginal.
         """
-        self.encoder = encoder(self.img_size).cuda()
+        self.encoder = encoder().cuda()
         self.decoder1 = decoder().cuda()
         self.decoder2 = decoder().cuda()
 
@@ -29,16 +29,6 @@ class DeepFakeOriginal(CombinedModel):
         self.scheduler1 = ReduceLROnPlateau(self.optimizer1, patience=100, cooldown=50)
         self.optimizer2 = Adam(self.autoencoder2.parameters(), lr=1e-4)
         self.scheduler2 = ReduceLROnPlateau(self.optimizer2, patience=100, cooldown=50)
-
-    def get_models(self):
-        return [self.encoder, self.decoder1, self.decoder2]
-
-    def get_model_names(self):
-        return ['encoder', 'decoder1', 'decoder2']
-
-    def get_remaining_modules(self):
-        return [self.autoencoder1, self.autoencoder2, self.lossfn, self.optimizer1, self.optimizer2, self.scheduler1,
-                self.scheduler2]
 
     def train(self, train_data_loader, batch_size, validate, **kwargs):
         current_epoch = kwargs.get('current_epoch', -1)
@@ -96,6 +86,16 @@ class DeepFakeOriginal(CombinedModel):
 
         return log_info, [face1_warped, output1, face1, face2_warped, output2, face2]
 
+    def get_models(self):
+        return [self.encoder, self.decoder1, self.decoder2]
+
+    def get_model_names(self):
+        return ['encoder', 'decoder1', 'decoder2']
+
+    def get_remaining_modules(self):
+        return [self.autoencoder1, self.autoencoder2, self.lossfn, self.optimizer1, self.optimizer2, self.scheduler1,
+                self.scheduler2]
+
     def anonymize(self, extracted_face, **kwargs):
         extracted_face = ToTensor()(extracted_face.resize((128, 128), resample=BICUBIC)).unsqueeze(0).cuda()
         if self.select_ae == 1:
@@ -109,16 +109,16 @@ class DeepFakeOriginal(CombinedModel):
         examples = int(len(images[0]))
         example_indices = random.sample(range(0, examples - 1), 5)
 
-        anonymized_images_trump = self.anonymize(images[2][example_indices])
-        anonymized_images_cage = self.anonymize_2(images[5][example_indices])
+        anonym_img_1 = self.autoencoder1(images[5][example_indices])
+        anonym_img_2 = self.autoencoder2(images[2][example_indices])
         A = []
         B = []
         for idx, i in enumerate(example_indices):
             for j in range(3):
                 A.append(images[j].cpu()[i])
                 B.append(images[3 + j].cpu()[i])
-            A.append(anonymized_images_trump.cpu()[idx])
-            B.append(anonymized_images_cage.cpu()[idx])
+            A.append(anonym_img_1.cpu()[idx])
+            B.append(anonym_img_2.cpu()[idx])
             tag = 'validation_output' if validation else 'training_output'
         logger.log_images(epoch, A, f"{tag}/A", 4)
         logger.log_images(epoch, B, f"{tag}/B", 4)

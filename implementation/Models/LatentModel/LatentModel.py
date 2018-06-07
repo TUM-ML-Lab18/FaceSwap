@@ -17,15 +17,6 @@ class LatentModel(CombinedModel):
         self.optimizer = Adam(params=self.decoder.parameters(), lr=1e-4)
         self.scheduler = ReduceLROnPlateau(self.optimizer, patience=100, cooldown=50)
 
-    def get_models(self):
-        return [self.decoder]
-
-    def get_model_names(self):
-        return ['decoder']
-
-    def get_remaining_modules(self):
-        return [self.optimizer, self.scheduler, self.lossfn]
-
     def train(self, train_data_loader, batch_size, validate, **kwargs):
         loss_mean = 0
         face = None
@@ -63,6 +54,15 @@ class LatentModel(CombinedModel):
             log_info = {'loss_val': float(loss_mean)}
 
         return log_info, [face, output]
+
+    def get_models(self):
+        return [self.decoder]
+
+    def get_model_names(self):
+        return ['decoder']
+
+    def get_remaining_modules(self):
+        return [self.optimizer, self.scheduler, self.lossfn]
 
     def log_images(self, logger, epoch, images, validation=True):
 

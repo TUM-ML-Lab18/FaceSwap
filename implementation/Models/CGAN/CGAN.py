@@ -2,12 +2,13 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.distributions import MultivariateNormal
 
 from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_MEAN, ARRAY_CELEBA_LANDMARKS_COV
 from Models.CGAN.Discriminator import Discriminator
 from Models.CGAN.Generator import Generator
 from Models.ModelUtils.ModelUtils import CombinedModel
-from Preprocessor.FaceExtractor import extract_5_landmarks
+from Preprocessor.FaceExtractor import extract_28_landmarks
 
 
 class CGAN(CombinedModel):
@@ -17,14 +18,16 @@ class CGAN(CombinedModel):
         self.img_dim = kwargs.get('img_dim', (64, 64, 3))
         path_to_y_mean = kwargs.get('y_mean', ARRAY_CELEBA_LANDMARKS_MEAN)
         path_to_y_cov = kwargs.get('y_cov', ARRAY_CELEBA_LANDMARKS_COV)
+        ngf = kwargs.get('ngf', 64)
+        ndf = kwargs.get('ndf', 64)
         lrG = kwargs.get('lrG', 0.0002)
         lrD = kwargs.get('lrD', 0.0002)
         beta1 = kwargs.get('beta1', 0.5)
         beta2 = kwargs.get('beta2', 0.999)
 
         # self.G = LatentDecoderGAN(input_dim=self.z_dim + self.y_dim)
-        self.G = Generator(input_dim=(self.z_dim, self.y_dim), output_dim=self.img_dim, ngf=64)
-        self.D = Discriminator(y_dim=self.y_dim, input_dim=self.img_dim, ndf=64)
+        self.G = Generator(input_dim=(self.z_dim, self.y_dim), output_dim=self.img_dim, ngf=ngf)
+        self.D = Discriminator(y_dim=self.y_dim, input_dim=self.img_dim, ndf=ndf)
 
         self.G_optimizer = optim.Adam(self.G.parameters(), lr=lrG, betas=(beta1, beta2))
         self.D_optimizer = optim.Adam(self.D.parameters(), lr=lrD, betas=(beta1, beta2))
@@ -34,10 +37,13 @@ class CGAN(CombinedModel):
         # gaussian distribution of our landmarks
         self.landmarks_mean = np.load(path_to_y_mean)
         self.landmarks_cov = np.load(path_to_y_cov)
-        # self.landmarks_mean = torch.from_numpy(self.landmarks_mean)
-        # self.landmarks_cov = torch.from_numpy(self.landmarks_cov)
-        # self.distribution = MultivariateNormal(loc=self.landmarks_mean.type(torch.float64),
-        #                                        covariance_matrix=self.landmarks_cov.type(torch.float64))
+        self.landmarks_mean = torch.from_numpy(self.landmarks_mean)
+        self.landmarks_cov = torch.from_numpy(self.landmarks_cov)
+        self.distribution = MultivariateNormal(loc=self.landmarks_mean.type(torch.float64),
+                                               covariance_matrix=self.landmarks_cov.type(torch.float64))
+
+        # Fixed noise for validation
+        self.fixed_noise = None
 
         if torch.cuda.is_available():
             self.cuda = True
@@ -45,9 +51,19 @@ class CGAN(CombinedModel):
             self.D.cuda()
             self.BCE_loss.cuda()
 
-    def _train(self, data_loader, batch_size, **kwargs):
-        # indicates if the graph should get updated
-        validate = kwargs.get('validate', False)
+    def train(self, data_loader, batch_size, validate, **kwargs):
+        current_epoch = kwargs.get('current_epoch', 100)
+
+        # Instance noise annealing scheme
+        if 0 <= current_epoch < 10:
+            instance_noise_factor = 1 - (current_epoch - 0) * (1 - 0.25) / 10
+        elif 10 <= current_epoch < 20:
+            instance_noise_factor = 0.25 - (current_epoch - 10) * (0.25 - 0.1) / 10
+        elif 20 <= current_epoch < 30:
+            instance_noise_factor = 0.1 - (current_epoch - 20) * (0.1 - 0) / 10
+        else:
+            instance_noise_factor = 0
+        print('Current epoch', current_epoch, 'instance noise factor', instance_noise_factor, 'Validation', validate)
 
         # sum the loss for logging
         g_loss_summed, d_loss_summed = 0, 0
@@ -63,9 +79,9 @@ class CGAN(CombinedModel):
             z = torch.randn((batch_size, self.z_dim))
             # TODO: RuntimeError: Lapack Error in potrf : the leading minor of order 122 is not
             # TODO: positive definite at /pytorch/aten/src/TH/generic/THTensorLapack.c:617
-            # feature_gen = self.distribution.sample((batch_size,)).type(torch.float32)
-            feature_gen = np.random.multivariate_normal(self.landmarks_mean, self.landmarks_cov, batch_size)
-            feature_gen = torch.from_numpy(feature_gen).type(torch.float32)
+            feature_gen = self.distribution.sample((batch_size,)).type(torch.float32)
+            # feature_gen = np.random.multivariate_normal(self.landmarks_mean, self.landmarks_cov, batch_size)
+            # feature_gen = torch.from_numpy(feature_gen).type(torch.float32)
             feature_gen = (feature_gen - 0.5) * 2.0
             # transfer everything to the gpu
             if self.cuda:
@@ -79,7 +95,7 @@ class CGAN(CombinedModel):
                 self.D_optimizer.zero_grad()
 
             # Train on real example with real features
-            real_predictions = self.D(images, features)
+            real_predictions = self.D(images + torch.randn_like(images) * instance_noise_factor, features)
             d_real_predictions_loss = self.BCE_loss(real_predictions,
                                                     label_real)  # real corresponds to log(D_real)
 
@@ -88,7 +104,7 @@ class CGAN(CombinedModel):
                 d_real_predictions_loss.backward()
 
             # Train on real example with fake features
-            fake_labels_predictions = self.D(images, feature_gen)
+            fake_labels_predictions = self.D(images + torch.randn_like(images) * instance_noise_factor, feature_gen)
             d_fake_labels_loss = self.BCE_loss(fake_labels_predictions, label_fake) / 2
 
             if not validate:
@@ -97,8 +113,9 @@ class CGAN(CombinedModel):
 
             # Train on fake example from generator
             generated_images = self.G(z, features)
-            fake_images_predictions = self.D(generated_images.detach(),
-                                             features)  # todo what happens if we detach the output of the Discriminator
+            fake_images_predictions = self.D(
+                generated_images.detach() + torch.randn_like(generated_images) * instance_noise_factor,
+                features)  # todo what happens if we detach the output of the Discriminator
             d_fake_images_loss = self.BCE_loss(fake_images_predictions,
                                                label_fake) / 2  # face corresponds to log(1-D_fake)
 
@@ -119,7 +136,8 @@ class CGAN(CombinedModel):
                 self.G_optimizer.zero_grad()
 
             # Train on fooling the Discriminator
-            fake_images_predictions = self.D(generated_images, features)
+            fake_images_predictions = self.D(generated_images +
+                                             torch.randn_like(generated_images) * instance_noise_factor, features)
             g_loss = self.BCE_loss(fake_images_predictions, label_real)
 
             if not validate:
@@ -134,15 +152,14 @@ class CGAN(CombinedModel):
         g_loss_summed /= iterations
         d_loss_summed /= iterations
 
-        return g_loss_summed.cpu().data.numpy(), d_loss_summed.cpu().data.numpy(), generated_images
+        if not validate:
+            log_info = {'lossG': float(g_loss_summed.cpu().data.numpy()),
+                        'lossD': float(d_loss_summed.cpu().data.numpy())}
+        else:
+            log_info = {'lossG_val': float(g_loss_summed.cpu().data.numpy()),
+                        'lossD_val': float(d_loss_summed.cpu().data.numpy())}
 
-    def train(self, train_data_loader, batch_size, **kwargs):
-        g_loss, d_loss, generated_images = self._train(train_data_loader, batch_size, validate=False, **kwargs)
-        return g_loss, d_loss, generated_images
-
-    def validate(self, validation_data_loader, batch_size, **kwargs):
-        g_loss, d_loss, generated_images = self._train(validation_data_loader, batch_size, validate=True, **kwargs)
-        return g_loss, d_loss, generated_images
+        return log_info, generated_images
 
     def get_models(self):
         return [self.G, self.D]
@@ -153,38 +170,22 @@ class CGAN(CombinedModel):
     def get_remaining_modules(self):
         return [self.G_optimizer, self.D_optimizer, self.BCE_loss]
 
-    def log(self, logger, epoch, lossG, lossD, images, log_images=False):  # last parameter is not needed anymore
-        """
-        use logger to log current loss etc...
-        :param logger: logger used to log
-        :param epoch: current epoch
-        """
-        logger.log_loss(epoch=epoch, loss={'lossG': float(lossG), 'lossD': float(lossD)})
-        logger.log_fps(epoch=epoch)
-        logger.save_model(epoch)
-
-        if log_images:
-            self.log_images(logger, epoch, images, validation=False)
-
-    def log_validation(self, logger, epoch, lossG, lossD, images):
-        logger.log_loss(epoch=epoch, loss={'lossG_val': float(lossG), 'lossD_val': float(lossD)})
-
-        self.log_images(logger, epoch, images, validation=True)
-
-    def log_images(self, logger, epoch, images, validation=True):
-        # images = images.cpu()
-        # images *= .5
-        # images += .5
-        # examples = int(len(images))
-        # example_indices = random.sample(range(0, examples - 1), 4 * 4)
-        # A = []
-        # for idx, i in enumerate(example_indices):
-        #     A.append(images[i])
-        tag = 'validation_output' if validation else 'training_output'
-        logger.log_images(epoch, images, tag, 8)
-
-    def anonymize(self, feature):
+    def anonymize(self, extracted_face, extracted_information):
+        # Normalize landmarks
+        landmarks = np.array(extracted_information.landmarks) / extracted_information.size_fine
+        landmarks = landmarks.reshape(-1)
+        # Extract needed landmarks
+        # landmarks = extract_5_landmarks(landmarks)
+        # landmarks = extract_10_landmarks(landmarks)
+        landmarks = extract_28_landmarks(landmarks)
+        # Zero centering
+        landmarks -= 0.5
+        landmarks *= 2.0
+        # ToTensor
+        feature = torch.from_numpy(landmarks).type(torch.float32)
+        # Random Input
         z = torch.randn((feature.shape[0], self.z_dim))
+
         if self.cuda:
             z, feature = z.cuda(), feature.cuda()
         tensor_img = self.G(z, feature)
@@ -195,24 +196,9 @@ class CGAN(CombinedModel):
         tensor_img = tensor_img.type(torch.uint8)
         return tensor_img
 
-    def img2latent_bridge(self, extracted_face, extracted_information):
-        # Normalize landmarks
-        landmarks = np.array(extracted_information.landmarks) / extracted_information.size_fine
-        landmarks = landmarks.reshape(-1)
-
-        # Extract needed landmarks
-        landmarks = extract_5_landmarks(landmarks)
-        # landmarks = extract_10_landmarks(landmarks)
-        # landmarks = extract_28_landmarks(landmarks)
-
-        # Zero centering
-        landmarks -= 0.5
-        landmarks *= 2.0
-
-        # ToTensor
-        feature = torch.from_numpy(landmarks).type(torch.float32)
-
-        return feature
+    def log_images(self, logger, epoch, images, validation=True):
+        tag = 'validation_output' if validation else 'training_output'
+        logger.log_images(epoch, images, tag, 8)
 
 
 def norm_img(img):
@@ -220,6 +206,6 @@ def norm_img(img):
     Normalize image via min max inplace
     :param img: Tensor image
     """
-    min, max = float(img.min()), float(img.max())
-    img.clamp_(min=min, max=max)
-    img.add_(-min).div_(max - min + 1e-5)
+    _min, _max = float(img.min()), float(img.max())
+    img.clamp_(min=_min, max=_max)
+    img.add_(-_min).div_(_max - _min + 1e-5)

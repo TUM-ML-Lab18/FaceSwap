@@ -32,27 +32,14 @@ class DCGAN(CombinedModel):
         self.G_optimizer = optim.Adam(self.g.parameters(), lr=lrG, betas=(beta1, beta2))
         self.D_optimizer = optim.Adam(self.d.parameters(), lr=lrD, betas=(beta1, beta2))
 
-        self.static_noise = torch.randn(64 * 4, self.nz, 1, 1)
+        self.static_noise = torch.randn(64 * 4, self.nz)
 
-    def get_models(self):
-        return [self.g, self.d]
-
-    def get_model_names(self):
-        return ['generator', 'discriminator']
-
-    def get_remaining_modules(self):
-        return [self.G_optimizer, self.D_optimizer, self.BCE_loss]
-
-    def _train(self, data_loader, batch_size, **kwargs):
-        # indicates if the graph should get updated
-        validate = kwargs.get('validate', False)
-
+    def train(self, data_loader, batch_size, validate, **kwargs):
         # Label vectors for loss function
-        label_real, label_fake = (torch.ones(batch_size), torch.zeros(batch_size))
-        features = torch.zeros(batch_size, 10, 1, 1)
+        label_real, label_fake = (torch.ones(batch_size, 1, 1, 1), torch.zeros(batch_size, 1, 1, 1))
+
         if self.cuda:
             label_real, label_fake = label_real.cuda(), label_fake.cuda()
-            # features = features.cuda()
 
         # sum the loss for logging
         g_loss_summed, d_loss_summed = 0, 0
@@ -62,7 +49,7 @@ class DCGAN(CombinedModel):
             if validate:
                 noise = self.static_noise
             else:
-                noise = torch.randn(batch_size, self.nz, 1, 1)
+                noise = torch.randn(batch_size, self.nz)
             if self.cuda:
                 data = data.cuda()
                 noise = noise.cuda()
@@ -115,50 +102,29 @@ class DCGAN(CombinedModel):
         g_loss_summed /= iterations
         d_loss_summed /= iterations
 
-        return g_loss_summed.cpu().data.numpy(), d_loss_summed.cpu().data.numpy(), D_G_z1, D_G_z2, fake
+        if not validate:
+            log_info = {'lossG': float(g_loss_summed.cpu().data.numpy()),
+                        'lossD': float(d_loss_summed.cpu().data.numpy()),
+                        'meanG': float(D_G_z1), 'meanD': float(D_G_z2)}
+        else:
+            log_info = {'lossG_val': float(g_loss_summed.cpu().data.numpy()),
+                        'lossD_val': float(d_loss_summed.cpu().data.numpy()),
+                        'meanG_val': float(D_G_z1), 'meanD_val': float(D_G_z2)}
 
-    def train(self, train_data_loader, batch_size, **kwargs):
-        g_loss, d_loss, g_mean, d_mean, generated_images = self._train(train_data_loader, batch_size, validate=False,
-                                                                       **kwargs)
-        return g_loss, d_loss, g_mean, d_mean, generated_images
+        return log_info, fake
 
-    def validate(self, validation_data_loader, batch_size, **kwargs):
-        g_loss, d_loss, g_mean, d_mean, generated_images = self._train(validation_data_loader, batch_size,
-                                                                       validate=True, **kwargs)
-        return g_loss, d_loss, g_mean, d_mean, generated_images
+    def get_models(self):
+        return [self.g, self.d]
 
-    def log(self, logger, epoch, lossG, lossD, g_mean, d_mean, images, log_images=False):
-        """
-        use logger to log current loss etc...
-        :param logger: logger used to log
-        :param epoch: current epoch
-        """
-        logger.log_loss(epoch=epoch, loss={'lossG': float(lossG), 'lossD': float(lossD), 'meanG': float(g_mean),
-                                           'meanD': float(d_mean)})
-        logger.log_fps(epoch=epoch)
-        logger.save_model(epoch)
+    def get_model_names(self):
+        return ['generator', 'discriminator']
 
-        if log_images:
-            self.log_images(logger, epoch, images, validation=False)
-
-    def log_images(self, logger, epoch, images, validation=True):
-        # images = images.cpu()
-        # examples = int(len(images))
-        # example_indices = random.sample(range(0, examples - 1), 4 * 4)
-        # A = []
-        # for idx, i in enumerate(example_indices):
-        #    A.append(images[i])
-        tag = 'validation_output' if validation else 'training_output'
-        logger.log_images(epoch, images, tag, 8)
-
-    def log_validation(self, logger, epoch, lossG, lossD, g_mean, d_mean, images):
-        logger.log_loss(epoch=epoch,
-                        loss={'lossG_val': float(lossG), 'lossD_val': float(lossD), 'meanG_val': float(g_mean),
-                              'meanD_val': float(d_mean)})
-        self.log_images(logger, epoch, images, validation=True)
-
-    def img2latent_bridge(self, extracted_face, extracted_information):
-        pass
+    def get_remaining_modules(self):
+        return [self.G_optimizer, self.D_optimizer, self.BCE_loss]
 
     def anonymize(self, x):
-        pass
+        raise NotImplementedError
+
+    def log_images(self, logger, epoch, images, validation=True):
+        tag = 'validation_output' if validation else 'training_output'
+        logger.log_images(epoch, images, tag, 8)

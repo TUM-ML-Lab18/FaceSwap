@@ -1,5 +1,3 @@
-from torchvision.transforms import ToTensor
-
 from Configuration.config_general import *
 from Models.CGAN.CGAN import CGAN
 from Models.DCGAN.DCGAN import DCGAN
@@ -11,22 +9,6 @@ from Models.LatentModel.Decoder import LatentDecoder
 from Models.LatentModel.LatentModel import LowResModel
 from Utils.ImageDataset import *
 
-# TODO: Remove, if DeepFakes config works
-standard_config = {'batch_size': 64,
-                   'img_size': (128, 128),
-                   'model': lambda img_size: DeepFakeOriginal(
-                       encoder=lambda: Encoder(input_dim=(3,) + img_size,
-                                               latent_dim=1024,
-                                               num_convblocks=5),
-                       decoder=lambda: Decoder(input_dim=512,
-                                               num_convblocks=4),
-                       auto_encoder=AutoEncoder),
-                   'dataset': lambda root_folder, img_size: ImageDatesetCombined(root_folder, size_multiplicator=1,
-                                                                                 img_size=img_size),
-                   'img2latent_bridge:': lambda extracted_face, extracted_information, img_size:
-                   ToTensor()(extracted_face.resize(img_size, resample=BICUBIC)).unsqueeze(0).cuda()
-                   }
-
 # DeepFakes Original
 deep_fakes_config = {'batch_size': 64,
                      'model': DeepFakeOriginal,
@@ -37,7 +19,7 @@ deep_fakes_config = {'batch_size': 64,
                                                                  num_convblocks=4),
                                       'auto_encoder': AutoEncoder,
                                       'select_autoencoder': 1},
-                     'dataset': lambda: ImageDatesetCombined(MEGA_MERKEL_TRUMP, size_multiplicator=1,
+                     'dataset': lambda: ImageDatesetCombined(Path(MEGA_MERKEL_TRUMP), size_multiplicator=1,
                                                              img_size=(128, 128))
                      }
 
@@ -51,13 +33,16 @@ lowres_config = {'batch_size': 256,
 # CGAN
 cgan_config = {'batch_size': 64,
                'model': CGAN,
-               'model_params': {'y_dim': 10,
+               'model_params': {'y_dim': 56,
                                 'z_dim': 100,
+                                'ngf': 128,
+                                'ndf': 128,
                                 'lrG': 0.0002,
-                                'lrD': 0.0002,
-                                'y_mean': ARRAY_CELEBA_LANDMARKS_5_MEAN,
-                                'y_cov': ARRAY_CELEBA_LANDMARKS_5_COV},
-               'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_5)}
+                                'lrD': 0.00005,
+                                'y_mean': ARRAY_CELEBA_LANDMARKS_28_MEAN,
+                                'y_cov': ARRAY_CELEBA_LANDMARKS_28_COV
+                                },
+               'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS_28])}
 
 # DCGAN
 dcgan_config = {'batch_size': 64,
@@ -66,4 +51,4 @@ dcgan_config = {'batch_size': 64,
                 'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_5)
                 }
 
-current_config = lowres_config
+current_config = cgan_config
