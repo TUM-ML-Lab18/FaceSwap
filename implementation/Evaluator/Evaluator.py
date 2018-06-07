@@ -1,11 +1,14 @@
-import face_recognition, requests, io
-import numpy as np
-
 from pathlib import Path
+
+import face_recognition
+import io
+import numpy as np
+import requests
 from PIL import Image
 from PIL.Image import BICUBIC
-from torchvision.transforms import ToTensor, ToPILImage
-from configuration.evaluation_config import standard_conf
+from torchvision.transforms import ToPILImage
+
+from Configuration.config_evaluation import standard_conf
 from Preprocessor.FaceExtractor import FaceExtractor
 
 

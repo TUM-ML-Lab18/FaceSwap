@@ -1,7 +1,7 @@
 import numpy as np
-from Evaluator.Evaluator import Evaluator
-from configuration.run_config import current_config
 
+from Configuration.config_model import current_config
+from Evaluator.Evaluator import Evaluator
 
 if __name__ == '__main__':
     model = current_config['model'](current_config['img_size'])

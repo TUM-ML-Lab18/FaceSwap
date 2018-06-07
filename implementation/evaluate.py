@@ -1,9 +1,10 @@
-import json, os
+import os
 from pathlib import Path
-from Evaluator.Evaluator import Evaluator
 
 import numpy as np
 from PIL import Image
+
+from Evaluator.Evaluator import Evaluator
 
 if __name__ == '__main__':
 
