@@ -78,9 +78,12 @@ class LatentModel(CombinedModel):
 
 
 class LowResModel(LatentModel):
+    STATIC_NOISE = np.random.randn(8 * 8 * 3) * 0.05
+
     def anonymize(self, extracted_face, extracted_information):
         resized_image_flat = np.array(extracted_face.resize((8, 8))).transpose((2, 0, 1))
-        resized_image_flat = resized_image_flat.reshape((1, -1)) / 255.0
+
+        resized_image_flat = resized_image_flat.reshape((1, -1)) / 255.0  # + self.STATIC_NOISE
 
         landmarks_normalized_flat = np.reshape(
             (np.array(extracted_information.landmarks) / extracted_information.size_fine), (1, -1))
