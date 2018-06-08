@@ -334,10 +334,10 @@ class LandmarksExtractor(object):
         if self.video_mode:
             if landmarks is None:
                 # Update state in video mode
-                landmarks = self.old_state
+                landmarks = self.old_state.copy()
             else:
                 # Get old state, if no new state available
-                self.old_state = landmarks
+                self.old_state = landmarks.copy()
 
         return landmarks
 
