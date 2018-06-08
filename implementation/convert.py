@@ -31,7 +31,7 @@ def convert_images():
 
 def convert_video():
     anonymizer = Anonymizer(model_folder='model',
-                            config=current_config)
+                            config=current_config, video_mode=True)
     path = Path('/nfs/students/summer-term-2018/project_2/test_simone/')
     path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')
     for video_file in path.iterdir():

@@ -8,7 +8,7 @@ from Preprocessor.FaceReconstructor import FaceReconstructor
 
 
 class Anonymizer:
-    def __init__(self, model_folder: str, config) -> None:
+    def __init__(self, model_folder: str, config, video_mode=False) -> None:
         """
         :param model_folder: Path to models folder.
         """
@@ -18,7 +18,7 @@ class Anonymizer:
         self.model.load_model(self.model_folder)
 
         # use extractor and transform later get correct input for network
-        self.extractor = FaceExtractor(sharp_edge=False, margin=0.05, mask_factor=10)
+        self.extractor = FaceExtractor(sharp_edge=False, margin=0.05, mask_factor=10, video_mode=video_mode)
         self.reconstructor = FaceReconstructor(mask_factor=-20, sharpening=True)
 
     def __call__(self, image):

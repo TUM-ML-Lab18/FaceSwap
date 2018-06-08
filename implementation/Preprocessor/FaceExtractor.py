@@ -36,7 +36,7 @@ class FaceExtractor(object):
     5. Crop image fine to center face
     """
 
-    def __init__(self, margin=0.05, mask_factor=10, sharp_edge=True):
+    def __init__(self, margin=0.05, mask_factor=10, sharp_edge=True, video_mode=False):
         """
         Initializer for a FaceExtractor object
         :param margin: Factor to adapt size of the cropped region
@@ -45,11 +45,14 @@ class FaceExtractor(object):
         :param mask_factor: Strength of increasing or decreasing the mask
                           * mask_factor > 0: increase mask
                           * mask_factor < 0: decrease mask
-        :param sharp_edge: Datatype of the created mask:
-                          * np.bool: hard, sharp mask
-                          * np.float: soft, blurred mask
+        :param sharp_edge: Boolean flag:
+                          * True: hard, sharp mask
+                          * False: soft, blurred mask
+        :param video_mode: Boolean flag:
+                          * True: Extract face from consecutive frames -> activate filter
+                          * False: Extract face from single frames
         """
-        self.landmarks_extractor = LandmarksExtractor()
+        self.landmarks_extractor = LandmarksExtractor(video)
         # 1.05: Crop coarse face with additional safety margin
         # => no facial landmarks can get lost during rotation
         self.face_cropper_coarse = FaceCropperCoarse(margin=margin * 1.05)
@@ -174,7 +177,6 @@ def update_landmarks(landmarks_dict, transformation):
     Updates all landmarks based on the given transformation
     :param landmarks_dict: Dict of facial landmarks
     :param transformation: Lambda function with the transformation
-    :return:
     """
     for feature in landmarks_dict:
         landmarks = []
@@ -303,7 +305,18 @@ class LandmarksExtractor(object):
     """
     Extract facial landmarks of the first detected face in the image with the
     external face_recognition module
+    There is an additional filter to interpolate the position of the face
+    within a video and make the motion smoother
     """
+
+    def __init__(self, video_mode=False):
+        """
+        :param video_mode: Boolean flag:
+                          * True: Extract face from consecutive frames -> activate filter
+                          * False: Extract face from single frames
+        """
+        self.video_mode = video_mode
+        self.old_state = None
 
     def __call__(self, image):
         """
@@ -311,7 +324,22 @@ class LandmarksExtractor(object):
         :return: face_landmarks or None if no face detected
         """
         landmarks = face_recognition.face_landmarks(image)
-        return landmarks[0] if landmarks else None
+
+        # Check, if extraction was successful
+        if landmarks:
+            landmarks = landmarks[0]
+        else:
+            landmarks = None
+
+        if self.video_mode:
+            if landmarks is None:
+                # Update state in video mode
+                landmarks = self.old_state
+            else:
+                # Get old state, if no new state available
+                self.old_state = landmarks
+
+        return landmarks
 
 
 class FaceCropperCoarse(object):
