@@ -335,6 +335,12 @@ class LandmarksExtractor(object):
             if landmarks is None:
                 # Update state in video mode
                 landmarks = self.old_state.copy()
+                arr = np.array(list_landmarks(landmarks))
+                mini = np.min(arr, 0)
+                maxi = np.max(arr, 0)
+                mean_x = mini[0] + (maxi[0] - mini[0]) / 2
+                mean_y = mini[1] + (maxi[1] - mini[1]) / 2
+                update_landmarks(landmarks, lambda x: (int(x[0] * 2 - mean_y), int(x[1] * 2 - mean_x)))
             else:
                 # Get old state, if no new state available
                 self.old_state = landmarks.copy()
