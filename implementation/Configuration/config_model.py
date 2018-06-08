@@ -6,7 +6,7 @@ from Models.DeepFake.Decoder import Decoder
 from Models.DeepFake.DeepFakeOriginal import DeepFakeOriginal
 from Models.DeepFake.Encoder import Encoder
 from Models.LatentModel.Decoder import LatentDecoder
-from Models.LatentModel.LatentModel import LowResModel
+from Models.LatentModel.LatentModel import LowResModel, RetrainLowResModel
 from Utils.ImageDataset import *
 
 # DeepFakes Original
@@ -30,6 +30,13 @@ lowres_config = {'batch_size': 256,
                  'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_128,
                                                         [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_LOWRES])}
 
+retrain_lowres_config = lowres_config.copy()
+retrain_lowres_config['model'] = RetrainLowResModel
+retrain_lowres_config['model_params'][
+    'model_path'] = '/nfs/students/summer-term-2018/project_2/models/latent_model/model'
+retrain_lowres_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CAR_IMAGES_128,
+                                                               [ARRAY_CAR_LANDMARKS, ARRAY_CAR_LOWRES])
+
 # CGAN
 cgan_config = {'batch_size': 64,
                'model': CGAN,
@@ -51,4 +58,4 @@ dcgan_config = {'batch_size': 64,
                 'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_5)
                 }
 
-current_config = lowres_config
+current_config = retrain_lowres_config

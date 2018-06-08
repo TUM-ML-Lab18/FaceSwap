@@ -14,7 +14,7 @@ class Trainer:
         self.model = config['model'](**config['model_params'])
         self.data_loader = DataSplitter(self.dataset, self.batch_size)
 
-        self.logger = Logger(len(self.dataset), self.model, save_model_every_nth=100,
+        self.logger = Logger(len(self.dataset), self.model, save_model_every_nth=10,
                              shared_model_path=MOST_RECENT_MODEL)
         self.logger.log_config(config)
 

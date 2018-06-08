@@ -95,3 +95,9 @@ class LowResModel(LatentModel):
         unnormalized = self.decoder(latent_vector)
         normalized = unnormalized / 2.0 + 0.5
         return normalized
+
+
+class RetrainLowResModel(LowResModel):
+    def __init__(self, decoder, model_path):
+        super().__init__(decoder)
+        self.load_model(model_path)
