@@ -52,7 +52,7 @@ class FaceExtractor(object):
                           * True: Extract face from consecutive frames -> activate filter
                           * False: Extract face from single frames
         """
-        self.landmarks_extractor = LandmarksExtractor(video)
+        self.landmarks_extractor = LandmarksExtractor(video_mode)
         # 1.05: Crop coarse face with additional safety margin
         # => no facial landmarks can get lost during rotation
         self.face_cropper_coarse = FaceCropperCoarse(margin=margin * 1.05)

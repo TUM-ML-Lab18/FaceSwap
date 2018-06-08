@@ -30,9 +30,9 @@ def convert_images():
 
 
 def convert_video():
-    anonymizer = Anonymizer(model_folder='model',
+    anonymizer = Anonymizer(model_folder='/nfs/students/summer-term-2018/project_2/models/latent_model/model',
                             config=current_config, video_mode=True)
-    path = Path('/nfs/students/summer-term-2018/project_2/test_simone/')
+    path = Path('/nfs/students/summer-term-2018/project_2/test_simone_short/')
     path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')
     for video_file in path.iterdir():
         if video_file.is_dir():
@@ -70,4 +70,4 @@ def convert_video():
 
 
 if __name__ == '__main__':
-    convert_images()
+    convert_video()

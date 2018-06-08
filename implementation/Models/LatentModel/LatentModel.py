@@ -90,7 +90,7 @@ class LowResModel(LatentModel):
         latent_vector -= 0.5
         latent_vector *= 2.0
 
-        latent_vector.cuda()
+        latent_vector = latent_vector.cuda()
 
         unnormalized = self.decoder(latent_vector)
         normalized = unnormalized / 2.0 + 0.5
