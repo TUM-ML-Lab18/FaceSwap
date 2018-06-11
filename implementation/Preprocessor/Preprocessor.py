@@ -168,6 +168,7 @@ class Preprocessor:
             np.save(root_folder / ('data' + str(size) + '.npy'), data)
             if size == 8:
                 lowres = data.reshape((-1, 192)) / 255.0
+                lowres = lowres.astype(np.float32)
                 np.save(root_folder / 'lowres.npy', lowres)
 
     @staticmethod
