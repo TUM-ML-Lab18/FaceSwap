@@ -19,7 +19,7 @@ deep_fakes_config = {'batch_size': 64,
                                                                  num_convblocks=4),
                                       'auto_encoder': AutoEncoder,
                                       'select_autoencoder': 1},
-                     'dataset': lambda: ImageDatesetCombined(Path(MEGA_MERKEL_TRUMP), size_multiplicator=1,
+                     'dataset': lambda: ImageDatesetCombined(Path(SIMONE_MERKEL), size_multiplicator=1,
                                                              img_size=(128, 128))
                      }
 
@@ -40,7 +40,7 @@ retrain_lowres_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CAR_IMAGES_
 # CGAN
 cgan_config = {'batch_size': 64,
                'model': CGAN,
-               'model_params': {'y_dim': 56,
+               'model_params': {'y_dim': 56 + 8 * 8 * 3,
                                 'z_dim': 100,
                                 'ngf': 128,
                                 'ndf': 128,
@@ -49,7 +49,8 @@ cgan_config = {'batch_size': 64,
                                 'y_mean': ARRAY_CELEBA_LANDMARKS_28_MEAN,
                                 'y_cov': ARRAY_CELEBA_LANDMARKS_28_COV
                                 },
-               'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS_28])}
+               'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64,
+                                                      [ARRAY_CELEBA_LANDMARKS_28, ARRAY_CELEBA_LOWRES])}
 
 # DCGAN
 dcgan_config = {'batch_size': 64,
@@ -58,4 +59,4 @@ dcgan_config = {'batch_size': 64,
                 'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_5)
                 }
 
-current_config = retrain_lowres_config
+current_config = deep_fakes_config

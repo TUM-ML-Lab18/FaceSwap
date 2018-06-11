@@ -162,7 +162,7 @@ class Preprocessor:
 
         # Convert images folder into arrays
         for size in RESOLUTIONS:
-            subdir_res = root_folder / ('preprocessed' + str(size) + '/images')
+            subdir_res = root_folder / ('preprocessed' + str(size))
             data = np.array([np.array(Image.open(fname)) for fname in subdir_res.iterdir()])
             data = data.transpose((0, 3, 1, 2))
             np.save(root_folder / ('data' + str(size) + '.npy'), data)

@@ -25,5 +25,5 @@ def process_annoations(root_folder):
 if __name__ == '__main__':
     face_extractor = FaceExtractor(margin=0.05, sharp_edge=True, mask_factor=10)
     preprocessor = Preprocessor(face_extractor)
-    root = Path('/nfs/students/summer-term-2018/project_2/data/YT_CAR_DRIVING/')
+    root = Path('/nfs/students/summer-term-2018/project_2/data/Simone')
     preprocessor(root)

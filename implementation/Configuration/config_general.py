@@ -27,6 +27,7 @@ MOST_RECENT_MODEL = "."
 # ===================================== MODELS
 # DeepFakes
 MEGA_MERKEL_TRUMP = "/nfs/students/summer-term-2018/project_2/data/MEGA_Merkel_Trump"
+SIMONE_MERKEL = "/nfs/students/summer-term-2018/project_2/data/Simone_Merkel"
 
 # CelebA
 ROOT_CELEBA = '/nfs/students/summer-term-2018/project_2/data/CelebA/'
