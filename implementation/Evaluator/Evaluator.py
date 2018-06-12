@@ -125,10 +125,10 @@ class Evaluator:
         img2.save(io2, format='JPEG')
 
         headers = {'Ocp-Apim-Subscription-Key': standard_conf['apiKey'], 'Content-Type': 'application/octet-stream'}
-
         id1 = requests.post(standard_conf['url'] + 'detect', headers=headers, data=io1.getvalue()).json()[0]['faceId']
         id2 = requests.post(standard_conf['url'] + 'detect', headers=headers, data=io2.getvalue()).json()[0]['faceId']
 
+        headers = {'Ocp-Apim-Subscription-Key': standard_conf['apiKey'], 'Content-Type': 'application/json'}
         req = {'faceId1': id1, 'faceId2': id2}
         r = requests.post(standard_conf['url'] + 'verify', headers=headers, data=req).json()
         print(r)
