@@ -24,7 +24,7 @@ if __name__ == '__main__':
             img2 = Image.open(Path(image_b))
 
             try:
-                sim = Evaluator.evaluate_image_pair(img1, img2)
+                sim = Evaluator.get_api_similarity_score(img1, img2)
                 sims.append(sim)
                 print('success')
 
