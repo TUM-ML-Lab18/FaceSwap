@@ -1,4 +1,4 @@
-import os
+import os, json
 from pathlib import Path
 
 import numpy as np
@@ -30,6 +30,9 @@ if __name__ == '__main__':
 
             except Exception as ex:
                 print(ex)
+
+    with open('data.json', 'w') as f:
+        f.write(json.dumps(sims))
 
     """
     sims = np.array(sims)

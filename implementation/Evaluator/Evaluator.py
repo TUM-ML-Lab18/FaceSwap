@@ -132,6 +132,10 @@ class Evaluator:
         req = {'faceId1': id1, 'faceId2': id2}
         r = requests.post(standard_conf['url'] + 'verify', headers=headers, json=req).json()
         print(r)
-        return 0.0
+
+        if r['isIdentical']:
+            return r['confidence']
+        else:
+            return 1 - r['confidence']
 
 
