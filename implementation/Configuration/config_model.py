@@ -19,7 +19,7 @@ deep_fakes_config = {'batch_size': 64,
                                                                  num_convblocks=4),
                                       'auto_encoder': AutoEncoder,
                                       'select_autoencoder': 1},
-                     'dataset': lambda: ImageDatesetCombined(Path(SIMONE_MERKEL), size_multiplicator=1,
+                     'dataset': lambda: ImageDatesetCombined(Path(SIMONE_MERKEL), size_multiplicator=100,
                                                              img_size=(128, 128))
                      }
 
