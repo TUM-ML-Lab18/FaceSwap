@@ -50,7 +50,7 @@ class PGGAN(CombinedModel):
 
         # noise generation and static noise for logging
         self.noise = RandomNoiseGenerator(self.latent_size, 'gaussian')
-        self.static_noise = self.noise(128 * torch.cuda.device_count())
+        self.static_noise = self.noise(self.initial_batch_size)
 
         # variables for growing the network
         self.TICK_dic = {1: 6, 2: 12, 3: 18, 4: 24, 5: 30}  # 2^5 = 32
@@ -71,7 +71,7 @@ class PGGAN(CombinedModel):
 
     def train(self, train_data_loader, batch_size, validate, **kwargs):
         current_epoch = kwargs.get('current_epoch', 99999)
-
+        batch_size = self.initial_batch_size
         # Label vectors for loss function
         label_real, label_fake = (torch.ones(batch_size, 1, 1, 1), torch.zeros(batch_size, 1, 1, 1))
 
@@ -170,4 +170,6 @@ class PGGAN(CombinedModel):
     def schedule_resolution(self, current_epoch):
         if self.TICK_dic[self.level] <= current_epoch:
             self.level += 1
-            self.data_loader.adjusted_batch_size_and_increase_resolution(self.batch_size_dic[self.level])
+            self.initial_batch_size = int(self.batch_size_dic[self.level])
+            self.data_loader.adjusted_batch_size_and_increase_resolution(self.initial_batch_size)
+            self.static_noise = self.static_noise[:self.initial_batch_size]
