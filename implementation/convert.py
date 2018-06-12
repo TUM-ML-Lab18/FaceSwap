@@ -30,10 +30,11 @@ def convert_images():
 
 
 def convert_video():
-    anonymizer = Anonymizer(model_folder='model',
-                            config=current_config, video_mode=True)
-    path = Path('/nfs/students/summer-term-2018/project_2/test_simone_short/')
-    path_sebi = Path('/nfs/students/summer-term-2018/project_2/test_sebi/')
+    anonymizer = Anonymizer(model_folder=model_folder = 'model',
+                                                        config = current_config, video_mode = True, post_sharp = False)
+    path = Path('/nfs/students/summer-term-2018/project_2/test_max/')
+    result_path = path / 'result'
+    result_path.mkdir(exist_ok=True)
     for video_file in path.iterdir():
         if video_file.is_dir():
             continue
@@ -43,7 +44,7 @@ def convert_video():
         frame_height = int(cap.get(4))
         length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         fps = cap.get(cv2.CAP_PROP_FPS)
-        out = cv2.VideoWriter((path_sebi / (video_file.name.__str__())).__str__(),
+        out = cv2.VideoWriter((result_path / (video_file.name.__str__())).__str__(),
                               cv2.VideoWriter_fourcc('X', '2', '6', '4'), fps,
                               (frame_width, frame_height))
         curr = 0
