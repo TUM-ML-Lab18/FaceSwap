@@ -188,6 +188,25 @@ def update_landmarks(landmarks_dict, transformation):
         landmarks_dict[feature] = landmarks
 
 
+def extract_landmarks(landmarks_array, n=28):
+    """
+    Extracts n handcrafted landmarks from an array with all landmarks
+    :param landmarks_array: np.array with all landmarks
+    :param n: Number of landmarks {5, 10, 28}
+    :return: np.array with n landmarks
+    """
+    if n == 5:
+        landmarks = extract_5_landmarks(landmarks_array)
+    elif n == 10:
+        landmarks = extract_10_landmarks(landmarks_array)
+    elif n == 28:
+        landmarks = extract_28_landmarks(landmarks_array)
+    else:
+        raise NotImplementedError
+
+    return landmarks
+
+
 def extract_5_landmarks(landmarks_array):
     """
     Extracts 5 handcrafted landmarks from an array with all landmarks
@@ -282,6 +301,22 @@ def extract_28_landmarks(landmarks_array):
     landmarks_28 = np.dstack((landmarks_28_X, landmarks_28_Y)).reshape((-1, 56))
 
     return landmarks_28
+
+
+def extract_lowres(image, resolution=8):
+    """
+    Extracts lowres feature (pixel map) from given image
+    :param image: PIL image - extracted face
+    :param resolution: Resolution of the pixelmap
+    :return: np.array with lowres feature
+    """
+    lowres = np.array(image.resize((resolution, resolution)))
+    lowres = lowres.transpose((2, 0, 1))
+    lowres = lowres.reshape((-1, 3 * resolution * resolution))
+    lowres = lowres.astype(np.float32)
+    lowres /= 255
+
+    return lowres
 
 
 def draw_landmarks(image, landmarks_dict):

@@ -62,6 +62,7 @@ class ImageFeatureDataset(Dataset):
         """
         print('Loading data... This may take some time')
         if path_to_image_array is not None:
+            print('Loading images...')
             self.images = np.load(path_to_image_array)
             self.images = torch.from_numpy(self.images).type(torch.float32)
             # Normalize to [-1,1]
@@ -75,12 +76,15 @@ class ImageFeatureDataset(Dataset):
             if type(paths_to_feature_arrays) is not list:
                 paths_to_feature_arrays = [paths_to_feature_arrays]
             features = []
-            for path in paths_to_feature_arrays:
+            for i, path in enumerate(paths_to_feature_arrays):
+                print('Loading feature %d...' % i)
                 feature = np.load(path)
                 feature = feature.reshape((len(feature), -1))
                 features.append(feature)
             self.features = np.hstack(features)
             self.features = torch.from_numpy(self.features).type(torch.float32)
+            # TODO: minmax normalization
+            # Normalize to [-1,1]
             self.features -= 0.5
             self.features *= 2.0
         else:

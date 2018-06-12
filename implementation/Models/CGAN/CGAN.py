@@ -4,11 +4,11 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import MultivariateNormal
 
-from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_MEAN, ARRAY_CELEBA_LANDMARKS_COV
+from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_28_MEAN, ARRAY_CELEBA_LANDMARKS_28_COV
 from Models.CGAN.Discriminator import Discriminator
 from Models.CGAN.Generator import Generator
 from Models.ModelUtils.ModelUtils import CombinedModel
-from Preprocessor.FaceExtractor import extract_28_landmarks
+from Preprocessor.FaceExtractor import extract_landmarks
 
 
 class CGAN(CombinedModel):
@@ -16,8 +16,8 @@ class CGAN(CombinedModel):
         self.z_dim = kwargs.get('z_dim', 100)
         self.y_dim = kwargs.get('y_dim', 10)
         self.img_dim = kwargs.get('img_dim', (64, 64, 3))
-        path_to_y_mean = kwargs.get('y_mean', ARRAY_CELEBA_LANDMARKS_MEAN)
-        path_to_y_cov = kwargs.get('y_cov', ARRAY_CELEBA_LANDMARKS_COV)
+        path_to_lm_mean = kwargs.get('lm_mean', ARRAY_CELEBA_LANDMARKS_28_MEAN)
+        path_to_lm_cov = kwargs.get('lm_cov', ARRAY_CELEBA_LANDMARKS_28_COV)
         ngf = kwargs.get('ngf', 64)
         ndf = kwargs.get('ndf', 64)
         lrG = kwargs.get('lrG', 0.0002)
@@ -35,14 +35,15 @@ class CGAN(CombinedModel):
         self.BCE_loss = nn.BCELoss()
 
         # gaussian distribution of our landmarks
-        self.landmarks_mean = np.load(path_to_y_mean)
-        self.landmarks_cov = np.load(path_to_y_cov)
+        self.landmarks_mean = np.load(path_to_lm_mean)
+        self.landmarks_cov = np.load(path_to_lm_cov)
         self.landmarks_mean = torch.from_numpy(self.landmarks_mean)
         self.landmarks_cov = torch.from_numpy(self.landmarks_cov)
-        self.distribution = MultivariateNormal(loc=self.landmarks_mean.type(torch.float64),
-                                               covariance_matrix=self.landmarks_cov.type(torch.float64))
+        self.distribution_landmarks = MultivariateNormal(loc=self.landmarks_mean.type(torch.float64),
+                                                         covariance_matrix=self.landmarks_cov.type(torch.float64))
 
         # Fixed noise for validation
+        self.anonym_noise = torch.randn((1, self.z_dim))
         self.fixed_noise = None
 
         if torch.cuda.is_available():
@@ -79,9 +80,11 @@ class CGAN(CombinedModel):
             z = torch.randn((batch_size, self.z_dim))
             # TODO: RuntimeError: Lapack Error in potrf : the leading minor of order 122 is not
             # TODO: positive definite at /pytorch/aten/src/TH/generic/THTensorLapack.c:617
-            feature_gen = self.distribution.sample((batch_size,)).type(torch.float32)
-            # feature_gen = np.random.multivariate_normal(self.landmarks_mean, self.landmarks_cov, batch_size)
-            # feature_gen = torch.from_numpy(feature_gen).type(torch.float32)
+            # => Works for 28 landmarks
+            landmarks_gen = self.distribution_landmarks.sample((batch_size,)).type(torch.float32)
+
+            feature_gen = landmarks_gen
+            # feature_gen = torch.cat((landmarks_gen, lowres_gen), dim=1)
             feature_gen = (feature_gen - 0.5) * 2.0
             # transfer everything to the gpu
             if self.cuda:
@@ -173,25 +176,25 @@ class CGAN(CombinedModel):
         return [self.G_optimizer, self.D_optimizer, self.BCE_loss]
 
     def anonymize(self, extracted_face, extracted_information):
+        # ===== Landmarks
         # Normalize landmarks
         landmarks = np.array(extracted_information.landmarks) / extracted_information.size_fine
         landmarks = landmarks.reshape(-1)
         # Extract needed landmarks
-        # landmarks = extract_5_landmarks(landmarks)
-        # landmarks = extract_10_landmarks(landmarks)
-        landmarks = extract_28_landmarks(landmarks)
-        # Zero centering
-        landmarks -= 0.5
-        landmarks *= 2.0
-        # ToTensor
-        feature = torch.from_numpy(landmarks).type(torch.float32)
-        # Random Input
-        z = torch.randn((feature.shape[0], self.z_dim))
+        landmarks = extract_landmarks(landmarks, n=28)
 
+        # ===== Creating feature vector
+        feature = landmarks
+        feature = torch.from_numpy(feature).type(torch.float32)
+
+        # ===== Zero centering
+        feature -= 0.5
+        feature *= 2.0
         if self.cuda:
-            z, feature = z.cuda(), feature.cuda()
-        tensor_img = self.G(z, feature)
-        # Denormalize
+            self.anonym_noise, feature = self.anonym_noise.cuda(), feature.cuda()
+        tensor_img = self.G(self.anonym_noise, feature)
+
+        # ===== Denormalize generated image
         for t in tensor_img:  # loop over mini-batch dimension
             norm_img(t)
         tensor_img *= 255
