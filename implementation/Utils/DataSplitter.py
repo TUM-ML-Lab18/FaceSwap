@@ -58,7 +58,7 @@ class DataSplitter:
         set the batch_size to a new value and also increase the resolution of the data_set
         :param batch_size: new batch_size
         """
-        self.batch_size = batch_size
+        self.batch_size = int(batch_size)
 
         # increase resolution by doubling it
         self.dataset.increase_resolution()
