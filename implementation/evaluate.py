@@ -9,8 +9,8 @@ from Evaluator.Evaluator import Evaluator
 if __name__ == '__main__':
 
     path = Path('/nfs/students/summer-term-2018/project_2/test_alex/')
-    sims = []
-    emos = []
+    ident = []
+    n_ident = []
 
     print('Processing ' + str(len(os.listdir(path)) ** 2) + ' comparisons...')
 
@@ -24,15 +24,19 @@ if __name__ == '__main__':
             img2 = Image.open(Path(image_b))
 
             try:
-                sim = Evaluator.get_api_similarity_score(img1, img2)
-                sims.append(sim)
+                conf_identical, conf_n_identical = Evaluator.get_api_similarity_score(img1, img2)
+                if conf_identical is not None:
+                    ident.append(conf_identical)
+                elif conf_n_identical is not None:
+                    n_ident.append(conf_n_identical)
+
                 print('success')
 
             except Exception as ex:
                 print(ex)
 
     with open('data.json', 'w') as f:
-        f.write(json.dumps(sims))
+        f.write(json.dumps({'ident': ident, 'n_ident': n_ident}))
 
     """
     sims = np.array(sims)
