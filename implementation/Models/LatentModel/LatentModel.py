@@ -78,9 +78,12 @@ class LatentModel(CombinedModel):
 
 
 class LowResModel(LatentModel):
+    STATIC_NOISE = np.random.randn(8 * 8 * 3) * 0.05
+
     def anonymize(self, extracted_face, extracted_information):
         resized_image_flat = np.array(extracted_face.resize((8, 8))).transpose((2, 0, 1))
-        resized_image_flat = resized_image_flat.reshape((1, -1)) / 255.0
+
+        resized_image_flat = resized_image_flat.reshape((1, -1)) / 255.0  # + self.STATIC_NOISE
 
         landmarks_normalized_flat = np.reshape(
             (np.array(extracted_information.landmarks) / extracted_information.size_fine), (1, -1))
@@ -90,8 +93,14 @@ class LowResModel(LatentModel):
         latent_vector -= 0.5
         latent_vector *= 2.0
 
-        latent_vector.cuda()
+        latent_vector = latent_vector.cuda()
 
         unnormalized = self.decoder(latent_vector)
         normalized = unnormalized / 2.0 + 0.5
         return normalized
+
+
+class RetrainLowResModel(LowResModel):
+    def __init__(self, decoder, model_path):
+        super().__init__(decoder)
+        self.load_model(model_path)
