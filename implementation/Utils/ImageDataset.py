@@ -104,3 +104,30 @@ class ImageFeatureDataset(Dataset):
             items.append(self.features[index])
 
         return items[0] if len(items) == 1 else tuple(items)
+
+
+class ProgressiveFeatureDataset(Dataset):
+    def __init__(self, paths_to_feature_arrays, initial_resolution=1):
+        """
+        :param initial_resolution: 2^initial_resolution = width(image)
+        """
+        self.paths_to_feature_arrays = paths_to_feature_arrays
+        self.current_resolution = initial_resolution
+        self._load_new_dataset()
+
+    def _load_new_dataset(self):
+        self.path = eval(f'config_general.ARRAY_CELEBA_IMAGES_{2^self.current_resolution}')
+        self.dataset = ImageFeatureDataset(self.path, self.paths_to_feature_arrays)
+
+    def increase_resolution(self):
+        """
+        double the resolution of the dataset
+        """
+        self.current_resolution += 1
+        self._load_new_dataset()
+
+    def __getitem__(self, index):
+        return self.dataset[index]
+
+    def __len__(self):
+        return len(self.dataset)

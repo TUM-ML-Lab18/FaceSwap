@@ -7,6 +7,7 @@ from Models.DeepFake.DeepFakeOriginal import DeepFakeOriginal
 from Models.DeepFake.Encoder import Encoder
 from Models.LatentModel.Decoder import LatentDecoder
 from Models.LatentModel.LatentModel import LowResModel, RetrainLowResModel
+from Models.PGGAN_NEW.PGGAN import PGGAN
 from Utils.ImageDataset import *
 
 # DeepFakes Original
@@ -61,8 +62,11 @@ dcgan_config = {'batch_size': 64,
 # DCGAN
 pggan_config = {'batch_size': 64,
                 'model': PGGAN,
-                'model_params': {},
-                'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_5)
+                'model_params': {'target_resolution': 32,
+                                 'latent_size': 512,
+                                 'lrG': 0.0002,
+                                 'lrD': 0.00005, },
+                'dataset': lambda: ProgressiveFeatureDataset(ARRAY_CELEBA_LANDMARKS_5, initial_resolution=1)
                 }
 
 current_config = pggan_config
