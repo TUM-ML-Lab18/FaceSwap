@@ -125,7 +125,7 @@ class Preprocessor:
                         em_buffer.write(str(relative_path) + separator + str(embedding) + '\n')
                     # Store different resolutions
                     for size in RESOLUTIONS:
-                        resized_img = extracted_image.resize((size, size))
+                        resized_img = extracted_image.resize((size, size), resample=Image.BILINEAR)
                         resized_img.save(root_folder / ('preprocessed' + str(size)) / relative_path,
                                          format='JPEG')
                     # Save extraction result in PROCESSED folder
