@@ -39,11 +39,11 @@ class PGGAN(CombinedModel):
 
         # noise generation and static noise for logging
         self.noise = RandomNoiseGenerator(self.latent_size, 'gaussian')
-        self.static_noise = self.noise(64)
+        self.static_noise = self.noise(128 * torch.cuda.device_count())
 
         # variables for growing the network
         self.TICK = 1000
-        self.TICK_dic = {1: 1000, 2: 2000, 3: 3000, 4: 4000, 5: 5000}  # 2^5 = 32
+        self.TICK_dic = {1: 50, 2: 40, 3: 30, 4: 20, 5: 10}  # 2^5 = 32
 
         self.level = 1
 
@@ -73,7 +73,7 @@ class PGGAN(CombinedModel):
             if validate:
                 noise = self.static_noise
             else:
-                noise = torch.from_numpy(self.noise(batch_size))
+                noise = self.noise(batch_size)
 
             if self.cuda:
                 images = images.cuda()
@@ -139,7 +139,7 @@ class PGGAN(CombinedModel):
                         'lossD': float(d_loss_summed.cpu().data.numpy())}
             log_img = generated_images
 
-            self.schedule_resolution(self, current_epoch)
+            self.schedule_resolution(current_epoch)
         else:
             log_info = {'lossG_val': float(g_loss_summed.cpu().data.numpy()),
                         'lossD_val': float(d_loss_summed.cpu().data.numpy())}
@@ -152,7 +152,7 @@ class PGGAN(CombinedModel):
 
     def log_images(self, logger, epoch, images, validation):
         tag = 'validation_output' if validation else 'training_output'
-        logger.log_images(epoch, images, tag, 8)
+        logger.log_images(epoch, images[:64], tag, 8)
 
     def schedule_resolution(self, current_epoch):
         if self.TICK_dic[self.level] < current_epoch:

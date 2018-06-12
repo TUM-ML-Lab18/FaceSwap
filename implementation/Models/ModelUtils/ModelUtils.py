@@ -273,4 +273,4 @@ class RandomNoiseGenerator():
             self.generator = lambda s: np.random.uniform(-1, 1, size=s)
 
     def __call__(self, batch_size):
-        return self.generator([batch_size, self.size]).astype(np.float32)
+        return torch.from_numpy(self.generator([batch_size, self.size]).astype(np.float32))

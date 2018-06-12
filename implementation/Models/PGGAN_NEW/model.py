@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from Models.ModelUtils.ModelUtils import CustomModule
 from Models.PGGAN_NEW.base_model import *
 
 
@@ -37,7 +38,7 @@ def NINLayer(incoming, in_channels, out_channels, nonlinearity, init, param=None
         return layers
 
 
-class Generator(nn.Module):
+class Generator(CustomModule):
     def __init__(self,
                  num_channels=1,  # Overridden based on dataset.
                  resolution=32,  # Overridden based on dataset.
@@ -138,7 +139,7 @@ def D_conv(incoming, in_channels, out_channels, kernel_size, padding, nonlineari
         return layers
 
 
-class Discriminator(nn.Module):
+class Discriminator(CustomModule):
     def __init__(self,
                  num_channels=1,  # Overridden based on dataset.
                  resolution=32,  # Overridden based on dataset.

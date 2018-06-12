@@ -107,7 +107,7 @@ class ImageFeatureDataset(Dataset):
 
 
 class ProgressiveFeatureDataset(Dataset):
-    def __init__(self, paths_to_feature_arrays, initial_resolution=1):
+    def __init__(self, paths_to_feature_arrays, initial_resolution=2):
         """
         :param initial_resolution: 2^initial_resolution = width(image)
         """
@@ -116,6 +116,8 @@ class ProgressiveFeatureDataset(Dataset):
         self._load_new_dataset()
 
     def _load_new_dataset(self):
+        from Configuration import config_general
+        _ = config_general.ARRAY_CELEBA_IMAGES_4  # so that pycharm doesn't delete the unsused import
         self.path = eval(f'config_general.ARRAY_CELEBA_IMAGES_{2**self.current_resolution}')
         self.dataset = ImageFeatureDataset(self.path, self.paths_to_feature_arrays)
 
