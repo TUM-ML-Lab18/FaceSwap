@@ -133,9 +133,9 @@ class Evaluator:
         r = requests.post(standard_conf['url'] + 'verify', headers=headers, json=req).json()
 
         if r['isIdentical']:
-            return r['confidence']
+            return r['confidence'], None
         else:
             print("Not identical: " + str(r['confidence']))
-            return 0
+            return None, r['confidence']
 
 
