@@ -70,12 +70,9 @@ class CGAN(CombinedModel):
         g_loss_summed, d_loss_summed = 0, 0
         iterations = 0
 
-        # Label vectors for loss function
-        label_real, label_fake = (torch.ones(batch_size, 1, 1, 1), torch.zeros(batch_size, 1, 1, 1))
-        if self.cuda:
-            label_real, label_fake = label_real.cuda(), label_fake.cuda()
-
         for images, features in data_loader:
+            # Label vectors for loss function
+            label_real, label_fake = (torch.ones(batch_size, 1, 1, 1), torch.zeros(batch_size, 1, 1, 1))
             # generate random vector
             z = torch.randn((batch_size, self.z_dim))
             # TODO: RuntimeError: Lapack Error in potrf : the leading minor of order 122 is not
@@ -88,6 +85,7 @@ class CGAN(CombinedModel):
             feature_gen = (feature_gen - 0.5) * 2.0
             # transfer everything to the gpu
             if self.cuda:
+                label_real, label_fake = label_real.cuda(), label_fake.cuda()
                 images, features, z = images.cuda(), features.cuda(), z.cuda()
                 feature_gen = feature_gen.cuda()
 

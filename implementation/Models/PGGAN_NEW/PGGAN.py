@@ -43,7 +43,7 @@ class PGGAN(CombinedModel):
 
         # variables for growing the network
         self.TICK = 1000
-        self.TICK_dic = {1: 50, 2: 40, 3: 30, 4: 20, 5: 10}  # 2^5 = 32
+        self.TICK_dic = {1: 2, 2: 4, 3: 6, 4: 8, 5: 10}  # 2^5 = 32
 
         self.level = 1
 
@@ -155,6 +155,6 @@ class PGGAN(CombinedModel):
         logger.log_images(epoch, images[:64], tag, 8)
 
     def schedule_resolution(self, current_epoch):
-        if self.TICK_dic[self.level] < current_epoch:
+        if self.TICK_dic[self.level] <= current_epoch:
             self.level += 1
             self.dataset.increase_resolution()
