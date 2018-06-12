@@ -7,6 +7,9 @@ from Models.PGGAN_NEW.model import Generator, Discriminator, torch
 class PGGAN(CombinedModel):
     def __init__(self, **kwargs):
         # Modules with parameters
+        self.dataset = kwargs.get('dataset', None)
+        if self.dataset is None:
+            raise FileNotFoundError()
         self.target_resolution = kwargs.get('target_resolution', 32)
         self.latent_size = kwargs.get('latent_size', 512)
         self.G = Generator(num_channels=3, latent_size=self.latent_size, resolution=self.target_resolution,
@@ -40,7 +43,7 @@ class PGGAN(CombinedModel):
 
         # variables for growing the network
         self.TICK = 1000
-        self.TICK_dic = {1: 1000, 2: 1000, 3: 1000, 4: 1000, 5: 1000}  # 2^5 = 32
+        self.TICK_dic = {1: 1000, 2: 2000, 3: 3000, 4: 4000, 5: 5000}  # 2^5 = 32
 
         self.level = 1
 
@@ -54,6 +57,8 @@ class PGGAN(CombinedModel):
         return [self.noise]
 
     def train(self, train_data_loader, batch_size, validate, **kwargs):
+        current_epoch = kwargs.get('current_epoch', 99999)
+
         # Label vectors for loss function
         label_real, label_fake = (torch.ones(batch_size, 1, 1, 1), torch.zeros(batch_size, 1, 1, 1))
 
@@ -133,6 +138,8 @@ class PGGAN(CombinedModel):
             log_info = {'lossG': float(g_loss_summed.cpu().data.numpy()),
                         'lossD': float(d_loss_summed.cpu().data.numpy())}
             log_img = generated_images
+
+            self.schedule_resolution(self, current_epoch)
         else:
             log_info = {'lossG_val': float(g_loss_summed.cpu().data.numpy()),
                         'lossD_val': float(d_loss_summed.cpu().data.numpy())}
@@ -146,3 +153,8 @@ class PGGAN(CombinedModel):
     def log_images(self, logger, epoch, images, validation):
         tag = 'validation_output' if validation else 'training_output'
         logger.log_images(epoch, images, tag, 8)
+
+    def schedule_resolution(self, current_epoch):
+        if self.TICK_dic[self.level] < current_epoch:
+            self.level += 1
+            self.dataset.increase_resolution()
