@@ -12,7 +12,8 @@ class Trainer:
             self.batch_size *= torch.cuda.device_count()
         self.dataset = config['dataset']()
         self.data_loader = DataSplitter(self.dataset, self.batch_size, validation_size=0.005)
-        self.model = config['model'](**config['model_params'], dataset=self.dataset)
+        self.model = config['model'](**config['model_params'], dataset=self.dataset, initial_batch_size=self.batch_size,
+                                     data_loader=self.data_loader)
 
         self.logger = Logger(len(self.dataset), self.model, save_model_every_nth=5,
                              shared_model_path=MOST_RECENT_MODEL)

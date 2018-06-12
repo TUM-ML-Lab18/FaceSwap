@@ -60,12 +60,13 @@ dcgan_config = {'batch_size': 64,
                 }
 
 # DCGAN
-pggan_config = {'batch_size': 512,
+pggan_config = {'batch_size': 128,
                 'model': PGGAN,
                 'model_params': {'target_resolution': 32,
                                  'latent_size': 512,
                                  'lrG': 0.0002,
-                                 'lrD': 0.00005, },
+                                 'lrD': 0.00005,
+                                 'batch_size': 128},
                 'dataset': lambda: ProgressiveFeatureDataset(ARRAY_CELEBA_LANDMARKS_5, initial_resolution=2)
                 }
 

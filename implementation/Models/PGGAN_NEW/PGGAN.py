@@ -1,3 +1,5 @@
+import math
+
 from torch import nn, optim
 
 from Models.ModelUtils.ModelUtils import CombinedModel, RandomNoiseGenerator
@@ -6,12 +8,21 @@ from Models.PGGAN_NEW.model import Generator, Discriminator, torch
 
 class PGGAN(CombinedModel):
     def __init__(self, **kwargs):
-        # Modules with parameters
+        # get values from args
         self.dataset = kwargs.get('dataset', None)
         if self.dataset is None:
             raise FileNotFoundError()
+        self.data_loader = kwargs.get('data_loader', None)
+        if self.data_loader is None:
+            raise FileNotFoundError()
+        self.initial_batch_size = kwargs.get('initial_batch_size', None)
+        if self.initial_batch_size is None or not math.log(self.initial_batch_size, 2).is_integer():
+            raise AttributeError(
+                f"This module needs the variable batch_size. It also has to be to the power of 2. Got {self.initial_batch_size}")
         self.target_resolution = kwargs.get('target_resolution', 32)
         self.latent_size = kwargs.get('latent_size', 512)
+
+        # Modules with parameters
         self.G = Generator(num_channels=3, latent_size=self.latent_size, resolution=self.target_resolution,
                            fmap_max=self.latent_size, fmap_base=8192, tanh_at_end=True)
         # self.g = DataParallel(self.g)
@@ -39,11 +50,13 @@ class PGGAN(CombinedModel):
 
         # noise generation and static noise for logging
         self.noise = RandomNoiseGenerator(self.latent_size, 'gaussian')
-        self.static_noise = self.noise(512 * torch.cuda.device_count())
+        self.static_noise = self.noise(128 * torch.cuda.device_count())
 
         # variables for growing the network
-        self.TICK = 1000
-        self.TICK_dic = {1: 2, 2: 4, 3: 6, 4: 8, 5: 10}  # 2^5 = 32
+        self.TICK_dic = {1: 6, 2: 12, 3: 18, 4: 24, 5: 30}  # 2^5 = 32
+        self.batch_size_dic = {1: self.initial_batch_size / (2 ** 0), 2: self.initial_batch_size / (2 ** 1),
+                               3: self.initial_batch_size / (2 ** 2), 4: self.initial_batch_size / (2 ** 3),
+                               5: self.initial_batch_size / (2 ** 4)}
 
         self.level = 1
 
@@ -157,4 +170,4 @@ class PGGAN(CombinedModel):
     def schedule_resolution(self, current_epoch):
         if self.TICK_dic[self.level] <= current_epoch:
             self.level += 1
-            self.dataset.increase_resolution()
+            self.data_loader.adjusted_batch_size_and_increase_resolution(self.batch_size_dic[self.level])
