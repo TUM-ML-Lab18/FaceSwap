@@ -99,8 +99,8 @@ class Evaluator:
 
         headers = {'Ocp-Apim-Subscription-Key': standard_conf['apiKey'], 'Content-Type': 'application/octet-stream'}
 
-        r1 = requests.post(standard_conf['url'], headers=headers, data=io1.getvalue()).json()[0]
-        r2 = requests.post(standard_conf['url'], headers=headers, data=io2.getvalue()).json()[0]
+        r1 = requests.post(standard_conf['url'] + 'detect?returnFaceAttributes=emotion', headers=headers, data=io1.getvalue()).json()[0]
+        r2 = requests.post(standard_conf['url'] + 'detect?returnFaceAttributes=emotion', headers=headers, data=io2.getvalue()).json()[0]
 
         emotions1 = np.array(list(r1['faceAttributes']['emotion'].values()))
         emotions2 = np.array(list(r2['faceAttributes']['emotion'].values()))
@@ -117,3 +117,25 @@ class Evaluator:
                 0]]
         dist = face_recognition.face_distance(np.array(enconding1), np.array(enconding2))[0]
         return dist
+
+    @staticmethod
+    def get_api_similarity_score(img1, img2):
+        io1, io2 = io.BytesIO(), io.BytesIO()
+        img1.save(io1, format='JPEG')
+        img2.save(io2, format='JPEG')
+
+        headers = {'Ocp-Apim-Subscription-Key': standard_conf['apiKey'], 'Content-Type': 'application/octet-stream'}
+        id1 = requests.post(standard_conf['url'] + 'detect', headers=headers, data=io1.getvalue()).json()[0]['faceId']
+        id2 = requests.post(standard_conf['url'] + 'detect', headers=headers, data=io2.getvalue()).json()[0]['faceId']
+
+        headers = {'Ocp-Apim-Subscription-Key': standard_conf['apiKey'], 'Content-Type': 'application/json'}
+        req = {'faceId1': id1, 'faceId2': id2}
+        r = requests.post(standard_conf['url'] + 'verify', headers=headers, json=req).json()
+        print(r)
+
+        if r['isIdentical']:
+            return r['confidence']
+        else:
+            return 1 - r['confidence']
+
+

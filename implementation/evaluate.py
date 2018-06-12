@@ -1,4 +1,4 @@
-import os
+import os, json
 from pathlib import Path
 
 import numpy as np
@@ -24,14 +24,17 @@ if __name__ == '__main__':
             img2 = Image.open(Path(image_b))
 
             try:
-                _, sim, emo = Evaluator.evaluate_image_pair(img1, img2)
+                sim = Evaluator.get_api_similarity_score(img1, img2)
                 sims.append(sim)
-                emos.append(emo)
                 print('success')
 
             except Exception as ex:
                 print(ex)
 
+    with open('data.json', 'w') as f:
+        f.write(json.dumps(sims))
+
+    """
     sims = np.array(sims)
     emos = np.array(emos)
 
@@ -64,3 +67,4 @@ if __name__ == '__main__':
     print("4-1")
     print(f"Average score: {scores.mean()}")
     print(f"Std: {scores.std()}")
+    """
