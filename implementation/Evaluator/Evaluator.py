@@ -131,11 +131,11 @@ class Evaluator:
         headers = {'Ocp-Apim-Subscription-Key': standard_conf['apiKey'], 'Content-Type': 'application/json'}
         req = {'faceId1': id1, 'faceId2': id2}
         r = requests.post(standard_conf['url'] + 'verify', headers=headers, json=req).json()
-        print(r)
 
         if r['isIdentical']:
             return r['confidence']
         else:
+            print("Not identical: " + str(r['confidence']))
             return 1 - r['confidence']
 
 
