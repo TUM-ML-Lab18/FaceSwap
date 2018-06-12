@@ -1,6 +1,7 @@
 from abc import abstractmethod, ABCMeta
 from pathlib import Path
 
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -258,3 +259,18 @@ class UpscaleBlockBlock(nn.Sequential):
             block_list.append(
                 UpscaleBlock(num_channels_first_layer // (2 ** (i - 1)), num_channels_first_layer // (2 ** i)))
         super().__init__(*block_list)
+
+
+class RandomNoiseGenerator():
+    def __init__(self, size, noise_type='gaussian'):
+        self.size = size
+        self.noise_type = noise_type.lower()
+        assert self.noise_type in ['gaussian', 'uniform']
+        self.generator_map = {'gaussian': np.random.randn, 'uniform': np.random.uniform}
+        if self.noise_type == 'gaussian':
+            self.generator = lambda s: np.random.randn(*s)
+        elif self.noise_type == 'uniform':
+            self.generator = lambda s: np.random.uniform(-1, 1, size=s)
+
+    def __call__(self, batch_size):
+        return self.generator([batch_size, self.size]).astype(np.float32)
