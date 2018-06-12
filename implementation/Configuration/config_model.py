@@ -60,7 +60,7 @@ dcgan_config = {'batch_size': 64,
                 }
 
 # DCGAN
-pggan_config = {'batch_size': 128,
+pggan_config = {'batch_size': 512,
                 'model': PGGAN,
                 'model_params': {'target_resolution': 32,
                                  'latent_size': 512,

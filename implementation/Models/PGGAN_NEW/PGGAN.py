@@ -39,7 +39,7 @@ class PGGAN(CombinedModel):
 
         # noise generation and static noise for logging
         self.noise = RandomNoiseGenerator(self.latent_size, 'gaussian')
-        self.static_noise = self.noise(128 * torch.cuda.device_count())
+        self.static_noise = self.noise(512 * torch.cuda.device_count())
 
         # variables for growing the network
         self.TICK = 1000
