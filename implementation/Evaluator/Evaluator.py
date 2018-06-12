@@ -136,6 +136,6 @@ class Evaluator:
             return r['confidence']
         else:
             print("Not identical: " + str(r['confidence']))
-            return 1 - r['confidence']
+            return 0
 
 
