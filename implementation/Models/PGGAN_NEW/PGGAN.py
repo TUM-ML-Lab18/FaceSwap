@@ -1,24 +1,21 @@
-import os
-
 from Models.ModelUtils.ModelUtils import CombinedModel, RandomNoiseGenerator
 from Models.PGGAN_NEW.model import Generator, Discriminator, torch
 
 
 class PGGAN(CombinedModel):
     def __init__(self):
-        os.environ['CUDA_VISIBLE_DEVICES'] = "1, 2, 3"
         self.target_resol = 32
-        self.z_dim = 4
         self.latent_size = 512
         self.g = Generator(num_channels=3, latent_size=self.latent_size, resolution=self.target_resol,
                            fmap_max=self.latent_size, fmap_base=8192, tanh_at_end=True).cuda()
-        print(self.g)
         # self.g = DataParallel(self.g)
         self.d = Discriminator(num_channels=3, mbstat_avg='all', resolution=self.target_resol,
                                fmap_max=self.latent_size, fmap_base=8192, sigmoid_at_end=True).cuda()
-        print(self.d)
         # self.d = DataParallel(self.d)
         self.noise = RandomNoiseGenerator(self.latent_size, 'gaussian')
+
+        self.TICK = 1000
+        self.TICK_dic = {1: 1000, 2: 1000, 3: 1000, 4: 1000, 5: 1000}  # 2^5 = 32
 
     def get_models(self):
         return [self.g, self.d]
