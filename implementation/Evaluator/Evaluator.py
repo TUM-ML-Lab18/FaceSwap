@@ -132,5 +132,6 @@ class Evaluator:
         req = {'faceId1': id1, 'faceId2': id2}
         r = requests.post(standard_conf['url'] + 'verify', headers=headers, data=req).json()
         print(r)
+        return 0.0
 
 
