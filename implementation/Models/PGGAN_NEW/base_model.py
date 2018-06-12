@@ -12,7 +12,7 @@ from torch.nn.parameter import Parameter
 if sys.version_info.major == 3:
     from functools import reduce
 
-DEBUG = True
+DEBUG = False
 
 
 class PixelNormLayer(nn.Module):
