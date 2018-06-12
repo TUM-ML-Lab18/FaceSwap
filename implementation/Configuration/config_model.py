@@ -7,7 +7,6 @@ from Models.DeepFake.DeepFakeOriginal import DeepFakeOriginal
 from Models.DeepFake.Encoder import Encoder
 from Models.LatentModel.Decoder import LatentDecoder
 from Models.LatentModel.LatentModel import LowResModel, RetrainLowResModel
-from Models.PGGAN_NEW.PGGAN import PGGAN
 from Utils.ImageDataset import *
 
 # DeepFakes Original
@@ -41,17 +40,16 @@ retrain_lowres_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CAR_IMAGES_
 # CGAN
 cgan_config = {'batch_size': 64,
                'model': CGAN,
-               'model_params': {'y_dim': 56 + 8 * 8 * 3,
-                                'z_dim': 100,
-                                'ngf': 128,
-                                'ndf': 128,
+               'model_params': {'y_dim': 56,
+                                'z_dim': 44,
+                                'ngf': 64,
+                                'ndf': 64,
                                 'lrG': 0.0002,
                                 'lrD': 0.00005,
-                                'y_mean': ARRAY_CELEBA_LANDMARKS_28_MEAN,
-                                'y_cov': ARRAY_CELEBA_LANDMARKS_28_COV
+                                'lm_mean': ARRAY_CELEBA_LANDMARKS_28_MEAN,
+                                'lm_cov': ARRAY_CELEBA_LANDMARKS_28_COV,
                                 },
-               'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64,
-                                                      [ARRAY_CELEBA_LANDMARKS_28, ARRAY_CELEBA_LOWRES])}
+               'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS_28, ])}
 
 # DCGAN
 dcgan_config = {'batch_size': 64,

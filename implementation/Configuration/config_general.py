@@ -57,6 +57,8 @@ ARRAY_CELEBA_HISTO_64 = ROOT_CELEBA + 'histo64.npy'
 ARRAY_CELEBA_ATTRIBUTES = ROOT_CELEBA + 'attributes.npy'
 ARRAY_CELEBA_LOWRES = ROOT_CELEBA + 'lowres.npy'
 ARRAY_CELEBA_ULTRA_LOWRES = ROOT_CELEBA + 'ultra_lowres.npy'
+ARRAY_CELEBA_ULTRA_LOWRES_MEAN = ROOT_CELEBA + 'ultra_lowres_mean.npy'
+ARRAY_CELEBA_ULTRA_LOWRES_COV = ROOT_CELEBA + 'ultra_lowres_cov.npy'
 
 # YouTube
 ROOT_CAR = '/nfs/students/summer-term-2018/project_2/data/YT_CAR_DRIVING/'
