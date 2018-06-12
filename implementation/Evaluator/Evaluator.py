@@ -130,7 +130,7 @@ class Evaluator:
 
         headers = {'Ocp-Apim-Subscription-Key': standard_conf['apiKey'], 'Content-Type': 'application/json'}
         req = {'faceId1': id1, 'faceId2': id2}
-        r = requests.post(standard_conf['url'] + 'verify', headers=headers, data=req).json()
+        r = requests.post(standard_conf['url'] + 'verify', headers=headers, json=req).json()
         print(r)
         return 0.0
 
