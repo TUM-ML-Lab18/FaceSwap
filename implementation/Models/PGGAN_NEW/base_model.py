@@ -45,6 +45,7 @@ class WScaleLayer(nn.Module):
         if self.incoming.bias is not None:
             self.bias = self.incoming.bias
             self.incoming.bias = None
+        self.scale = Parameter(self.scale)  # needed to move it to the gpu
 
     def forward(self, x):
         x = self.scale * x
@@ -53,7 +54,8 @@ class WScaleLayer(nn.Module):
         return x
 
     def __repr__(self):
-        param_str = '(incoming = %s)' % (self.incoming.__class__.__name__)
+        param_str = '(incoming = %s)' % (
+            self.incoming.__class__.__name__) + f'(scale.is_cuda = {self.scale.is_cuda})'
         return self.__class__.__name__ + param_str
 
 
