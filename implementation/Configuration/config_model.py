@@ -175,4 +175,4 @@ pggan_config = {'batch_size': 128,
                 'dataset': lambda: ProgressiveFeatureDataset(ARRAY_CELEBA_LANDMARKS_5, initial_resolution=2)
                 }
 
-current_config = pggan_config
+current_config = latent_gan_config
