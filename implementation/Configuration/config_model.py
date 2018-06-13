@@ -123,14 +123,16 @@ cgan_config = {'batch_size': 64,
 
 #LatentGAN
 latent_gan_config = {
-    'batch_size': 64,
+    'batch_size': 256,
     'model': LatentGAN,
     'model_params': {
+        'input_dim': 72 * 2 + 8 * 8 * 3,
         'y_dim': 56,
         'z_dim': 44,
         'ndf': 256,
         'lrD': 0.00005
-    }
+    },
+    'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_128, [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_LOWRES])
 }
 
 
