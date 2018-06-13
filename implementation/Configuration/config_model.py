@@ -1,6 +1,6 @@
 from Configuration.config_general import *
 from Models.CGAN.CGAN import CGAN
-from Models.LatentGAN import LatentGAN
+from Models.LatentGAN.LatentGAN import LatentGAN
 from Models.DCGAN.DCGAN import DCGAN
 from Models.DeepFake.Autoencoder import AutoEncoder
 from Models.DeepFake.Decoder import Decoder
