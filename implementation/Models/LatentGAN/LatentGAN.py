@@ -5,18 +5,22 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from Models.ModelUtils.ModelUtils import CombinedModel
 from Models.LatentModel.Decoder import LatentDecoder
-from .Discriminator import Discriminator
+from Models.CGAN.Discriminator import Discriminator
 
 
 class LatentGAN(CombinedModel):
 
     def __init__(self, **kwargs):
-
         self.input_dim = kwargs.get('input_dim', 100)
-        # TODO: parse remaining arguments
+        self.alpha = kwargs.get('alpha', 0.5)
+        self.z_dim = kwargs.get('z_dim', 100)
+        self.y_dim = kwargs.get('y_dim', 10)
+        ngf = kwargs.get('ngf', 64)
+        ndf = kwargs.get('ndf', 64)
+        lrD = kwargs.get('lrD', 0.0002)
 
         self.decoder = LatentDecoder(self.input_dim)
-        self.discriminator = Discriminator()
+        self.discriminator = Discriminator(y_dim=self.y_dim, input_dim=self.img_dim, ndf=ndf)
 
         self.l1_loss = torch.nn.L1Loss(size_average=True).cuda()
         self.bce_loss = torch.nn.BCELoss()
@@ -33,7 +37,8 @@ class LatentGAN(CombinedModel):
             self.bce_loss.cuda()
 
     def train(self, train_data_loader, batch_size, validate, **kwargs):
-        loss_mean = 0
+        g_l1_loss_mean = 0
+        d_loss_mean = 0
         faces = None
         output = None
         iterations = 0
@@ -68,34 +73,46 @@ class LatentGAN(CombinedModel):
             if not validate:
                 d_fake_predictions_loss.backward()
 
+            d_overall_loss = d_real_predictions_loss + d_fake_predictions_loss
+
             ############################
-            # (1) Update G network (self.decoder)
+            # (2) Update G network (self.decoder)
             ###########################
             if not validate:
                 self.dec_optimizer.zero_grad()
 
+            # L1 loss for image reconstruction
             output = self.decoder(latent_information)
-            l1_loss = self.l1_loss(output, faces)
+            g_l1_loss = self.l1_loss(output, faces) * self.alpha
 
             if not validate:
-                l1_loss.backward()
+                g_l1_loss.backward()
+
+            fake_predictions = self.discriminator(generated)
+            g_fake_predictions_loss = self.bce_loss(fake_predictions, label_real) * (1 - self.alpha)
+
+            if not validate:
+                g_fake_predictions_loss.backward()
                 self.dec_optimizer.step()
 
-            loss_mean += loss
+            d_loss_mean += d_overall_loss
+            g_l1_loss_mean += g_l1_loss
             iterations += 1
 
-        loss_mean /= iterations
-        loss_mean = loss_mean.cpu().data.numpy()
+        d_loss_mean /= iterations
+        g_l1_loss_mean /= iterations
+        d_loss_mean = d_loss_mean.cpu().data.numpy()
+        g_l1_loss_mean = g_l1_loss_mean.cpu().data.numpy()
 
         if not validate:
-            self.scheduler.step(loss_mean, current_epoch)
+            self.dec_scheduler.step(g_l1_loss_mean, current_epoch)
 
         if not validate:
-            log_info = {'loss': float(loss_mean)}
+            log_info = {'g_l1_loss': float(g_l1_loss_mean), 'disc_loss': d_loss_mean}
         else:
-            log_info = {'loss_val': float(loss_mean)}
+            log_info = {'g_l1_loss_val': float(g_l1_loss_mean), 'disc_loss_val': d_loss_mean}
 
-        return log_info, [face, output]
+        return log_info, [faces, output]
 
     def anonymize(self, extracted_face, extracted_information):
         resized_image_flat = np.array(extracted_face.resize((8, 8))).transpose((2, 0, 1))
@@ -117,16 +134,15 @@ class LatentGAN(CombinedModel):
         return normalized
 
     def get_models(self):
-        return [self.decoder]
+        return [self.discriminator, self.decoder]
 
     def get_model_names(self):
-        return ['decoder']
+        return ['discriminator', 'decoder']
 
     def get_remaining_modules(self):
-        return [self.optimizer, self.scheduler, self.lossfn]
+        return [self.dec_optimizer, self.disc_optimizer, self.dec_scheduler, self.l1_loss, self.bce_loss]
 
     def log_images(self, logger, epoch, images, validation=True):
-
         examples = int(len(images[0]))
         example_indices = random.sample(range(0, examples - 1), 5)
         A = []

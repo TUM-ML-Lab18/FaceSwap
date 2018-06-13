@@ -1,5 +1,6 @@
 from Configuration.config_general import *
 from Models.CGAN.CGAN import CGAN
+from Models.LatentGAN import LatentGAN
 from Models.DCGAN.DCGAN import DCGAN
 from Models.DeepFake.Autoencoder import AutoEncoder
 from Models.DeepFake.Decoder import Decoder
@@ -118,6 +119,19 @@ cgan_config = {'batch_size': 64,
                                 'lm_cov': ARRAY_CELEBA_LANDMARKS_28_COV,
                                 },
                'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS_28, ])}
+
+
+#LatentGAN
+latent_gan_config = {
+    'batch_size': 64,
+    'model': LatentGAN,
+    'model_params': {
+        'y_dim': 56,
+        'z_dim': 44,
+        'ndf': 256,
+        'lrD': 0.00005
+    }
+}
 
 
 class DCGAN_CONFIG(Config):
