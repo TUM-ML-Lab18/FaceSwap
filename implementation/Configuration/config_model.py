@@ -89,7 +89,7 @@ class CGAN_CONFIG(GAN_CONFIG):
 
 class LGAN_CONFIG(GAN_CONFIG):
     model = LatentGAN
-    batch_size: 256
+    batch_size = 256
     model_params = {
         'input_dim': 72 * 2 + 8 * 8 * 3,
         'img_dim': (64, 64, 3),
