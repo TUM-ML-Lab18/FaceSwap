@@ -43,8 +43,8 @@ class PGGAN(CombinedModel):
         # optimizers
         lrG = kwargs.get('lrG', 0.0002)
         lrD = kwargs.get('lrD', 0.0002)
-        beta1 = kwargs.get('beta1', 0.5)
-        beta2 = kwargs.get('beta2', 0.999)
+        beta1 = kwargs.get('beta1', 0)
+        beta2 = kwargs.get('beta2', 0.99)
         self.G_optimizer = optim.Adam(self.G.parameters(), lr=lrG, betas=(beta1, beta2))
         self.D_optimizer = optim.Adam(self.D.parameters(), lr=lrD, betas=(beta1, beta2))
 
@@ -54,9 +54,9 @@ class PGGAN(CombinedModel):
 
         # variables for growing the network
 
-        self.epochs_fade = 6
+        self.epochs_fade = 4
         self.images_per_fading = 194701 * self.epochs_fade  # CELEBA size
-        self.epochs_stab = 6
+        self.epochs_stab = 4
         self.epochs_stage = self.epochs_fade + self.epochs_stab
         self.epochs_in_stage = self.epochs_fade  # Trick for stage 1
         self.level = 1
@@ -81,12 +81,18 @@ class PGGAN(CombinedModel):
         batch_size = self.initial_batch_size
 
         if not validate:
-            self.schedule_resolution(current_epoch)
+            self.schedule_resolution()
 
         # Label vectors for loss function
         label_real, label_fake = (torch.ones(batch_size, 1, 1, 1), torch.zeros(batch_size, 1, 1, 1))
+
+        # Gradient weights WGAN-GP TODO: What are they for?
+        one, mone = torch.FloatTensor([1]), torch.FloatTensor([-1])
+
+        # Move to GPU
         if self.cuda:
             label_real, label_fake = label_real.cuda(), label_fake.cuda()
+            one, mone = one.cuda(), mone.cuda()
 
         # sum the loss for logging
         g_loss_summed, d_loss_summed = 0, 0
@@ -114,30 +120,54 @@ class PGGAN(CombinedModel):
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
             ###########################
             if not validate:
+                # Avoid computations in Generator training
+                for p in self.D.parameters():
+                    p.requires_grad = True
                 self.D_optimizer.zero_grad()
 
             # Train on real example with real features
-            real_predictions = self.D(images, cur_level=cur_level)
-            d_real_predictions_loss = self.BCE_loss(real_predictions,
-                                                    label_real)  # real corresponds to log(D_real)
+            D_real = self.D(images, cur_level=cur_level)
 
+            # Wasserstein Loss
+            D_real = D_real.mean()
             if not validate:
-                # make backward instantly
-                d_real_predictions_loss.backward()
+                D_real.backward(mone)
+
+            # # Classic loss
+            # D_real_loss = self.BCE_loss(D_real, label_real)  # real corresponds to log(D_real)
+            # if not validate:
+            #     D_real_loss.backward()
 
             # Train on fake example from generator
-            generated_images = self.G(noise, cur_level=cur_level)
-            fake_images_predictions = self.D(
-                generated_images.detach(),
-                cur_level=cur_level)  # todo what happens if we detach the output of the Discriminator
-            d_fake_images_loss = self.BCE_loss(fake_images_predictions,
-                                               label_fake)  # fake corresponds to log(1-D_fake)
+            G_fake = self.G(noise, cur_level=cur_level)
+            if validate:
+                # Validate only generated image
+                break
+            # todo what happens if we detach the output of the Discriminator
+            D_fake = self.D(G_fake.data, cur_level=cur_level)
 
+            # Wasserstein Loss
+            D_fake = D_fake.mean()
             if not validate:
-                # make backward instantly
-                d_fake_images_loss.backward()
+                D_fake.backward(one)
 
-            d_loss = d_real_predictions_loss + d_fake_images_loss
+            # # Classic loss
+            # D_fake_loss = self.BCE_loss(D_fake, label_fake)  # fake corresponds to log(1-D_fake)
+            # if not validate:
+            #     D_fake_loss.backward()
+
+            # # Classic loss
+            # D_loss = D_real_loss + D_fake_loss
+
+            # Wasserstein loss
+            # train with gradient penalty
+            gp = self.calculate_gradient_penalty(images, G_fake.data, cur_level)
+            if not validate:
+                gp.backward()
+
+            # Wasserstein loss
+            D_loss = D_fake - D_real + gp
+            Wasserstein_D = D_real - D_fake
 
             if not validate:
                 self.D_optimizer.step()
@@ -146,37 +176,47 @@ class PGGAN(CombinedModel):
             # (2) Update G network: maximize log(D(G(z)))
             ###########################
             if not validate:
+                for p in self.G.parameters():
+                    p.requires_grad = False
                 self.G_optimizer.zero_grad()
 
             # Train on fooling the Discriminator
-            fake_images_predictions = self.D(generated_images, cur_level=cur_level)
-            g_loss = self.BCE_loss(fake_images_predictions, label_real)
+            D_fake = self.D(G_fake, cur_level=cur_level)
 
+            # Wasserstein Loss
+            D_fake = D_fake.mean()
             if not validate:
-                g_loss.backward()
+                D_fake.backward(mone)
                 self.G_optimizer.step()
+            G_loss = -D_fake
+
+            # # Classic loss
+            # G_loss = self.BCE_loss(D_fake, label_real)
+            # if not validate:
+            #     G_loss.backward()
+            #     self.G_optimizer.step()
 
             # losses
-            g_loss_summed += g_loss
-            d_loss_summed += d_loss
+            g_loss_summed += G_loss
+            d_loss_summed += D_loss
             iterations += 1
 
             if not self.stabilization_phase and not validate:
                 # Count only images during training
                 self.imgs_faded_in += batch_size
-        g_loss_summed /= iterations
-        d_loss_summed /= iterations
 
         if not validate:
+            g_loss_summed /= iterations
+            d_loss_summed /= iterations
             log_info = {'lossG': float(g_loss_summed.cpu().data.numpy()),
                         'lossD': float(d_loss_summed.cpu().data.numpy()),
+                        'WassersteinDistance': float(Wasserstein_D.cpu().data.numpy()),
                         'FadeInFactor': fade_in_factor,
                         'Level': self.level}
-            log_img = generated_images
+            log_img = G_fake
         else:
-            log_info = {'lossG_val': float(g_loss_summed.cpu().data.numpy()),
-                        'lossD_val': float(d_loss_summed.cpu().data.numpy())}
-            log_img = generated_images
+            log_info = {}
+            log_img = G_fake
 
         return log_info, log_img
 
@@ -187,11 +227,11 @@ class PGGAN(CombinedModel):
         tag = 'validation_output' if validation else 'training_output'
         logger.log_images(epoch, images[:64], tag, 8)
 
-    def schedule_resolution(self, current_epoch):
+    def schedule_resolution(self):
         if not (self.epochs_in_stage < self.epochs_stage):
             # Enter new stage
             self.level += 1
-            self.initial_batch_size = int(self.batch_size_dic[self.level])
+            # self.initial_batch_size = int(self.batch_size_dic[self.level])
             self.data_loader.adjusted_batch_size_and_increase_resolution(self.initial_batch_size)
             self.static_noise = self.static_noise[:self.initial_batch_size]
             self.epochs_in_stage = 0
@@ -208,3 +248,29 @@ class PGGAN(CombinedModel):
             self.imgs_faded_in = 0
 
         self.epochs_in_stage += 1
+
+    def calculate_gradient_penalty(self, real_data, fake_data, cur_level):
+        """
+        https://github.com/caogang/wgan-gp/
+        """
+        # Interpolation between real & fake data
+        alpha = torch.rand(self.initial_batch_size, 1, 1, 1)
+        alpha = alpha.expand(real_data.size())
+        alpha = alpha.cuda() if self.cuda else alpha
+
+        interpolates = alpha * real_data + ((1 - alpha) * fake_data)
+        interpolates = interpolates.cuda() if self.cuda else interpolates
+        interpolates.requires_grad_()
+
+        D_interpolate = self.D(interpolates, cur_level=cur_level)
+
+        grad = torch.autograd.grad(outputs=D_interpolate,
+                                   inputs=interpolates,
+                                   grad_outputs=torch.ones(D_interpolate.size()).cuda() if self.cuda else
+                                   torch.ones(D_interpolate.size()),
+                                   create_graph=True, retain_graph=True, only_inputs=True)[0]
+
+        _lambda = 10  # CelebA TF Code
+        gradient_penalty = ((grad.norm(2, dim=1) - 1) ** 2).mean() * _lambda
+
+        return gradient_penalty
