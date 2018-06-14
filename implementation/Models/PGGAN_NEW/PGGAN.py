@@ -27,7 +27,7 @@ class PGGAN(CombinedModel):
                            fmap_max=self.latent_size, fmap_base=8192, tanh_at_end=True)
         # self.g = DataParallel(self.g)
         self.D = Discriminator(num_channels=3, mbstat_avg='all', resolution=self.target_resolution,
-                               fmap_max=self.latent_size, fmap_base=8192, sigmoid_at_end=True)
+                               fmap_max=self.latent_size, fmap_base=8192, sigmoid_at_end=False)
         # self.d = DataParallel(self.d)
 
         # loss function
@@ -121,8 +121,7 @@ class PGGAN(CombinedModel):
             ###########################
             if not validate:
                 # Avoid computations in Generator training
-                for p in self.D.parameters():
-                    p.requires_grad = True
+                self.D.train(True)
                 self.D_optimizer.zero_grad()
 
             # Train on real example with real features
@@ -144,7 +143,7 @@ class PGGAN(CombinedModel):
                 # Validate only generated image
                 break
             # todo what happens if we detach the output of the Discriminator
-            D_fake = self.D(G_fake.data, cur_level=cur_level)
+            D_fake = self.D(G_fake.detach(), cur_level=cur_level)
 
             # Wasserstein Loss
             D_fake = D_fake.mean()
@@ -161,7 +160,7 @@ class PGGAN(CombinedModel):
 
             # Wasserstein loss
             # train with gradient penalty
-            gp = self.calculate_gradient_penalty(images, G_fake.data, cur_level)
+            gp = self.calculate_gradient_penalty(images, G_fake.detach(), cur_level)
             if not validate:
                 gp.backward()
 
@@ -176,8 +175,7 @@ class PGGAN(CombinedModel):
             # (2) Update G network: maximize log(D(G(z)))
             ###########################
             if not validate:
-                for p in self.G.parameters():
-                    p.requires_grad = False
+                self.D.train(False)
                 self.G_optimizer.zero_grad()
 
             # Train on fooling the Discriminator
