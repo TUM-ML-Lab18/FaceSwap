@@ -15,7 +15,7 @@ class LatentGAN(CombinedModel):
         self.alpha = kwargs.get('alpha', 0.5)
         self.z_dim = kwargs.get('z_dim', 100)
         self.y_dim = kwargs.get('y_dim', 10)
-        self.img_dim = kwargs.get('img_dim', (64, 64, 3))
+        self.img_dim = kwargs.get('img_dim', (128, 128, 3))
         self.ndf = kwargs.get('ndf', 64)
         self.lrD = kwargs.get('lrD', 0.0002)
 
