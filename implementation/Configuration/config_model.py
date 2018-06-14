@@ -22,6 +22,13 @@ class Config:
     def data_set():
         raise NotImplementedError()
 
+    max_epochs = 101
+    validate_index = 0
+    validation_frequencies = [2, 5, 20]
+    validation_periods = [0, 10, 20, max_epochs + 1]
+
+    save_model_every_nth = 20
+
 
 class Deep_Fakes_Config(Config):
     model = DeepFakeOriginal
@@ -35,93 +42,52 @@ class Deep_Fakes_Config(Config):
 
     @staticmethod
     def data_set():
-        ImageDatesetCombined(Path(SIMONE_MERKEL), size_multiplicator=100,
-                             img_size=(128, 128))
-
-
-# DeepFakes Original
-deep_fakes_config = {'batch_size': 64,
-                     'model': DeepFakeOriginal,
-                     'model_params': {'encoder': lambda: Encoder(input_dim=(3, 128, 128),
-                                                                 latent_dim=1024,
-                                                                 num_convblocks=5),
-                                      'decoder': lambda: Decoder(input_dim=512,
-                                                                 num_convblocks=4),
-                                      'auto_encoder': AutoEncoder,
-                                      'select_autoencoder': 1},
-                     'dataset': lambda: ImageDatesetCombined(Path(SIMONE_MERKEL), size_multiplicator=100,
-                                                             img_size=(128, 128))
-                     }
+        return ImageDatesetCombined(Path(SIMONE_MERKEL), size_multiplicator=100,
+                                    img_size=(128, 128))
 
 
 class LowResConfig(Config):
-    def __init__(self):
-        super().__init__()
-        self.batch_size = 256
-        self.model = LowResModel
-        self.model_params = {'decoder': lambda: LatentDecoder(72 * 2 + 8 * 8 * 3)}
-        self.dataset = lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_128,
-                                                   [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_LOWRES])
+    batch_size = 256
+    model = LowResModel
+    model_params = {'decoder': lambda: LatentDecoder(72 * 2 + 8 * 8 * 3)}
 
-
-# Latent model landmarks + LowRes
-lowres_config = {'batch_size': 256,
-                 'model': LowResModel,
-                 'model_params': {'decoder': lambda: LatentDecoder(72 * 2 + 8 * 8 * 3)},
-                 'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_128,
-                                                        [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_LOWRES])}
+    @staticmethod
+    def data_set():
+        return ImageFeatureDataset(ARRAY_CELEBA_IMAGES_128,
+                                   [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_LOWRES])
 
 
 class RetrainConfig(LowResConfig):
-    def __init__(self):
-        super().__init__()
-        self.model = RetrainLowResModel
-        self.model_params['model_path'] = '/nfs/students/summer-term-2018/project_2/models/latent_model/model'
-        self.dataset = lambda: ImageFeatureDataset(ARRAY_CAR_IMAGES_128,
-                                                   [ARRAY_CAR_LANDMARKS, ARRAY_CAR_LOWRES])
+    model = RetrainLowResModel
+    LowResConfig.model_params['model_path'] = '/nfs/students/summer-term-2018/project_2/models/latent_model/model'
+    dataset = lambda: ImageFeatureDataset(ARRAY_CAR_IMAGES_128,
+                                          [ARRAY_CAR_LANDMARKS, ARRAY_CAR_LOWRES])
 
 
-retrain_lowres_config = lowres_config.copy()
-retrain_lowres_config['model'] = RetrainLowResModel
-retrain_lowres_config['model_params'][
-    'model_path'] = '/nfs/students/summer-term-2018/project_2/models/latent_model/model'
-retrain_lowres_config['dataset'] = lambda: ImageFeatureDataset(ARRAY_CAR_IMAGES_128,
-                                                               [ARRAY_CAR_LANDMARKS, ARRAY_CAR_LOWRES])
+class GAN_CONFIG(Config):
+    validation_size = 0.005
+    validation_frequencies = [1, 1, 1]
+    save_model_every_nth = 5
 
 
-class CGAN_CONFIG(Config):
-    def __init__(self):
-        super().__init__()
-        self.model = CGAN,
-        self.validation_size = 0.005
-        self.model_params = {'y_dim': 56,
-                             'z_dim': 44,
-                             'ngf': 256,
-                             'ndf': 256,
-                             'lrG': 0.0002,
-                             'lrD': 0.00005,
-                             'lm_mean': ARRAY_CELEBA_LANDMARKS_28_MEAN,
-                             'lm_cov': ARRAY_CELEBA_LANDMARKS_28_COV,
-                             }
-        self.dataset = lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS_28, ])
+class CGAN_CONFIG(GAN_CONFIG):
+    model = CGAN,
+    model_params = {'y_dim': 56,
+                    'z_dim': 44,
+                    'ngf': 256,
+                    'ndf': 256,
+                    'lrG': 0.0002,
+                    'lrD': 0.00005,
+                    'lm_mean': ARRAY_CELEBA_LANDMARKS_28_MEAN,
+                    'lm_cov': ARRAY_CELEBA_LANDMARKS_28_COV,
+                    }
+
+    @staticmethod
+    def data_set():
+        return ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS_28, ])
 
 
-# CGAN
-cgan_config = {'batch_size': 64,
-               'model': CGAN,
-               'model_params': {'y_dim': 56,
-                                'z_dim': 100,
-                                'ngf': 128,
-                                'ndf': 128,
-                                'lrG': 0.0002,
-                                'lrD': 0.00005,
-                                'lm_mean': ARRAY_CELEBA_LANDMARKS_28_MEAN,
-                                'lm_cov': ARRAY_CELEBA_LANDMARKS_28_COV,
-                                },
-               'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS_28, ])}
-
-
-#LatentGAN
+# LatentGAN todo
 latent_gan_config = {
     'batch_size': 256,
     'model': LatentGAN,
@@ -136,45 +102,26 @@ latent_gan_config = {
 }
 
 
-class DCGAN_CONFIG(Config):
-    def __init__(self):
-        super().__init__()
-        self.model = DCGAN,
-        self.validation_size = 0.005
-        self.dataset = lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_5)
+class DCGAN_CONFIG(GAN_CONFIG):
+    model = DCGAN
+
+    @staticmethod
+    def dataset():
+        return ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_5)
 
 
-# DCGAN
-dcgan_config = {'batch_size': 64,
-                'model': DCGAN,
-                'model_params': {},
-                'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_5)
-                }
+class PGGAN_CONFIG(GAN_CONFIG):
+    batch_size = 512
+    model = PGGAN
+    model_params = {'target_resolution': 32,
+                    'latent_size': 512,
+                    'lrG': 0.001,
+                    'lrD': 0.001,
+                    'batch_size': batch_size}
+
+    @staticmethod
+    def data_set():
+        return ProgressiveFeatureDataset(ARRAY_CELEBA_LANDMARKS_5, initial_resolution=2)
 
 
-class PGGAN_CONFIG(Config):
-    def __init__(self):
-        super().__init__()
-        self.batch_size = 128
-        self.model = PGGAN,
-        self.validation_size = 0.005
-        self.model_params = {'target_resolution': 32,
-                             'latent_size': 512,
-                             'lrG': 0.0002,
-                             'lrD': 0.00005,
-                             'batch_size': 128}
-        self.dataset = lambda: lambda: ProgressiveFeatureDataset(ARRAY_CELEBA_LANDMARKS_5, initial_resolution=2)
-
-
-# PGGAN
-pggan_config = {'batch_size': 64,
-                'model': PGGAN,
-                'model_params': {'target_resolution': 32,
-                                 'latent_size': 512,
-                                 'lrG': 0.001,
-                                 'lrD': 0.001,
-                                 'batch_size': 64},
-                'dataset': lambda: ProgressiveFeatureDataset(ARRAY_CELEBA_LANDMARKS_5, initial_resolution=2)
-                }
-
-current_config = pggan_config
+current_config = PGGAN_CONFIG

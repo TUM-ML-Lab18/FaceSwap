@@ -226,7 +226,7 @@ class PGGAN(CombinedModel):
         logger.log_images(epoch, images[:64], tag, 8)
 
     def schedule_resolution(self):
-        if not (self.epochs_in_stage < self.epochs_stage):
+        if self.epochs_in_stage >= self.epochs_stage:
             # Enter new stage
             self.level += 1
             # self.initial_batch_size = int(self.batch_size_dic[self.level])

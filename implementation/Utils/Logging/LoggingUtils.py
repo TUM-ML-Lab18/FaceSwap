@@ -58,7 +58,7 @@ class Logger:
             self.model.save_model(self.shared_model_path)
 
     def log_config(self, config):
-        text = f"batchsize: {config['batch_size']}\n\nnum_gpus: {torch.cuda.device_count()}"
+        text = f"batchsize: {config.batch_size}\n\nnum_gpus: {torch.cuda.device_count()}"
         self.writer.add_text("hyperparameters",
                              text)
         text = str(self.model)
