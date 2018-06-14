@@ -167,7 +167,7 @@ class PGGAN_CONFIG(Config):
 
 
 # PGGAN
-pggan_config = {'batch_size': 16,
+pggan_config = {'batch_size': 64,
                 'model': PGGAN,
                 'model_params': {'target_resolution': 32,
                                  'latent_size': 512,
