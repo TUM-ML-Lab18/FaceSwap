@@ -5,7 +5,7 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from Models.ModelUtils.ModelUtils import CombinedModel
 from Models.LatentModel.Decoder import LatentDecoder
-from Models.CGAN.Discriminator import Discriminator
+from .Discriminator import Discriminator
 
 
 class LatentGAN(CombinedModel):
