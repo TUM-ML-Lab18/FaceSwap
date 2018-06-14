@@ -24,7 +24,7 @@ class Logger:
         """
         if values is None:
             values = {}
-        for k, v in values:
+        for k, v in values.items():
             self.writer.add_scalars(k, v, epoch)
             if k is 'loss':
                 print(f"epoch: {epoch}" + json.dumps(values), end='\n')
