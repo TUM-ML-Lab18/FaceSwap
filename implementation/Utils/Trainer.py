@@ -10,6 +10,7 @@ class Trainer:
         self.batch_size = config['batch_size']
         if torch.cuda.device_count() > 1:
             self.batch_size *= torch.cuda.device_count()
+        print('BatchSize:', self.batch_size)
         self.dataset = config['dataset']()
         self.data_loader = DataSplitter(self.dataset, self.batch_size, validation_size=0.005)
         self.model = config['model'](**config['model_params'], dataset=self.dataset, initial_batch_size=self.batch_size,

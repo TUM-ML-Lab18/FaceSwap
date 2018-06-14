@@ -1,11 +1,11 @@
 from Configuration.config_general import *
 from Models.CGAN.CGAN import CGAN
-from Models.LatentGAN.LatentGAN import LatentGAN
 from Models.DCGAN.DCGAN import DCGAN
 from Models.DeepFake.Autoencoder import AutoEncoder
 from Models.DeepFake.Decoder import Decoder
 from Models.DeepFake.DeepFakeOriginal import DeepFakeOriginal
 from Models.DeepFake.Encoder import Encoder
+from Models.LatentGAN.LatentGAN import LatentGAN
 from Models.LatentModel.Decoder import LatentDecoder
 from Models.LatentModel.LatentModel import LowResModel, RetrainLowResModel
 from Models.PGGAN_NEW.PGGAN import PGGAN
@@ -110,9 +110,9 @@ class CGAN_CONFIG(Config):
 cgan_config = {'batch_size': 64,
                'model': CGAN,
                'model_params': {'y_dim': 56,
-                                'z_dim': 44,
-                                'ngf': 256,
-                                'ndf': 256,
+                                'z_dim': 100,
+                                'ngf': 128,
+                                'ndf': 128,
                                 'lrG': 0.0002,
                                 'lrD': 0.00005,
                                 'lm_mean': ARRAY_CELEBA_LANDMARKS_28_MEAN,
@@ -167,14 +167,14 @@ class PGGAN_CONFIG(Config):
 
 
 # PGGAN
-pggan_config = {'batch_size': 128,
+pggan_config = {'batch_size': 16,
                 'model': PGGAN,
                 'model_params': {'target_resolution': 32,
                                  'latent_size': 512,
-                                 'lrG': 0.0002,
-                                 'lrD': 0.00005,
-                                 'batch_size': 128},
+                                 'lrG': 0.001,
+                                 'lrD': 0.001,
+                                 'batch_size': 16},
                 'dataset': lambda: ProgressiveFeatureDataset(ARRAY_CELEBA_LANDMARKS_5, initial_resolution=2)
                 }
 
-current_config = latent_gan_config
+current_config = pggan_config
