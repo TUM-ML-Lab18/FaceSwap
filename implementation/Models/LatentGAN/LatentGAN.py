@@ -20,7 +20,7 @@ class LatentGAN(CombinedModel):
         self.lrD = kwargs.get('lrD', 0.0002)
 
         self.decoder = LatentDecoder(self.input_dim)
-        self.discriminator = Discriminator(y_dim=self.y_dim, input_dim=self.img_dim, ndf=self.ndf)
+        self.discriminator = Discriminator(input_dim=self.img_dim, ndf=self.ndf)
 
         self.l1_loss = torch.nn.L1Loss(size_average=True).cuda()
         self.bce_loss = torch.nn.BCELoss()
