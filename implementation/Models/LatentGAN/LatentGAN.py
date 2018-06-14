@@ -15,19 +15,19 @@ class LatentGAN(CombinedModel):
         self.alpha = kwargs.get('alpha', 0.5)
         self.z_dim = kwargs.get('z_dim', 100)
         self.y_dim = kwargs.get('y_dim', 10)
-        ngf = kwargs.get('ngf', 64)
-        ndf = kwargs.get('ndf', 64)
-        lrD = kwargs.get('lrD', 0.0002)
+        self.img_dim = kwargs.get('img_dim', (64, 64, 3))
+        self.ndf = kwargs.get('ndf', 64)
+        self.lrD = kwargs.get('lrD', 0.0002)
 
         self.decoder = LatentDecoder(self.input_dim)
-        self.discriminator = Discriminator(y_dim=self.y_dim, input_dim=self.img_dim, ndf=ndf)
+        self.discriminator = Discriminator(y_dim=self.y_dim, input_dim=self.img_dim, ndf=self.ndf)
 
         self.l1_loss = torch.nn.L1Loss(size_average=True).cuda()
         self.bce_loss = torch.nn.BCELoss()
 
         self.dec_optimizer = Adam(params=self.decoder.parameters(), lr=1e-4)
         self.dec_scheduler = ReduceLROnPlateau(self.dec_optimizer, patience=100, cooldown=50)
-        self.disc_optimizer = Adam(params=self.discriminator.parameters(), lr=1e-4)
+        self.disc_optimizer = Adam(params=self.discriminator.parameters(), lr=self.lrD)
 
         if torch.cuda.is_available():
             self.cuda = True
@@ -76,7 +76,7 @@ class LatentGAN(CombinedModel):
             d_overall_loss = d_real_predictions_loss + d_fake_predictions_loss
 
             ############################
-            # (2) Update G network (self.decoder)
+            # (2) Update encoder network
             ###########################
             if not validate:
                 self.dec_optimizer.zero_grad()
