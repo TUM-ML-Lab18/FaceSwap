@@ -12,12 +12,11 @@ class LatentGAN(CombinedModel):
 
     def __init__(self, **kwargs):
         self.input_dim = kwargs.get('input_dim', 100)
-        self.alpha = kwargs.get('alpha', 0.5)
-        self.z_dim = kwargs.get('z_dim', 100)
-        self.y_dim = kwargs.get('y_dim', 10)
-        self.img_dim = kwargs.get('img_dim', (128, 128, 3))
-        self.ndf = kwargs.get('ndf', 64)
-        self.lrD = kwargs.get('lrD', 0.0002)
+        self.alpha = kwargs['alpha']
+        self.z_dim = kwargs['z_dim']
+        self.img_dim = kwargs['img_dim']
+        self.ndf = kwargs['ndf']
+        self.lrD = kwargs['lrD']
 
         self.decoder = LatentDecoder(self.input_dim)
         self.discriminator = Discriminator(input_dim=self.img_dim, ndf=self.ndf)
