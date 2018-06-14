@@ -111,7 +111,7 @@ class DCGAN_CONFIG(GAN_CONFIG):
 
 
 class PGGAN_CONFIG(GAN_CONFIG):
-    batch_size = 512
+    batch_size = 32
     model = PGGAN
     model_params = {'target_resolution': 32,
                     'latent_size': 512,
