@@ -3,7 +3,7 @@ import math
 from torch import nn, optim
 
 from Models.ModelUtils.ModelUtils import CombinedModel, RandomNoiseGenerator
-from Models.PGGAN_NEW.model import Generator, Discriminator, torch
+from Models.PGGAN_NEW.model_44 import Generator, Discriminator, torch
 
 
 class PGGAN(CombinedModel):
