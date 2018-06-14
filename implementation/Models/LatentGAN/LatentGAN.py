@@ -1,10 +1,12 @@
 import random
+
 import numpy as np
 import torch
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from Models.ModelUtils.ModelUtils import CombinedModel
+
 from Models.LatentModel.Decoder import LatentDecoder
+from Models.ModelUtils.ModelUtils import CombinedModel
 from .Discriminator import Discriminator
 
 
@@ -108,9 +110,9 @@ class LatentGAN(CombinedModel):
             self.dec_scheduler.step(g_l1_loss_mean, current_epoch)
 
         if not validate:
-            log_info = {'g_l1_loss': float(g_l1_loss_mean), 'disc_loss': d_loss_mean}
+            log_info = {'loss': {'g_l1_loss': float(g_l1_loss_mean), 'disc_loss': d_loss_mean}}
         else:
-            log_info = {'g_l1_loss_val': float(g_l1_loss_mean), 'disc_loss_val': d_loss_mean}
+            log_info = {'loss': {'g_l1_loss_val': float(g_l1_loss_mean), 'disc_loss_val': d_loss_mean}}
 
         return log_info, [faces, output]
 

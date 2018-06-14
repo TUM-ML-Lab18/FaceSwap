@@ -154,12 +154,12 @@ class CGAN(CombinedModel):
         d_loss_summed /= iterations
 
         if not validate:
-            log_info = {'lossG': float(g_loss_summed.cpu().data.numpy()),
-                        'lossD': float(d_loss_summed.cpu().data.numpy())}
+            log_info = {'loss': {'lossG': float(g_loss_summed.cpu().data.numpy()),
+                                 'lossD': float(d_loss_summed.cpu().data.numpy())}}
             log_img = generated_images + torch.randn_like(generated_images) * instance_noise_factor
         else:
-            log_info = {'lossG_val': float(g_loss_summed.cpu().data.numpy()),
-                        'lossD_val': float(d_loss_summed.cpu().data.numpy())}
+            log_info = {'loss': {'lossG_val': float(g_loss_summed.cpu().data.numpy()),
+                                 'lossD_val': float(d_loss_summed.cpu().data.numpy())}}
             log_img = generated_images
 
         return log_info, log_img

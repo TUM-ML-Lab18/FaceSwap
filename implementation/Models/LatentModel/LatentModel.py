@@ -49,9 +49,9 @@ class LatentModel(CombinedModel):
             self.scheduler.step(loss_mean, current_epoch)
 
         if not validate:
-            log_info = {'loss': float(loss_mean)}
+            log_info = {'loss': {'loss': float(loss_mean)}}
         else:
-            log_info = {'loss_val': float(loss_mean)}
+            log_info = {'loss': {'loss_val': float(loss_mean)}}
 
         return log_info, [face, output]
 
