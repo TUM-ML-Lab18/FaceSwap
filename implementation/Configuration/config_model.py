@@ -87,19 +87,20 @@ class CGAN_CONFIG(GAN_CONFIG):
         return ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS_28, ])
 
 
-# LatentGAN todo
-latent_gan_config = {
-    'batch_size': 256,
-    'model': LatentGAN,
-    'model_params': {
+class LGAN_CONFIG(GAN_CONFIG):
+    model = LatentGAN
+    batch_size: 256
+    model_params = {
         'input_dim': 72 * 2 + 8 * 8 * 3,
-        'img_dim' : (64, 64, 3),
+        'img_dim': (64, 64, 3),
         'z_dim': 44,
         'ndf': 256,
         'lrD': 0.00005
-    },
-    'dataset': lambda: ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_LOWRES])
-}
+    }
+
+    @staticmethod
+    def data_set():
+        return ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_LOWRES])
 
 
 class DCGAN_CONFIG(GAN_CONFIG):
@@ -124,4 +125,4 @@ class PGGAN_CONFIG(GAN_CONFIG):
         return ProgressiveFeatureDataset(ARRAY_CELEBA_LANDMARKS_5, initial_resolution=2)
 
 
-current_config = PGGAN_CONFIG
+current_config = LGAN_CONFIG
