@@ -208,9 +208,9 @@ class PGGAN(CombinedModel):
             d_loss_summed /= iterations
             log_info = {'loss': {'lossG': float(g_loss_summed.cpu().data.numpy()),
                                  'lossD': float(d_loss_summed.cpu().data.numpy())},
-                        'WassersteinDistance': {'WassersteinDistance': float(Wasserstein_D.cpu().data.numpy())},
-                        'FadeInFactor': {'FadeInFactor': fade_in_factor},
-                        'Level': {'Level': self.level}}
+                        'info/WassersteinDistance': float(Wasserstein_D.cpu().data.numpy()),
+                        'info/FadeInFactor': fade_in_factor,
+                        'info/Level': self.level}
             log_img = G_fake
         else:
             log_info = {}

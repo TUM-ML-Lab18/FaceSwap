@@ -25,9 +25,12 @@ class Logger:
         if values is None:
             values = {}
         for k, v in values.items():
-            self.writer.add_scalars(k, v, epoch)
+            if type(v) is dict:
+                self.writer.add_scalars(k, v, epoch)
+            else:
+                self.writer.add_scalar(k, v, epoch)
             if k is 'loss':
-                print(f"epoch: {epoch}" + json.dumps(values), end='\n')
+                print(f"epoch: {epoch}" + json.dumps(v), end='\n')
 
     def log_fps(self, epoch):
         """
@@ -35,7 +38,7 @@ class Logger:
         :param epoch: current epoch
         """
         new_time = datetime.datetime.now()
-        self.writer.add_scalar("fps", self.steps_per_epoch * 1.0 / (new_time - self.t).total_seconds(), epoch)
+        self.writer.add_scalar("info/fps", self.steps_per_epoch * 1.0 / (new_time - self.t).total_seconds(), epoch)
         self.t = new_time
 
     def log_images(self, epoch, images, tag_name, columns):
