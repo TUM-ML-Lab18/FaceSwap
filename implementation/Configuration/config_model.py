@@ -95,7 +95,8 @@ class LGAN_CONFIG(GAN_CONFIG):
         'img_dim': (64, 64, 3),
         'z_dim': 44,
         'ndf': 256,
-        'lrD': 0.00005
+        'lrD': 0.00005,
+        'alpha': 0.5
     }
 
     @staticmethod
