@@ -126,7 +126,7 @@ class CombinedModel(metaclass=ABCMeta):
         :param logger: logger used to log
         :param epoch: current epoch
         """
-        logger.log_loss(epoch=epoch, loss=log_info)
+        logger.log_values(epoch=epoch, values=log_info)
         logger.log_fps(epoch=epoch)
 
         # log images
@@ -135,7 +135,7 @@ class CombinedModel(metaclass=ABCMeta):
         logger.save_model(epoch)
 
     def log_validation(self, logger, epoch, log_info, images):
-        logger.log_loss(epoch=epoch, loss=log_info)
+        logger.log_values(epoch=epoch, values=log_info)
         self.log_images(logger, epoch, images, validation=True)
 
 

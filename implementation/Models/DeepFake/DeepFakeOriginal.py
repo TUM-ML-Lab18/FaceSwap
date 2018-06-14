@@ -80,9 +80,9 @@ class DeepFakeOriginal(CombinedModel):
             self.scheduler2.step(loss2_mean, current_epoch)
 
         if not validate:
-            log_info = {'lossA': float(loss1_mean), 'lossB': float(loss2_mean)}
+            log_info = {'loss': {'lossA': float(loss1_mean), 'lossB': float(loss2_mean)}}
         else:
-            log_info = {'lossA_val': float(loss1_mean), 'lossB_val': float(loss2_mean)}
+            log_info = {'loss': {'lossA_val': float(loss1_mean), 'lossB_val': float(loss2_mean)}}
 
         return log_info, [face1_warped, output1, face1, face2_warped, output2, face2]
 

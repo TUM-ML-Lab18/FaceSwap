@@ -6,17 +6,6 @@ from tensorboardX import SummaryWriter
 from torchvision import utils as vutils
 
 
-def log_first_layer(net, writer, frame_idx):
-    first_layer = next(net.parameters()).data.cpu()
-
-    q = vutils.make_grid(first_layer, normalize=True,
-                         scale_each=True)
-    writer.add_image('conv_layers/encoder', q, frame_idx)
-    # this seems to be pretty slow
-    # for name, param in net.named_parameters():
-    #    writer.add_histogram(name, param.clone().cpu().data.numpy(), frame_idx)
-
-
 class Logger:
     def __init__(self, steps_per_epoch, model, save_model_every_nth=100, shared_model_path='.'):
         self.shared_model_path = shared_model_path
@@ -27,16 +16,21 @@ class Logger:
         self.model = model
         self.save_model_every_nth = save_model_every_nth
 
-    def log_loss(self, epoch, loss: dict = None):
+    def log_values(self, epoch, values: dict = None):
         """
         logs the loss of a model
         :param epoch: current epoch
-        :param loss: dict containing different loss values (i.e.: {'lossA': 10, 'lossB': 12}
+        :param values: dict containing different dicts containing values (i.e.: {'loss':{'lossA': 10, 'lossB': 12}, ...}
         """
-        if loss is None:
-            loss = {}
-        self.writer.add_scalars("loss", loss, epoch)
-        print(f"epoch: {epoch}"+json.dumps(loss), end='\n')
+        if values is None:
+            values = {}
+        for k, v in values.items():
+            if type(v) is dict:
+                self.writer.add_scalars(k, v, epoch)
+            else:
+                self.writer.add_scalar(k, v, epoch)
+            if k is 'loss':
+                print(f"epoch: {epoch}" + json.dumps(v), end='\n')
 
     def log_fps(self, epoch):
         """
@@ -44,7 +38,7 @@ class Logger:
         :param epoch: current epoch
         """
         new_time = datetime.datetime.now()
-        self.writer.add_scalar("fps", self.steps_per_epoch * 1.0 / (new_time - self.t).total_seconds(), epoch)
+        self.writer.add_scalar("info/fps", self.steps_per_epoch * 1.0 / (new_time - self.t).total_seconds(), epoch)
         self.t = new_time
 
     def log_images(self, epoch, images, tag_name, columns):
@@ -59,16 +53,17 @@ class Logger:
         self.writer.add_image(tag_name, grid, epoch)
 
     def save_model(self, epoch):
-        if epoch % self.save_model_every_nth == 0:# and epoch > 0:
+        if epoch % self.save_model_every_nth == 0:  # and epoch > 0:
             self.model.save_model(self.loggin_path)
             self.model.save_model(self.shared_model_path)
 
     def log_config(self, config):
-        text = f"batchsize: {config['batch_size']}\n\nnum_gpus: {torch.cuda.device_count()}"
+        text = f"batchsize: {config.batch_size}\n\nnum_gpus: {torch.cuda.device_count()}"
         self.writer.add_text("hyperparameters",
                              text)
         text = str(self.model)
         self.writer.add_text("config", text)
+
 
 def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):
     """

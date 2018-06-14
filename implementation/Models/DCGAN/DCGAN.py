@@ -103,13 +103,13 @@ class DCGAN(CombinedModel):
         d_loss_summed /= iterations
 
         if not validate:
-            log_info = {'lossG': float(g_loss_summed.cpu().data.numpy()),
-                        'lossD': float(d_loss_summed.cpu().data.numpy()),
-                        'meanG': float(D_G_z1), 'meanD': float(D_G_z2)}
+            log_info = {'loss': {'lossG': float(g_loss_summed.cpu().data.numpy()),
+                                 'lossD': float(d_loss_summed.cpu().data.numpy()),
+                                 'meanG': float(D_G_z1), 'meanD': float(D_G_z2)}}
         else:
-            log_info = {'lossG_val': float(g_loss_summed.cpu().data.numpy()),
-                        'lossD_val': float(d_loss_summed.cpu().data.numpy()),
-                        'meanG_val': float(D_G_z1), 'meanD_val': float(D_G_z2)}
+            log_info = {'loss': {'lossG_val': float(g_loss_summed.cpu().data.numpy()),
+                                 'lossD_val': float(d_loss_summed.cpu().data.numpy()),
+                                 'meanG_val': float(D_G_z1), 'meanD_val': float(D_G_z2)}}
 
         return log_info, fake
 
