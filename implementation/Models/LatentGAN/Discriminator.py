@@ -5,7 +5,7 @@ import Models.CGAN.Discriminator
 class Discriminator(Models.CGAN.Discriminator):
 
     def __init__(self, input_dim=(64, 64, 3), ndf=64):
-        super(Discriminator, self).__init__(y_dim=0, input_dim=input_dim, ndf=ndf)
+        super().__init__(y_dim=0, input_dim=input_dim, ndf=ndf)
 
     def forward(self, x):
         """
