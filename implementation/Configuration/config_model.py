@@ -92,7 +92,7 @@ class LGAN_CONFIG(GAN_CONFIG):
     batch_size = 256
     model_params = {
         'input_dim': 72 * 2 + 8 * 8 * 3,
-        'img_dim': (64, 64, 3),
+        'img_dim': (128, 128, 3),
         'z_dim': 44,
         'ndf': 256,
         'lrD': 0.00005,
@@ -101,7 +101,7 @@ class LGAN_CONFIG(GAN_CONFIG):
 
     @staticmethod
     def data_set():
-        return ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_LOWRES])
+        return ImageFeatureDataset(ARRAY_CELEBA_IMAGES_128, [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_LOWRES])
 
 
 class DCGAN_CONFIG(GAN_CONFIG):
