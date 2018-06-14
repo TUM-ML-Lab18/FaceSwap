@@ -28,7 +28,7 @@ class Discriminator(CustomModule):
             nn.LeakyReLU(0.2, inplace=True)
         )
 
-        # ========== Input feature vector TODO: More elegant solution
+        # ========== Input feature vector
         self.main = nn.Sequential(
             # state size. (ndf + y_dim) x 32 x 32
             nn.Conv2d(ndf + self.y_dim, ndf * 2, 4, 2, 1, bias=False),
