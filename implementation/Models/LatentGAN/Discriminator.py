@@ -46,8 +46,6 @@ class Discriminator(CGANDiscriminator):
             x = nn.parallel.data_parallel(self.main, x, range(self.ngpu))
         else:
             x = self.conv(x)
-            print(x.shape)
             x = self.main(x)
-            print(x.shape)
 
         return x
