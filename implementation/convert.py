@@ -30,7 +30,7 @@ def convert_images():
 
 
 def convert_video():
-    anonymizer = Anonymizer(model_folder=model_folder = 'model',
+    anonymizer = Anonymizer(model_folder = 'model',
                                                         config = current_config, video_mode = True, post_sharp = False)
     path = Path('/nfs/students/summer-term-2018/project_2/test_max/')
     result_path = path / 'result'
