@@ -14,12 +14,11 @@ class LatentGAN(CombinedModel):
 
     def __init__(self, **kwargs):
         self.input_dim = kwargs.get('input_dim', 100)
-        self.alpha = kwargs.get('alpha', 0.5)
-        self.z_dim = kwargs.get('z_dim', 100)
-        self.y_dim = kwargs.get('y_dim', 10)
-        self.img_dim = kwargs.get('img_dim', (64, 64, 3))
-        self.ndf = kwargs.get('ndf', 64)
-        self.lrD = kwargs.get('lrD', 0.0002)
+        self.alpha = kwargs['alpha']
+        self.z_dim = kwargs['z_dim']
+        self.img_dim = kwargs['img_dim']
+        self.ndf = kwargs['ndf']
+        self.lrD = kwargs['lrD']
 
         self.decoder = LatentDecoder(self.input_dim)
         self.discriminator = Discriminator(input_dim=self.img_dim, ndf=self.ndf)
@@ -74,6 +73,7 @@ class LatentGAN(CombinedModel):
 
             if not validate:
                 d_fake_predictions_loss.backward()
+                self.disc_optimizer.step()
 
             d_overall_loss = d_real_predictions_loss + d_fake_predictions_loss
 
@@ -110,9 +110,9 @@ class LatentGAN(CombinedModel):
             self.dec_scheduler.step(g_l1_loss_mean, current_epoch)
 
         if not validate:
-            log_info = {'loss': {'g_l1_loss': float(g_l1_loss_mean), 'disc_loss': d_loss_mean}}
+            log_info = {'loss': {'g_l1_loss': float(g_l1_loss_mean), 'disc_loss': float(d_loss_mean)}}
         else:
-            log_info = {'loss': {'g_l1_loss_val': float(g_l1_loss_mean), 'disc_loss_val': d_loss_mean}}
+            log_info = {'loss': {'g_l1_loss_val': float(g_l1_loss_mean), 'disc_loss_val': float(d_loss_mean)}}
 
         return log_info, [faces, output]
 

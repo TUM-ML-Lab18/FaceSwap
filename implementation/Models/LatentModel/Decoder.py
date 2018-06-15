@@ -8,8 +8,7 @@ class LatentDecoder(CustomModule):
     def __init__(self, input_dim):
         super().__init__()
         self.ngpu = torch.cuda.device_count()
-        self.sequ = nn.Sequential(nn.Linear(input_dim,
-                                            1024),
+        self.sequ = nn.Sequential(nn.Linear(input_dim, 1024),
                                   nn.Linear(1024, 4 * 4 * 1024),
                                   View(-1, 1024, 4, 4),
                                   UpscaleBlockBlock(1024, 512, 5),
