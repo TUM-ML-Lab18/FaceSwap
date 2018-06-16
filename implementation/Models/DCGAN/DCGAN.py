@@ -92,8 +92,8 @@ class DCGAN(CombinedModel):
                 self.G_optimizer.step()
 
             # losses
-            g_loss_summed += errG
-            d_loss_summed += errD
+            g_loss_summed += float(errG)
+            d_loss_summed += float(errD)
             iterations += 1
 
             if validate:
@@ -103,12 +103,12 @@ class DCGAN(CombinedModel):
         d_loss_summed /= iterations
 
         if not validate:
-            log_info = {'loss': {'lossG': float(g_loss_summed.cpu().data.numpy()),
-                                 'lossD': float(d_loss_summed.cpu().data.numpy()),
+            log_info = {'loss': {'lossG': g_loss_summed,
+                                 'lossD': d_loss_summed,
                                  'meanG': float(D_G_z1), 'meanD': float(D_G_z2)}}
         else:
-            log_info = {'loss': {'lossG_val': float(g_loss_summed.cpu().data.numpy()),
-                                 'lossD_val': float(d_loss_summed.cpu().data.numpy()),
+            log_info = {'loss': {'lossG_val': g_loss_summed,
+                                 'lossD_val': d_loss_summed,
                                  'meanG_val': float(D_G_z1), 'meanD_val': float(D_G_z2)}}
 
         return log_info, fake

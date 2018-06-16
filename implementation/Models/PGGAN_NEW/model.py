@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from Models.ModelUtils.ModelUtils import CustomModule
-from Models.PGGAN_NEW.base_model_88 import *
+from Models.PGGAN_NEW.base_model import *
 
 
 def G_conv(incoming, in_channels, out_channels, kernel_size, padding, nonlinearity, init, param=None,

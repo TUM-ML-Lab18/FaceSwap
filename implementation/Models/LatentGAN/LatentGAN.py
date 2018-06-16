@@ -97,8 +97,8 @@ class LatentGAN(CombinedModel):
                 g_fake_predictions_loss.backward()
                 self.dec_optimizer.step()
 
-            d_loss_mean += d_overall_loss
-            g_l1_loss_mean += g_l1_loss
+            d_loss_mean += float(d_overall_loss)
+            g_l1_loss_mean += float(g_l1_loss)
             iterations += 1
 
         d_loss_mean /= iterations
@@ -110,9 +110,9 @@ class LatentGAN(CombinedModel):
             self.dec_scheduler.step(g_l1_loss_mean, current_epoch)
 
         if not validate:
-            log_info = {'loss': {'g_l1_loss': float(g_l1_loss_mean), 'disc_loss': float(d_loss_mean)}}
+            log_info = {'loss': {'g_l1_loss': g_l1_loss_mean, 'disc_loss': d_loss_mean}}
         else:
-            log_info = {'loss': {'g_l1_loss_val': float(g_l1_loss_mean), 'disc_loss_val': float(d_loss_mean)}}
+            log_info = {'loss': {'g_l1_loss_val': g_l1_loss_mean, 'disc_loss_val': d_loss_mean}}
 
         return log_info, [faces, output]
 

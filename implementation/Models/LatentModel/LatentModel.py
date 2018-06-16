@@ -39,7 +39,7 @@ class LatentModel(CombinedModel):
                 loss.backward()
                 self.optimizer.step()
 
-            loss_mean += loss
+            loss_mean += float(loss)
             iterations += 1
 
         loss_mean /= iterations
@@ -49,9 +49,9 @@ class LatentModel(CombinedModel):
             self.scheduler.step(loss_mean, current_epoch)
 
         if not validate:
-            log_info = {'loss': {'loss': float(loss_mean)}}
+            log_info = {'loss': {'loss': loss_mean}}
         else:
-            log_info = {'loss': {'loss_val': float(loss_mean)}}
+            log_info = {'loss': {'loss_val': loss_mean}}
 
         return log_info, [face, output]
 

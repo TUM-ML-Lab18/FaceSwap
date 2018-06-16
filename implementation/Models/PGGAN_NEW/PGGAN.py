@@ -3,7 +3,7 @@ import math
 from torch import nn, optim
 
 from Models.ModelUtils.ModelUtils import CombinedModel, RandomNoiseGenerator
-from Models.PGGAN_NEW.model_44 import Generator, Discriminator, torch
+from Models.PGGAN_NEW.model import Generator, Discriminator, torch
 
 
 class PGGAN(CombinedModel):
@@ -25,20 +25,20 @@ class PGGAN(CombinedModel):
         # Modules with parameters
         self.G = Generator(num_channels=3, latent_size=self.latent_size, resolution=self.target_resolution,
                            fmap_max=self.latent_size, fmap_base=8192, tanh_at_end=True)
-        # self.g = DataParallel(self.g)
+        self.G = nn.DataParallel(self.G)
         self.D = Discriminator(num_channels=3, mbstat_avg='all', resolution=self.target_resolution,
                                fmap_max=self.latent_size, fmap_base=8192, sigmoid_at_end=False)
-        # self.d = DataParallel(self.d)
+        self.D = nn.DataParallel(self.D)
 
         # loss function
-        self.BCE_loss = nn.BCELoss()
+        # self.BCE_loss = nn.BCELoss()
 
         # move to gpu if available
         if torch.cuda.is_available():
             self.cuda = True
             self.G.cuda()
             self.D.cuda()
-            self.BCE_loss.cuda()
+            # self.BCE_loss.cuda()
 
         # optimizers
         lrG = kwargs.get('lrG', 0.0002)
@@ -63,10 +63,6 @@ class PGGAN(CombinedModel):
         self.imgs_faded_in = 0
         self.stabilization_phase = True
 
-        self.batch_size_dic = {1: self.initial_batch_size / (2 ** 0), 2: self.initial_batch_size / (2 ** 1),
-                               3: self.initial_batch_size / (2 ** 2), 4: self.initial_batch_size / (2 ** 3),
-                               5: self.initial_batch_size / (2 ** 4)}
-
     def get_models(self):
         return [self.G, self.D]
 
@@ -83,15 +79,16 @@ class PGGAN(CombinedModel):
         if not validate:
             self.schedule_resolution()
 
-        # Label vectors for loss function
-        label_real, label_fake = (torch.ones(batch_size, 1, 1, 1), torch.zeros(batch_size, 1, 1, 1))
+        # # Classic GAN
+        # # Label vectors for loss function
+        # label_real, label_fake = (torch.ones(batch_size, 1, 1, 1), torch.zeros(batch_size, 1, 1, 1))
+        # # Move to GPU
+        # if self.cuda:
+        #     label_real, label_fake = label_real.cuda(), label_fake.cuda()
 
         # Gradient weights WGAN-GP TODO: What are they for?
         one, mone = torch.FloatTensor([1]), torch.FloatTensor([-1])
-
-        # Move to GPU
         if self.cuda:
-            label_real, label_fake = label_real.cuda(), label_fake.cuda()
             one, mone = one.cuda(), mone.cuda()
 
         # sum the loss for logging
@@ -112,6 +109,7 @@ class PGGAN(CombinedModel):
             else:
                 noise = self.noise(batch_size)
 
+            # Move to GPU
             if self.cuda:
                 images = images.cuda()
                 noise = noise.cuda()
@@ -165,8 +163,8 @@ class PGGAN(CombinedModel):
                 gp.backward()
 
             # Wasserstein loss
-            D_loss = D_fake - D_real + gp
-            Wasserstein_D = D_real - D_fake
+            D_loss = float(D_fake - D_real + gp)
+            Wasserstein_D = float(D_real - D_fake)
 
             if not validate:
                 self.D_optimizer.step()
@@ -186,7 +184,7 @@ class PGGAN(CombinedModel):
             if not validate:
                 D_fake.backward(mone)
                 self.G_optimizer.step()
-            G_loss = -D_fake
+            G_loss = float(-D_fake)
 
             # # Classic loss
             # G_loss = self.BCE_loss(D_fake, label_real)
@@ -206,9 +204,9 @@ class PGGAN(CombinedModel):
         if not validate:
             g_loss_summed /= iterations
             d_loss_summed /= iterations
-            log_info = {'loss': {'lossG': float(g_loss_summed.cpu().data.numpy()),
-                                 'lossD': float(d_loss_summed.cpu().data.numpy())},
-                        'info/WassersteinDistance': float(Wasserstein_D.cpu().data.numpy()),
+            log_info = {'loss': {'lossG': g_loss_summed,
+                                 'lossD': d_loss_summed},
+                        'info/WassersteinDistance': Wasserstein_D,
                         'info/FadeInFactor': fade_in_factor,
                         'info/Level': self.level}
             log_img = G_fake

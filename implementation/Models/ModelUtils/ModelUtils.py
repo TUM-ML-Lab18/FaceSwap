@@ -108,7 +108,10 @@ class CombinedModel(metaclass=ABCMeta):
         path = path / 'model'
         path.mkdir(parents=True, exist_ok=True)
         for name, model in zip(self.get_model_names(), self.get_models()):
-            model.save(path / (name + '.model'))
+            if type(model) is nn.DataParallel:
+                model.module.save(path / (name + '.model'))
+            else:
+                model.save(path / (name + '.model'))
 
     def load_model(self, path):
         """
@@ -261,7 +264,7 @@ class UpscaleBlockBlock(nn.Sequential):
         super().__init__(*block_list)
 
 
-class RandomNoiseGenerator():
+class RandomNoiseGenerator:
     def __init__(self, size, noise_type='gaussian'):
         self.size = size
         self.noise_type = noise_type.lower()

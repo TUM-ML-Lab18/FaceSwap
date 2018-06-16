@@ -113,7 +113,7 @@ class DCGAN_CONFIG(GAN_CONFIG):
 
 
 class PGGAN_CONFIG(GAN_CONFIG):
-    batch_size = 32
+    batch_size = 64
     model = PGGAN
     model_params = {'target_resolution': 32,
                     'latent_size': 512,
@@ -126,4 +126,4 @@ class PGGAN_CONFIG(GAN_CONFIG):
         return ProgressiveFeatureDataset(ARRAY_CELEBA_LANDMARKS_5, initial_resolution=2)
 
 
-current_config = LGAN_CONFIG
+current_config = PGGAN_CONFIG

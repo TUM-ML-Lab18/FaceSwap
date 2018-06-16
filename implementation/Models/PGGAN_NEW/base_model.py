@@ -45,7 +45,7 @@ class WScaleLayer(nn.Module):
         if self.incoming.bias is not None:
             self.bias = self.incoming.bias
             self.incoming.bias = None
-        self.scale = Parameter(self.scale)  # needed to move it to the gpu
+        self.scale = Parameter(self.scale.reshape(-1))  # needed to move it to the gpu / FIX: Multi-GPU support
 
     def forward(self, x):
         x = self.scale * x

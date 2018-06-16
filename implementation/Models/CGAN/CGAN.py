@@ -146,20 +146,20 @@ class CGAN(CombinedModel):
                 self.G_optimizer.step()
 
             # losses
-            g_loss_summed += g_loss
-            d_loss_summed += d_loss
+            g_loss_summed += float(g_loss)
+            d_loss_summed += float(d_loss)
             iterations += 1
 
         g_loss_summed /= iterations
         d_loss_summed /= iterations
 
         if not validate:
-            log_info = {'loss': {'lossG': float(g_loss_summed.cpu().data.numpy()),
-                                 'lossD': float(d_loss_summed.cpu().data.numpy())}}
+            log_info = {'loss': {'lossG': g_loss_summed,
+                                 'lossD': d_loss_summed}}
             log_img = generated_images + torch.randn_like(generated_images) * instance_noise_factor
         else:
-            log_info = {'loss': {'lossG_val': float(g_loss_summed.cpu().data.numpy()),
-                                 'lossD_val': float(d_loss_summed.cpu().data.numpy())}}
+            log_info = {'loss': {'lossG_val': g_loss_summed,
+                                 'lossD_val': d_loss_summed}}
             log_img = generated_images
 
         return log_info, log_img
