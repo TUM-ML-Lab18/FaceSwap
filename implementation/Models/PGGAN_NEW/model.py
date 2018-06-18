@@ -90,7 +90,7 @@ class Generator(CustomModule):
             pre = PixelNormLayer()
 
         if self.label_size:
-            layers += [ConcatLayer()]
+            layers += [ConditionalConcatLayer(self.label_size, output_size=128)]
 
         layers += [ReshapeLayer([latent_size, 1, 1])]
         layers = G_conv(layers, latent_size, self.get_nf(1), 4, 3, act, iact, negative_slope,
