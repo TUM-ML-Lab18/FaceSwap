@@ -116,7 +116,7 @@ class PGGAN_CONFIG(GAN_CONFIG):
     batch_size = 4
     model = PGGAN
     model_params = {'target_resolution': 64,
-                    'latent_size': 512,
+                    'latent_size': 512 + 128,
                     'lrG': 0.001,
                     'lrD': 0.001,
                     'batch_size': batch_size}

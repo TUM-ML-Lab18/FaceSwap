@@ -26,7 +26,7 @@ class PGGAN(CombinedModel):
         self.G = Generator(num_channels=3, latent_size=self.latent_size, resolution=self.target_resolution,
                            fmap_max=self.latent_size, fmap_base=8192, tanh_at_end=True, ngpu=1).cuda()
         # self.G = nn.DataParallel(self.G)
-        self.D = Discriminator(num_channels=3, mbstat_avg='all', resolution=self.target_resolution,
+        self.D = Discriminator(num_channels=3 + 56, mbstat_avg='all', resolution=self.target_resolution,
                                fmap_max=self.latent_size, fmap_base=8192, sigmoid_at_end=False, ngpu=1).cuda()
         # self.D = nn.DataParallel(self.D)
 
@@ -49,8 +49,8 @@ class PGGAN(CombinedModel):
         self.D_optimizer = optim.Adam(self.D.parameters(), lr=lrD, betas=(beta1, beta2))
 
         # noise generation and static noise for logging
-        self.noise = RandomNoiseGenerator(self.latent_size, 'gaussian')
-        self.static_noise = self.noise(32)  # smallest batch size
+        self.noise = RandomNoiseGenerator(self.latent_size - 56, 'gaussian')
+        self.static_noise = self.noise(4)  # smallest batch size
 
         # variables for growing the network
         self.epochs_fade = 4
@@ -114,7 +114,11 @@ class PGGAN(CombinedModel):
             if self.cuda:
                 images = images.cuda()
                 noise = noise.cuda()
+                features = features.cuda()
 
+            input_vec = torch.cat([noise, features], 1)
+            features_fill = features.view((self.batch_size, -1, 1, 1)).repeat((1, 1, images.shape[2], images.shape[2]))
+            input_img_real = torch.cat([images, features_fill], 1)
             ############################
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
             ###########################
@@ -124,7 +128,7 @@ class PGGAN(CombinedModel):
                 self.D_optimizer.zero_grad()
 
             # Train on real example with real features
-            D_real = self.D(images, features, cur_level=cur_level, insert_y_at=5)
+            D_real = self.D(input_img_real, cur_level=cur_level)
 
             # Wasserstein Loss
             D_real = D_real.mean()
@@ -137,12 +141,13 @@ class PGGAN(CombinedModel):
             #     D_real_loss.backward()
 
             # Train on fake example from generator
-            G_fake = self.G(noise, features, cur_level=cur_level, insert_y_at=1)
+            G_fake = self.G(input_vec, cur_level=cur_level)
             if validate:
                 # Validate only generated image
                 break
             # todo what happens if we detach the output of the Discriminator
-            D_fake = self.D(G_fake.detach(), features, cur_level=cur_level, insert_y_at=5)
+            input_img_fake = torch.cat([G_fake, features_fill], 1)
+            D_fake = self.D(input_img_fake.detach(), cur_level=cur_level)
 
             # Wasserstein Loss
             D_fake = D_fake.mean()
@@ -159,7 +164,7 @@ class PGGAN(CombinedModel):
 
             # Wasserstein loss
             # train with gradient penalty
-            gp = self.calculate_gradient_penalty(images, G_fake.detach(), cur_level)
+            gp = self.calculate_gradient_penalty(input_img_real, input_img_fake.detach(), cur_level)
             if not validate:
                 gp.backward()
 
@@ -178,7 +183,7 @@ class PGGAN(CombinedModel):
                 self.G_optimizer.zero_grad()
 
             # Train on fooling the Discriminator
-            D_fake = self.D(G_fake, features, cur_level=cur_level, insert_y_at=5)
+            D_fake = self.D(input_img_fake, cur_level=cur_level)
 
             # Wasserstein Loss
             D_fake = D_fake.mean()
