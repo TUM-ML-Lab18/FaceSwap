@@ -1,5 +1,3 @@
-import torch
-
 from Configuration.config_general import MOST_RECENT_MODEL
 from Utils.DataSplitter import DataSplitter
 from Utils.Logging.LoggingUtils import Logger
@@ -8,8 +6,8 @@ from Utils.Logging.LoggingUtils import Logger
 class Trainer:
     def __init__(self, config):
         self.config = config
-        if torch.cuda.device_count() > 1:
-            self.config.batch_size *= torch.cuda.device_count()
+        # if torch.cuda.device_count() > 1:
+        #     self.config.batch_size *= torch.cuda.device_count()
         print('BatchSize:', self.config.batch_size)
         self.data_set = config.data_set()
         self.data_loader = DataSplitter(self.data_set, self.config.batch_size, validation_size=config.validation_size)

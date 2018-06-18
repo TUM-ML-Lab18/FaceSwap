@@ -15,10 +15,10 @@ class PGGAN(CombinedModel):
         self.data_loader = kwargs.get('data_loader', None)
         if self.data_loader is None:
             raise FileNotFoundError()
-        self.initial_batch_size = kwargs.get('initial_batch_size', None)
-        if self.initial_batch_size is None or not math.log(self.initial_batch_size, 2).is_integer():
+        self.batch_size = kwargs.get('batch_size', None)
+        if self.batch_size is None or not math.log(self.batch_size, 2).is_integer():
             raise AttributeError(
-                f"This module needs the variable batch_size. It also has to be to the power of 2. Got {self.initial_batch_size}")
+                f"This module needs the variable batch_size. It also has to be to the power of 2. Got {self.batch_size}")
         self.target_resolution = kwargs.get('target_resolution', 32)
         self.latent_size = kwargs.get('latent_size', 512)
 
@@ -50,18 +50,20 @@ class PGGAN(CombinedModel):
 
         # noise generation and static noise for logging
         self.noise = RandomNoiseGenerator(self.latent_size, 'gaussian')
-        self.static_noise = self.noise(self.initial_batch_size)
+        self.static_noise = self.noise(32)  # smallest batch size
 
         # variables for growing the network
 
         self.epochs_fade = 4
-        self.images_per_fading = 194701 * self.epochs_fade  # CELEBA size
+        self.images_per_fading = len(self.dataset) * self.epochs_fade  # CELEBA size
         self.epochs_stab = 4
         self.epochs_stage = self.epochs_fade + self.epochs_stab
         self.epochs_in_stage = self.epochs_fade  # Trick for stage 1
         self.level = 1
         self.imgs_faded_in = 0
         self.stabilization_phase = True
+
+        self.batch_size_schedule = {1: 64, 2: 64, 3: 64, 4: 64, 5: 32, 6: 24}
 
     def get_models(self):
         return [self.G, self.D]
@@ -73,11 +75,10 @@ class PGGAN(CombinedModel):
         return [self.noise]
 
     def train(self, train_data_loader, batch_size, validate, **kwargs):
-        current_epoch = kwargs.get('current_epoch', 99999)
-        batch_size = self.initial_batch_size
 
         if not validate:
             self.schedule_resolution()
+            train_data_loader = self.data_loader.get_train_data_loader()
 
         # # Classic GAN
         # # Label vectors for loss function
@@ -95,7 +96,7 @@ class PGGAN(CombinedModel):
         g_loss_summed, d_loss_summed = 0, 0
         iterations = 0
 
-        for images, _ in train_data_loader:
+        for images in train_data_loader:
             if self.stabilization_phase:
                 fade_in_factor = 0
                 cur_level = self.level
@@ -107,7 +108,7 @@ class PGGAN(CombinedModel):
             if validate:
                 noise = self.static_noise
             else:
-                noise = self.noise(batch_size)
+                noise = self.noise(self.batch_size)
 
             # Move to GPU
             if self.cuda:
@@ -199,7 +200,7 @@ class PGGAN(CombinedModel):
 
             if not self.stabilization_phase and not validate:
                 # Count only images during training
-                self.imgs_faded_in += batch_size
+                self.imgs_faded_in += self.batch_size
 
         if not validate:
             g_loss_summed /= iterations
@@ -227,19 +228,25 @@ class PGGAN(CombinedModel):
         if self.epochs_in_stage >= self.epochs_stage:
             # Enter new stage
             self.level += 1
-            # self.initial_batch_size = int(self.batch_size_dic[self.level])
-            self.data_loader.adjusted_batch_size_and_increase_resolution(self.initial_batch_size)
-            self.static_noise = self.static_noise[:self.initial_batch_size]
+            self.batch_size = int(self.batch_size_schedule[self.level])
+            self.data_loader.adjusted_batch_size_and_increase_resolution(self.batch_size)
+            self.static_noise = self.static_noise[:self.batch_size]
             self.epochs_in_stage = 0
-            print('Scheduling... level update, level:', self.level, 'epochs in stage:', self.epochs_in_stage)
+            print('Scheduling... level update, level:', self.level,
+                  'epochs in stage:', self.epochs_in_stage,
+                  'batch size:', self.batch_size)
 
         if self.epochs_in_stage < self.epochs_fade:
             # Fade in
-            print('Scheduling... Fade-in phase, level:', self.level, 'epochs in stage:', self.epochs_in_stage)
+            print('Scheduling... Fade-in phase, level:', self.level,
+                  'epochs in stage:', self.epochs_in_stage,
+                  'batch size:', self.batch_size)
             self.stabilization_phase = False
         else:
             # Stabilization phase
-            print('Scheduling... Stabilization phase, level:', self.level, 'epochs in stage:', self.epochs_in_stage)
+            print('Scheduling... Stabilization phase, level:', self.level,
+                  'epochs in stage:', self.epochs_in_stage,
+                  'batch size:', self.batch_size)
             self.stabilization_phase = True
             self.imgs_faded_in = 0
 
@@ -250,7 +257,7 @@ class PGGAN(CombinedModel):
         https://github.com/caogang/wgan-gp/
         """
         # Interpolation between real & fake data
-        alpha = torch.rand(self.initial_batch_size, 1, 1, 1)
+        alpha = torch.rand(self.batch_size, 1, 1, 1)
         alpha = alpha.expand(real_data.size())
         alpha = alpha.cuda() if self.cuda else alpha
 

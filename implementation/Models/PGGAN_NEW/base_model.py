@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 from torch.nn import functional as F
-from torch.nn.init import kaiming_normal, calculate_gain
+from torch.nn.init import kaiming_normal_, calculate_gain
 from torch.nn.parameter import Parameter
 
 if sys.version_info.major == 3:
@@ -372,4 +372,4 @@ def he_init(layer, nonlinearity='conv2d', param=None):
         gain = calculate_gain(nonlinearity, param)
     else:
         gain = calculate_gain(nonlinearity)
-    kaiming_normal(layer.weight, a=gain)
+    kaiming_normal_(layer.weight, a=gain)

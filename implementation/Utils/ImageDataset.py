@@ -69,6 +69,7 @@ class ImageFeatureDataset(Dataset):
             self.images /= 255.
             self.images -= 0.5
             self.images *= 2.
+            print(f"Number of images in datasets:\t{len(self.images)}\n")
         else:
             self.images = None
         if paths_to_feature_arrays is not None:
@@ -87,14 +88,19 @@ class ImageFeatureDataset(Dataset):
             # Normalize to [-1,1]
             self.features -= 0.5
             self.features *= 2.0
+            print(f"Number of features in datasets:\t{len(self.features)}\n")
         else:
             self.features = None
-        print(f"Number of images in datasets:\t{len(self.images)}\n"
-              f"Number of features in datasets:\t{len(self.features)}\n"
-              f"Data loaded")
+
+        print(f"Data loaded")
 
     def __len__(self):
-        return len(self.images)
+        if self.images is not None:
+            return self.images.shape[0]
+        elif self.features is not None:
+            return self.features.shape[0]
+        else:
+            return 0
 
     def __getitem__(self, index):
         items = []
@@ -120,6 +126,7 @@ class ProgressiveFeatureDataset(Dataset):
         _ = config_general.ARRAY_CELEBA_IMAGES_4  # so that pycharm doesn't delete the unsused import
         self.path = eval(f'config_general.ARRAY_CELEBA_IMAGES_{2**self.current_resolution}')
         self.dataset = ImageFeatureDataset(self.path, self.paths_to_feature_arrays)
+        print('Current resolution:', 2 ** self.current_resolution)
 
     def increase_resolution(self):
         """

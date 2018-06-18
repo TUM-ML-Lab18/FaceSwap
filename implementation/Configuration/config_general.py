@@ -31,6 +31,7 @@ SIMONE_MERKEL = "/nfs/students/summer-term-2018/project_2/data/Simone_Merkel"
 
 # CelebA
 ROOT_CELEBA = '/nfs/students/summer-term-2018/project_2/data/CelebA/'
+# ROOT_CELEBA = '/nfs/students/summer-term-2018/project_2/data/CelebA_reduced/'  # DEBUG
 ARRAY_CELEBA_IMAGES_2 = ROOT_CELEBA + 'data2.npy'
 ARRAY_CELEBA_IMAGES_4 = ROOT_CELEBA + 'data4.npy'
 ARRAY_CELEBA_IMAGES_8 = ROOT_CELEBA + 'data8.npy'
