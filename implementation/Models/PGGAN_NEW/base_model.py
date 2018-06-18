@@ -212,6 +212,7 @@ def resize_activations(v, so):
         v = v[:, :so[1]]
 
     # Shrink spatial axes.
+
     if len(si) == 4 and (si[2] > so[2] or si[3] > so[3]):
         assert si[2] % so[2] == 0 and si[3] % so[3] == 0
         ks = (si[2] // so[2], si[3] // so[3])

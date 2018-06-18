@@ -1,7 +1,9 @@
 import math
 
 from torch import optim
+from torch.distributions import MultivariateNormal
 
+from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_28_COV, ARRAY_CELEBA_LANDMARKS_28_MEAN
 from Models.ModelUtils.ModelUtils import CombinedModel, RandomNoiseGenerator
 from Models.PGGAN_NEW.model import Generator, Discriminator, torch
 
@@ -48,9 +50,19 @@ class PGGAN(CombinedModel):
         self.G_optimizer = optim.Adam(self.G.parameters(), lr=lrG, betas=(beta1, beta2))
         self.D_optimizer = optim.Adam(self.D.parameters(), lr=lrD, betas=(beta1, beta2))
 
+        # conditional features
+        path_to_lm_mean = kwargs.get('lm_mean', ARRAY_CELEBA_LANDMARKS_28_MEAN)
+        path_to_lm_cov = kwargs.get('lm_cov', ARRAY_CELEBA_LANDMARKS_28_COV)
+        self.landmarks_mean = torch.from_numpy(self.landmarks_mean)
+        self.landmarks_cov = torch.from_numpy(self.landmarks_cov)
+        self.distribution_landmarks = MultivariateNormal(loc=self.landmarks_mean.type(torch.float64),
+                                                         covariance_matrix=self.landmarks_cov.type(torch.float64))
+
+
         # noise generation and static noise for logging
         self.noise = RandomNoiseGenerator(self.latent_size, 'gaussian')
         self.static_noise = self.noise(32)  # smallest batch size
+        self.static_landmarks = self.distribution_landmarks().sample((32,)).type(torch.float32)
 
         # variables for growing the network
         self.epochs_fade = 4
@@ -96,7 +108,7 @@ class PGGAN(CombinedModel):
         g_loss_summed, d_loss_summed = 0, 0
         iterations = 0
 
-        for images in train_data_loader:
+        for images, features in train_data_loader:
             if self.stabilization_phase:
                 fade_in_factor = 0
                 cur_level = self.level
@@ -107,13 +119,21 @@ class PGGAN(CombinedModel):
 
             if validate:
                 noise = self.static_noise
+                landmarks_gen = self.static_landmarks
             else:
                 noise = self.noise(self.batch_size)
+                landmarks_gen = self.distribution_landmarks.sample((batch_size,)).type(torch.float32)
+
+            feature_gen = landmarks_gen
+            # feature_gen = torch.cat((landmarks_gen, lowres_gen), dim=1)
+            feature_gen = (feature_gen - 0.5) * 2.0
+            # transfer everything to the gpu
 
             # Move to GPU
             if self.cuda:
                 images = images.cuda()
                 noise = noise.cuda()
+                feature_gen = feature_gen.cuda()
 
             ############################
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
@@ -124,7 +144,7 @@ class PGGAN(CombinedModel):
                 self.D_optimizer.zero_grad()
 
             # Train on real example with real features
-            D_real = self.D(images, cur_level=cur_level)
+            D_real = self.D(images, features, cur_level=cur_level, insert_y_at=5)
 
             # Wasserstein Loss
             D_real = D_real.mean()
@@ -137,12 +157,12 @@ class PGGAN(CombinedModel):
             #     D_real_loss.backward()
 
             # Train on fake example from generator
-            G_fake = self.G(noise, cur_level=cur_level)
+            G_fake = self.G(noise, features, cur_level=cur_level, insert_y_at=1)
             if validate:
                 # Validate only generated image
                 break
             # todo what happens if we detach the output of the Discriminator
-            D_fake = self.D(G_fake.detach(), cur_level=cur_level)
+            D_fake = self.D(G_fake.detach(), features, cur_level=cur_level, insert_y_at=5)
 
             # Wasserstein Loss
             D_fake = D_fake.mean()
@@ -178,7 +198,7 @@ class PGGAN(CombinedModel):
                 self.G_optimizer.zero_grad()
 
             # Train on fooling the Discriminator
-            D_fake = self.D(G_fake, cur_level=cur_level)
+            D_fake = self.D(G_fake, features, cur_level=cur_level, insert_y_at=5)
 
             # Wasserstein Loss
             D_fake = D_fake.mean()
