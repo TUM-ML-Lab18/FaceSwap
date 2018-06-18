@@ -1,6 +1,6 @@
 import math
 
-from torch import nn, optim
+from torch import optim
 
 from Models.ModelUtils.ModelUtils import CombinedModel, RandomNoiseGenerator
 from Models.PGGAN_NEW.model import Generator, Discriminator, torch
@@ -24,11 +24,11 @@ class PGGAN(CombinedModel):
 
         # Modules with parameters
         self.G = Generator(num_channels=3, latent_size=self.latent_size, resolution=self.target_resolution,
-                           fmap_max=self.latent_size, fmap_base=8192, tanh_at_end=True)
-        self.G = nn.DataParallel(self.G)
+                           fmap_max=self.latent_size, fmap_base=8192, tanh_at_end=True, ngpu=1).cuda()
+        # self.G = nn.DataParallel(self.G)
         self.D = Discriminator(num_channels=3, mbstat_avg='all', resolution=self.target_resolution,
-                               fmap_max=self.latent_size, fmap_base=8192, sigmoid_at_end=False)
-        self.D = nn.DataParallel(self.D)
+                               fmap_max=self.latent_size, fmap_base=8192, sigmoid_at_end=False, ngpu=1).cuda()
+        # self.D = nn.DataParallel(self.D)
 
         # loss function
         # self.BCE_loss = nn.BCELoss()
@@ -53,7 +53,6 @@ class PGGAN(CombinedModel):
         self.static_noise = self.noise(32)  # smallest batch size
 
         # variables for growing the network
-
         self.epochs_fade = 4
         self.images_per_fading = len(self.dataset) * self.epochs_fade  # CELEBA size
         self.epochs_stab = 4
@@ -62,6 +61,7 @@ class PGGAN(CombinedModel):
         self.level = 1
         self.imgs_faded_in = 0
         self.stabilization_phase = True
+        self.level_with_multiple_gpus = 4
 
         self.batch_size_schedule = {1: 64, 2: 64, 3: 64, 4: 64, 5: 32, 6: 24}
 
@@ -249,6 +249,9 @@ class PGGAN(CombinedModel):
                   'batch size:', self.batch_size)
             self.stabilization_phase = True
             self.imgs_faded_in = 0
+
+        if self.level == self.level_with_multiple_gpus:
+            self.G.ngpu = self.D.ngpu = torch.cuda.device_count()
 
         self.epochs_in_stage += 1
 

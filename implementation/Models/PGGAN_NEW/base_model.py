@@ -350,6 +350,16 @@ class ConcatLayer(nn.Module):
         return torch.cat([x, y], 1)
 
 
+class ConditionalConcatLayer(nn.Module):
+    def __init__(self, y_size, output_size=128):
+        super().__init__()
+        self.fc = nn.Linear(y_size, output_size)
+
+    def forward(self, x, y):
+        y = self.fc(y)
+        return torch.cat([x, y], 1)
+
+
 class ReshapeLayer(nn.Module):
     def __init__(self, new_shape):
         super(ReshapeLayer, self).__init__()
