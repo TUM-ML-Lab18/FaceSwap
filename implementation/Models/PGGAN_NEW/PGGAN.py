@@ -1,9 +1,7 @@
 import math
 
 from torch import optim
-from torch.distributions import MultivariateNormal
 
-from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_28_COV, ARRAY_CELEBA_LANDMARKS_28_MEAN
 from Models.ModelUtils.ModelUtils import CombinedModel, RandomNoiseGenerator
 from Models.PGGAN_NEW.model import Generator, Discriminator, torch
 
@@ -50,19 +48,9 @@ class PGGAN(CombinedModel):
         self.G_optimizer = optim.Adam(self.G.parameters(), lr=lrG, betas=(beta1, beta2))
         self.D_optimizer = optim.Adam(self.D.parameters(), lr=lrD, betas=(beta1, beta2))
 
-        # conditional features
-        path_to_lm_mean = kwargs.get('lm_mean', ARRAY_CELEBA_LANDMARKS_28_MEAN)
-        path_to_lm_cov = kwargs.get('lm_cov', ARRAY_CELEBA_LANDMARKS_28_COV)
-        self.landmarks_mean = torch.from_numpy(self.landmarks_mean)
-        self.landmarks_cov = torch.from_numpy(self.landmarks_cov)
-        self.distribution_landmarks = MultivariateNormal(loc=self.landmarks_mean.type(torch.float64),
-                                                         covariance_matrix=self.landmarks_cov.type(torch.float64))
-
-
         # noise generation and static noise for logging
         self.noise = RandomNoiseGenerator(self.latent_size, 'gaussian')
         self.static_noise = self.noise(32)  # smallest batch size
-        self.static_landmarks = self.distribution_landmarks().sample((32,)).type(torch.float32)
 
         # variables for growing the network
         self.epochs_fade = 4
@@ -75,7 +63,7 @@ class PGGAN(CombinedModel):
         self.stabilization_phase = True
         self.level_with_multiple_gpus = 4
 
-        self.batch_size_schedule = {1: 64, 2: 64, 3: 64, 4: 64, 5: 32, 6: 24}
+        self.batch_size_schedule = {1: 4, 2: 2, 3: 1, 4: 64, 5: 32, 6: 24}
 
     def get_models(self):
         return [self.G, self.D]
@@ -119,21 +107,13 @@ class PGGAN(CombinedModel):
 
             if validate:
                 noise = self.static_noise
-                landmarks_gen = self.static_landmarks
             else:
                 noise = self.noise(self.batch_size)
-                landmarks_gen = self.distribution_landmarks.sample((batch_size,)).type(torch.float32)
-
-            feature_gen = landmarks_gen
-            # feature_gen = torch.cat((landmarks_gen, lowres_gen), dim=1)
-            feature_gen = (feature_gen - 0.5) * 2.0
-            # transfer everything to the gpu
 
             # Move to GPU
             if self.cuda:
                 images = images.cuda()
                 noise = noise.cuda()
-                feature_gen = feature_gen.cuda()
 
             ############################
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
