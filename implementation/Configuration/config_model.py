@@ -118,7 +118,7 @@ class PGGAN_CONFIG(GAN_CONFIG):
     epochs_fade = 4
     epochs_stab = 4
     max_epochs = max_level * epochs_stab + (max_level - 1) * epochs_fade
-    model_params = {'target_resolution': 2 ** max_level,
+    model_params = {'target_resolution': 2 ** (max_level + 1),
                     'latent_size': 512,
                     'feature_size': 28 * 2,
                     'lrG': 0.001,
