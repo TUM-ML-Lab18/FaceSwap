@@ -7,7 +7,7 @@ from Models.DeepFake.DeepFakeOriginal import DeepFakeOriginal
 from Models.DeepFake.Encoder import Encoder
 from Models.LatentGAN.LatentGAN import LatentGAN
 from Models.LatentModel.Decoder import LatentDecoder
-from Models.LatentModel.LatentModel import LowResModel, RetrainLowResModel
+from Models.LatentModel.LatentModel import LowResModel
 from Models.PGGAN_NEW.PGGAN import PGGAN
 from Utils.ImageDataset import *
 
@@ -71,11 +71,11 @@ class GAN_CONFIG(Config):
 
 
 class CGAN_CONFIG(GAN_CONFIG):
-    model = CGAN,
+    model = CGAN
     model_params = {'y_dim': 56,
-                    'z_dim': 44,
-                    'ngf': 256,
-                    'ndf': 256,
+                    'z_dim': 100,
+                    'ngf': 128,
+                    'ndf': 128,
                     'lrG': 0.0002,
                     'lrD': 0.00005,
                     'lm_mean': ARRAY_CELEBA_LANDMARKS_28_MEAN,
@@ -126,4 +126,4 @@ class PGGAN_CONFIG(GAN_CONFIG):
         return ProgressiveFeatureDataset(ARRAY_CELEBA_LANDMARKS_28, initial_resolution=2)
 
 
-current_config = PGGAN_CONFIG
+current_config = LowResConfig
