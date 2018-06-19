@@ -96,7 +96,7 @@ class DeepFakeOriginal(CombinedModel):
         return [self.autoencoder1, self.autoencoder2, self.lossfn, self.optimizer1, self.optimizer2, self.scheduler1,
                 self.scheduler2]
 
-    def anonymize(self, extracted_face, **kwargs):
+    def anonymize(self, extracted_face, extracted_information, **kwargs):
         extracted_face = ToTensor()(extracted_face.resize((128, 128), resample=BICUBIC)).unsqueeze(0).cuda()
         if self.select_ae == 1:
             output = self.autoencoder1(extracted_face)
