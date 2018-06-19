@@ -7,7 +7,7 @@ from torch.distributions import MultivariateNormal
 from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_28_MEAN, ARRAY_CELEBA_LANDMARKS_28_COV
 from Models.CGAN.Discriminator import Discriminator
 from Models.CGAN.Generator import Generator
-from Models.ModelUtils.ModelUtils import CombinedModel
+from Models.ModelUtils.ModelUtils import CombinedModel, norm_img
 from Preprocessor.FaceExtractor import extract_landmarks
 
 
@@ -202,13 +202,3 @@ class CGAN(CombinedModel):
     def log_images(self, logger, epoch, images, validation=True):
         tag = 'validation_output' if validation else 'training_output'
         logger.log_images(epoch, images, tag, 8)
-
-
-def norm_img(img):
-    """
-    Normalize image via min max inplace
-    :param img: Tensor image
-    """
-    _min, _max = float(img.min()), float(img.max())
-    img.clamp_(min=_min, max=_max)
-    img.add_(-_min).div_(_max - _min + 1e-5)

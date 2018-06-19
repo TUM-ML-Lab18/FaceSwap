@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from Models.ModelUtils.ModelUtils import CustomModule
-from Models.PGGAN_NEW.base_model_44 import *
+from Models.PGGAN.base_model import *
 
 
 def G_conv(incoming, in_channels, out_channels, kernel_size, padding, nonlinearity, init, param=None,
@@ -52,7 +52,8 @@ class Generator(CustomModule):
                  use_pixelnorm=True,
                  use_leakyrelu=True,
                  use_batchnorm=False,
-                 tanh_at_end=None):
+                 tanh_at_end=None,
+                 ngpu=1):
         super(Generator, self).__init__()
         self.num_channels = num_channels
         self.resolution = resolution
@@ -67,6 +68,7 @@ class Generator(CustomModule):
         self.use_leakyrelu = use_leakyrelu
         self.use_batchnorm = use_batchnorm
         self.tanh_at_end = tanh_at_end
+        self.ngpu = ngpu
 
         R = int(np.log2(resolution))
         assert resolution == 2 ** R and resolution >= 4
@@ -88,7 +90,7 @@ class Generator(CustomModule):
             pre = PixelNormLayer()
 
         if self.label_size:
-            layers += [ConcatLayer()]
+            layers += [ConditionalConcatLayer(self.label_size, output_size=128)]
 
         layers += [ReshapeLayer([latent_size, 1, 1])]
         layers = G_conv(layers, latent_size, self.get_nf(1), 4, 3, act, iact, negative_slope,
@@ -117,7 +119,11 @@ class Generator(CustomModule):
         return min(int(self.fmap_base / (2.0 ** (stage * self.fmap_decay))), self.fmap_max)
 
     def forward(self, x, y=None, cur_level=None, insert_y_at=None):
-        return self.output_layer(x, y, cur_level, insert_y_at)
+        if x.is_cuda and self.ngpu > 1:
+            x = nn.parallel.data_parallel(self.output_layer, (x, y, cur_level, insert_y_at), range(self.ngpu))
+        else:
+            x = self.output_layer(x, y, cur_level, insert_y_at)
+        return x
 
 
 def D_conv(incoming, in_channels, out_channels, kernel_size, padding, nonlinearity, init, param=None,
@@ -132,7 +138,7 @@ def D_conv(incoming, in_channels, out_channels, kernel_size, padding, nonlineari
         layers += [WScaleLayer(layers[-1])]
     layers += [nonlinearity]
     if use_layernorm:
-        layers += [LayerNormLayer()]
+        layers += [LayerNormLayer()]  # TODO: requires incoming layer
     if to_sequential:
         return nn.Sequential(*layers)
     else:
@@ -152,7 +158,8 @@ class Discriminator(CustomModule):
                  use_wscale=True,
                  use_gdrop=True,
                  use_layernorm=False,
-                 sigmoid_at_end=False):
+                 sigmoid_at_end=False,
+                 ngpu=1):
         super(Discriminator, self).__init__()
         self.num_channels = num_channels
         self.resolution = resolution
@@ -166,6 +173,7 @@ class Discriminator(CustomModule):
         self.use_gdrop = use_gdrop
         self.use_layernorm = use_layernorm
         self.sigmoid_at_end = sigmoid_at_end
+        self.ngpu = ngpu
 
         R = int(np.log2(resolution))
         assert resolution == 2 ** R and resolution >= 4
@@ -173,7 +181,9 @@ class Discriminator(CustomModule):
 
         negative_slope = 0.2
         act = nn.LeakyReLU(negative_slope=negative_slope)
+        # input activation
         iact = 'leaky_relu'
+        # output activation
         output_act = nn.Sigmoid() if self.sigmoid_at_end else 'linear'
         output_iact = 'sigmoid' if self.sigmoid_at_end else 'linear'
         gdrop_param = {'mode': 'prop', 'strength': gdrop_strength}
@@ -208,12 +218,13 @@ class Discriminator(CustomModule):
         net = D_conv(net, oc, self.get_nf(0), 4, 0, act, iact, negative_slope, False,
                      self.use_wscale, self.use_gdrop, self.use_layernorm, gdrop_param)
 
+        # Increasing Variation Using MINIBATCH Standard Deviation
         if self.mbdisc_kernels:
             net += [MinibatchDiscriminationLayer(num_kernels=self.mbdisc_kernels)]
 
         oc = 1 + self.label_size
         # lods.append(NINLayer(net, self.get_nf(0), oc, 'linear', 'linear', None, True, self.use_wscale))
-        lods.append(NINLayer(net, self.get_nf(0), oc, nn.Sigmoid(), 'sigmoid', None, True, self.use_wscale))
+        lods.append(NINLayer(net, self.get_nf(0), oc, output_act, output_iact, None, True, self.use_wscale))
 
         self.output_layer = DSelectLayer(pre, lods, nins)
 
@@ -224,4 +235,8 @@ class Discriminator(CustomModule):
         for module in self.modules():
             if hasattr(module, 'strength'):
                 module.strength = gdrop_strength
-        return self.output_layer(x, y, cur_level, insert_y_at)
+        if x.is_cuda and self.ngpu > 1:
+            x = nn.parallel.data_parallel(self.output_layer, (x, y, cur_level, insert_y_at), range(self.ngpu))
+        else:
+            x = self.output_layer(x, y, cur_level, insert_y_at)
+        return x

@@ -277,3 +277,13 @@ class RandomNoiseGenerator:
 
     def __call__(self, batch_size):
         return torch.from_numpy(self.generator([batch_size, self.size]).astype(np.float32))
+
+
+def norm_img(img):
+    """
+    Normalize image via min max inplace
+    :param img: Tensor image
+    """
+    _min, _max = float(img.min()), float(img.max())
+    img.clamp_(min=_min, max=_max)
+    img.add_(-_min).div_(_max - _min + 1e-5)

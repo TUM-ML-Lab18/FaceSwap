@@ -1,7 +1,7 @@
 from torch import optim
 
 from Models.ModelUtils.ModelUtils import CombinedModel, RandomNoiseGenerator
-from Models.PGGAN_NEW.model import Generator, Discriminator, torch
+from Models.PGGAN.model import Generator, Discriminator, torch
 
 
 class PGGAN(CombinedModel):
@@ -13,9 +13,11 @@ class PGGAN(CombinedModel):
         self.data_loader = kwargs.get('data_loader', None)
         if self.data_loader is None:
             raise FileNotFoundError()
-        self.target_resolution = kwargs.get('target_resolution', 32)
+        self.target_resolution = kwargs.get('target_resolution', 64)
+
+        # Features size in classic PGGAN always 0 -> Ensure compatibility with C-PGGAN
+        self.feature_size = kwargs.get('feature_size', 0)
         self.latent_size = kwargs.get('latent_size', 512)
-        self.feature_size = kwargs.get('feature_size', None)
 
         # Modules with parameters
         self.G = Generator(num_channels=3, latent_size=self.latent_size, resolution=self.target_resolution,
@@ -39,20 +41,21 @@ class PGGAN(CombinedModel):
 
         # variables for growing the network
         self.epochs_fade = kwargs.get('epochs_fade', None)
-        self.images_per_fading = len(self.dataset) * self.epochs_fade
         self.epochs_stab = kwargs.get('epochs_stab', None)
         self.epochs_stage = self.epochs_fade + self.epochs_stab
         self.epochs_in_stage = self.epochs_fade  # Trick for stage 1
         self.level = 1
+        self.images_per_fading = len(self.dataset) * self.epochs_fade
         self.imgs_faded_in = 0
         self.stabilization_phase = True
         self.level_with_multiple_gpus = kwargs.get('level_with_multiple_gpus', 4)
 
-        self.batch_size_schedule = {1: 64, 2: 64, 3: 64, 4: 64, 5: 16, 6: 16}
+        self.batch_size_schedule = kwargs.get('batch_size_schedule',
+                                              {1: 64, 2: 64, 3: 64, 4: 64, 5: 16, 6: 16})
+        self.batch_size = self.batch_size_schedule[1]
 
         # noise generation and static noise for logging
         self.noise = RandomNoiseGenerator(self.latent_size - self.feature_size, 'gaussian')
-        self.batch_size = self.batch_size_schedule[1]
         self.static_noise = self.noise(self.batch_size)
 
     def get_models(self):
@@ -62,7 +65,7 @@ class PGGAN(CombinedModel):
         return ['generator', 'discriminator']
 
     def get_remaining_modules(self):
-        return [self.noise]
+        return [self.G_optimizer, self.D_optimizer, self.noise]
 
     def train(self, train_data_loader, batch_size, validate, **kwargs):
 
@@ -74,7 +77,7 @@ class PGGAN(CombinedModel):
         g_loss_summed, d_loss_summed = 0, 0
         iterations = 0
 
-        for images, features in train_data_loader:
+        for images in train_data_loader:
             # set the fade_in_factor:
             # during stabilizing phase we don't interpolate but use the current level=resolution
             # after increasing the resolution we interpolate between de lower and higher resolution
@@ -103,14 +106,7 @@ class PGGAN(CombinedModel):
             if self.cuda:
                 images = images.cuda()
                 noise = noise.cuda()
-                features = features.cuda()
 
-            # because of the conditioning we concatenate noise and features to one big vector
-            input_vec = torch.cat([noise, features], 1)
-            # for the discriminator the process is a bit more complicated:
-            # we add the features as additional channels to the input image
-            features_fill = features.view((self.batch_size, -1, 1, 1)).repeat((1, 1, images.shape[2], images.shape[2]))
-            input_img_real = torch.cat([images, features_fill], 1)
             ############################
             # (1) Update D network: minimize -D(x) + D(G(z)) + penalty instead of clipping
             ###########################
@@ -120,7 +116,7 @@ class PGGAN(CombinedModel):
                 self.D_optimizer.zero_grad()
 
             # Train on real example with real features
-            D_real = self.D(input_img_real, cur_level=cur_level)
+            D_real = self.D(images, cur_level=cur_level)
 
             # Wasserstein Loss
             D_real = -D_real.mean()
@@ -128,14 +124,12 @@ class PGGAN(CombinedModel):
                 D_real.backward()
 
             # Train on fake example from generator
-            G_fake = self.G(input_vec, cur_level=cur_level)
+            G_fake = self.G(noise, cur_level=cur_level)
             if validate:
                 # Validate only generated image
                 break
 
-            # concat the input so that the discriminator gets the conditional data as well
-            input_img_fake = torch.cat([G_fake, features_fill], 1)
-            D_fake = self.D(input_img_fake.detach(), cur_level=cur_level)
+            D_fake = self.D(G_fake.detach(), cur_level=cur_level)
 
             # Wasserstein Loss
             D_fake = D_fake.mean()
@@ -144,7 +138,7 @@ class PGGAN(CombinedModel):
 
             # Wasserstein loss
             # train with gradient penalty
-            gp = self.calculate_gradient_penalty(input_img_real, input_img_fake.detach(), cur_level)
+            gp = self.calculate_gradient_penalty(images, G_fake.detach(), cur_level)
             if not validate:
                 gp.backward()
 
@@ -163,7 +157,7 @@ class PGGAN(CombinedModel):
                 self.G_optimizer.zero_grad()
 
             # Train on fooling the Discriminator
-            D_fake = self.D(input_img_fake, cur_level=cur_level)
+            D_fake = self.D(G_fake, cur_level=cur_level)
 
             # Wasserstein Loss
             D_fake = -D_fake.mean()

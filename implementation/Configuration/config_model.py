@@ -1,5 +1,6 @@
 from Configuration.config_general import *
 from Models.CGAN.CGAN import CGAN
+from Models.CPGGAN.CPGGAN import CPGGAN
 from Models.DCGAN.DCGAN import DCGAN
 from Models.DeepFake.Autoencoder import AutoEncoder
 from Models.DeepFake.Decoder import Decoder
@@ -8,7 +9,7 @@ from Models.DeepFake.Encoder import Encoder
 from Models.LatentGAN.LatentGAN import LatentGAN
 from Models.LatentModel.Decoder import LatentDecoder
 from Models.LatentModel.LatentModel import LowResModel, RetrainLowResModel
-from Models.PGGAN_NEW.PGGAN import PGGAN
+from Models.PGGAN.PGGAN import PGGAN
 from Utils.ImageDataset import *
 
 
@@ -59,7 +60,9 @@ class LowResConfig(Config):
 
 class RetrainConfig(LowResConfig):
     model = RetrainLowResModel
-    LowResConfig.model_params['model_path'] = '/nfs/students/summer-term-2018/project_2/models/latent_model/model'
+    model_params = {'model_path': '/nfs/students/summer-term-2018/project_2/models/latent_model/model',
+                    }
+    model_params.update(LowResConfig.model_params)
     dataset = lambda: ImageFeatureDataset(ARRAY_CAR_IMAGES_128,
                                           [ARRAY_CAR_LANDMARKS, ARRAY_CAR_LOWRES])
 
@@ -67,7 +70,7 @@ class RetrainConfig(LowResConfig):
 class GAN_CONFIG(Config):
     validation_size = 0.005
     validation_frequencies = [1, 1, 1]
-    save_model_every_nth = 5
+    save_model_every_nth = 2
 
 
 class CGAN_CONFIG(GAN_CONFIG):
@@ -114,22 +117,41 @@ class DCGAN_CONFIG(GAN_CONFIG):
 
 class PGGAN_CONFIG(GAN_CONFIG):
     model = PGGAN
-    max_level = 6
+    target_resolution = 64
+    if not np.log2(target_resolution).is_integer():
+        raise ValueError
+    max_level = int(np.log2(target_resolution)) - 1
     epochs_fade = 4
     epochs_stab = 4
     max_epochs = max_level * epochs_stab + (max_level - 1) * epochs_fade
-    model_params = {'target_resolution': 2 ** (max_level + 1),
+    model_params = {'target_resolution': target_resolution,
                     'latent_size': 512,
-                    'feature_size': 28 * 2,
                     'lrG': 0.001,
                     'lrD': 0.001,
                     'epochs_fade': epochs_fade,
                     'epochs_stab': epochs_stab,
-                    'level_with_multiple_gpus': 4}
+                    'level_with_multiple_gpus': 4,
+                    'batch_size_schedule': {1: 64, 2: 64, 3: 64, 4: 64, 5: 16, 6: 16},
+                    # Resolutions:          4      8     16     32     64    128
+                    }
+
+    @staticmethod
+    def data_set():
+        return ProgressiveFeatureDataset(None, initial_resolution=2)
+
+
+class CPGGAN_CONFIG(PGGAN_CONFIG):
+    model = CPGGAN
+    model_params = {'feature_size': 2 * 28,
+                    'lm_mean': ARRAY_CELEBA_LANDMARKS_28_MEAN,
+                    'lm_cov': ARRAY_CELEBA_LANDMARKS_28_COV,
+                    }
+    model_params.update(PGGAN_CONFIG.model_params)
+    model_params['latent_size'] = 512 + 128
 
     @staticmethod
     def data_set():
         return ProgressiveFeatureDataset(ARRAY_CELEBA_LANDMARKS_28, initial_resolution=2)
 
 
-current_config = PGGAN_CONFIG
+current_config = CPGGAN_CONFIG
