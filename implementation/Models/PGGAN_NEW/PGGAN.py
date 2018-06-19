@@ -25,20 +25,14 @@ class PGGAN(CombinedModel):
         # Modules with parameters
         self.G = Generator(num_channels=3, latent_size=self.latent_size, resolution=self.target_resolution,
                            fmap_max=self.latent_size, fmap_base=8192, tanh_at_end=True, ngpu=1).cuda()
-        # self.G = nn.DataParallel(self.G)
         self.D = Discriminator(num_channels=3 + 56, mbstat_avg='all', resolution=self.target_resolution,
                                fmap_max=self.latent_size, fmap_base=8192, sigmoid_at_end=False, ngpu=1).cuda()
-        # self.D = nn.DataParallel(self.D)
-
-        # loss function
-        # self.BCE_loss = nn.BCELoss()
 
         # move to gpu if available
         if torch.cuda.is_available():
             self.cuda = True
             self.G.cuda()
             self.D.cuda()
-            # self.BCE_loss.cuda()
 
         # optimizers
         lrG = kwargs.get('lrG', 0.0002)
@@ -80,23 +74,21 @@ class PGGAN(CombinedModel):
             self.schedule_resolution()
             train_data_loader = self.data_loader.get_train_data_loader()
 
-        # # Classic GAN
-        # # Label vectors for loss function
-        # label_real, label_fake = (torch.ones(batch_size, 1, 1, 1), torch.zeros(batch_size, 1, 1, 1))
-        # # Move to GPU
-        # if self.cuda:
-        #     label_real, label_fake = label_real.cuda(), label_fake.cuda()
-
-        # Gradient weights WGAN-GP TODO: What are they for?
-        one, mone = torch.FloatTensor([1]), torch.FloatTensor([-1])
-        if self.cuda:
-            one, mone = one.cuda(), mone.cuda()
-
         # sum the loss for logging
         g_loss_summed, d_loss_summed = 0, 0
         iterations = 0
 
         for images, features in train_data_loader:
+            # set the fade_in_factor:
+            # during stabilizing phase we don't interpolate but use the current level=resolution
+            # after increasing the resolution we interpolate between de lower and higher resolution
+            # i.e.: self.level = 3 (4*1*2*2x4*1*2*2: 16x16)
+            # this means we were in level 2 but interpolate to level 3:
+            # cur_level = self.level - 1 = 2
+            # now we add the fade_in_factor which is between 1e-10 and 1
+            # as a result the cur_level is a value between the last level and the current value, but it has to be
+            # greater then the last level (2) otherwise the forward does not work
+
             if self.stabilization_phase:
                 fade_in_factor = 0
                 cur_level = self.level
@@ -105,6 +97,7 @@ class PGGAN(CombinedModel):
                 cur_level = self.level - 1 + (
                     fade_in_factor if fade_in_factor != 0 else 1e-10)  # FuckUp implementation...
 
+            # differentiate between validation and training
             if validate:
                 noise = self.static_noise
             else:
@@ -116,11 +109,14 @@ class PGGAN(CombinedModel):
                 noise = noise.cuda()
                 features = features.cuda()
 
+            # because of the conditioning we concatenate noise and features to one big vector
             input_vec = torch.cat([noise, features], 1)
+            # for the discriminator the process is a bit more complicated:
+            # we add the features as additional channels to the input image
             features_fill = features.view((self.batch_size, -1, 1, 1)).repeat((1, 1, images.shape[2], images.shape[2]))
             input_img_real = torch.cat([images, features_fill], 1)
             ############################
-            # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
+            # (1) Update D network: minimize -D(x) + D(G(z)) + penalty instead of clipping
             ###########################
             if not validate:
                 # Avoid computations in Generator training
@@ -131,36 +127,24 @@ class PGGAN(CombinedModel):
             D_real = self.D(input_img_real, cur_level=cur_level)
 
             # Wasserstein Loss
-            D_real = D_real.mean()
+            D_real = -D_real.mean()
             if not validate:
-                D_real.backward(mone)
-
-            # # Classic loss
-            # D_real_loss = self.BCE_loss(D_real, label_real)  # real corresponds to log(D_real)
-            # if not validate:
-            #     D_real_loss.backward()
+                D_real.backward()
 
             # Train on fake example from generator
             G_fake = self.G(input_vec, cur_level=cur_level)
             if validate:
                 # Validate only generated image
                 break
-            # todo what happens if we detach the output of the Discriminator
+
+            # concat the input so that the discriminator gets the conditional data as well
             input_img_fake = torch.cat([G_fake, features_fill], 1)
             D_fake = self.D(input_img_fake.detach(), cur_level=cur_level)
 
             # Wasserstein Loss
             D_fake = D_fake.mean()
             if not validate:
-                D_fake.backward(one)
-
-            # # Classic loss
-            # D_fake_loss = self.BCE_loss(D_fake, label_fake)  # fake corresponds to log(1-D_fake)
-            # if not validate:
-            #     D_fake_loss.backward()
-
-            # # Classic loss
-            # D_loss = D_real_loss + D_fake_loss
+                D_fake.backward()
 
             # Wasserstein loss
             # train with gradient penalty
@@ -176,7 +160,7 @@ class PGGAN(CombinedModel):
                 self.D_optimizer.step()
 
             ############################
-            # (2) Update G network: maximize log(D(G(z)))
+            # (2) Update G network: minimize -D(G(z)) (is same to maximise D(G(z)) / Discriminator makes an error)
             ###########################
             if not validate:
                 self.D.train(False)
@@ -186,17 +170,11 @@ class PGGAN(CombinedModel):
             D_fake = self.D(input_img_fake, cur_level=cur_level)
 
             # Wasserstein Loss
-            D_fake = D_fake.mean()
+            D_fake = -D_fake.mean()
             if not validate:
-                D_fake.backward(mone)
+                D_fake.backward()
                 self.G_optimizer.step()
             G_loss = float(-D_fake)
-
-            # # Classic loss
-            # G_loss = self.BCE_loss(D_fake, label_real)
-            # if not validate:
-            #     G_loss.backward()
-            #     self.G_optimizer.step()
 
             # losses
             g_loss_summed += G_loss
