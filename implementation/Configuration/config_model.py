@@ -7,7 +7,7 @@ from Models.DeepFake.DeepFakeOriginal import DeepFakeOriginal
 from Models.DeepFake.Encoder import Encoder
 from Models.LatentGAN.LatentGAN import LatentGAN
 from Models.LatentModel.Decoder import LatentDecoder
-from Models.LatentModel.LatentModel import LowResModel
+from Models.LatentModel.LatentModel import LowResModel, RetrainLowResModel
 from Models.PGGAN_NEW.PGGAN import PGGAN
 from Utils.ImageDataset import *
 
@@ -113,17 +113,23 @@ class DCGAN_CONFIG(GAN_CONFIG):
 
 
 class PGGAN_CONFIG(GAN_CONFIG):
-    batch_size = 4
     model = PGGAN
-    model_params = {'target_resolution': 64,
-                    'latent_size': 512 + 128,
+    max_level = 6
+    epochs_fade = 4
+    epochs_stab = 4
+    max_epochs = max_level * epochs_stab + (max_level - 1) * epochs_fade
+    model_params = {'target_resolution': 2 ** max_level,
+                    'latent_size': 512,
+                    'feature_size': 28 * 2,
                     'lrG': 0.001,
                     'lrD': 0.001,
-                    'batch_size': batch_size}
+                    'epochs_fade': epochs_fade,
+                    'epochs_stab': epochs_stab,
+                    'level_with_multiple_gpus': 4}
 
     @staticmethod
     def data_set():
         return ProgressiveFeatureDataset(ARRAY_CELEBA_LANDMARKS_28, initial_resolution=2)
 
 
-current_config = LowResConfig
+current_config = PGGAN_CONFIG

@@ -1,5 +1,3 @@
-import math
-
 from torch import optim
 
 from Models.ModelUtils.ModelUtils import CombinedModel, RandomNoiseGenerator
@@ -15,17 +13,14 @@ class PGGAN(CombinedModel):
         self.data_loader = kwargs.get('data_loader', None)
         if self.data_loader is None:
             raise FileNotFoundError()
-        self.batch_size = kwargs.get('batch_size', None)
-        if self.batch_size is None or not math.log(self.batch_size, 2).is_integer():
-            raise AttributeError(
-                f"This module needs the variable batch_size. It also has to be to the power of 2. Got {self.batch_size}")
         self.target_resolution = kwargs.get('target_resolution', 32)
         self.latent_size = kwargs.get('latent_size', 512)
+        self.feature_size = kwargs.get('feature_size', None)
 
         # Modules with parameters
         self.G = Generator(num_channels=3, latent_size=self.latent_size, resolution=self.target_resolution,
                            fmap_max=self.latent_size, fmap_base=8192, tanh_at_end=True, ngpu=1).cuda()
-        self.D = Discriminator(num_channels=3 + 56, mbstat_avg='all', resolution=self.target_resolution,
+        self.D = Discriminator(num_channels=3 + self.feature_size, mbstat_avg='all', resolution=self.target_resolution,
                                fmap_max=self.latent_size, fmap_base=8192, sigmoid_at_end=False, ngpu=1).cuda()
 
         # move to gpu if available
@@ -42,22 +37,23 @@ class PGGAN(CombinedModel):
         self.G_optimizer = optim.Adam(self.G.parameters(), lr=lrG, betas=(beta1, beta2))
         self.D_optimizer = optim.Adam(self.D.parameters(), lr=lrD, betas=(beta1, beta2))
 
-        # noise generation and static noise for logging
-        self.noise = RandomNoiseGenerator(self.latent_size - 56, 'gaussian')
-        self.static_noise = self.noise(64)  # smallest batch size
-
         # variables for growing the network
-        self.epochs_fade = 4
-        self.images_per_fading = len(self.dataset) * self.epochs_fade  # CELEBA size
-        self.epochs_stab = 4
+        self.epochs_fade = kwargs.get('epochs_fade', None)
+        self.images_per_fading = len(self.dataset) * self.epochs_fade
+        self.epochs_stab = kwargs.get('epochs_stab', None)
         self.epochs_stage = self.epochs_fade + self.epochs_stab
         self.epochs_in_stage = self.epochs_fade  # Trick for stage 1
         self.level = 1
         self.imgs_faded_in = 0
         self.stabilization_phase = True
-        self.level_with_multiple_gpus = 4
+        self.level_with_multiple_gpus = kwargs.get('level_with_multiple_gpus', 4)
 
         self.batch_size_schedule = {1: 64, 2: 64, 3: 64, 4: 64, 5: 16, 6: 16}
+
+        # noise generation and static noise for logging
+        self.noise = RandomNoiseGenerator(self.latent_size - self.feature_size, 'gaussian')
+        self.batch_size = self.batch_size_schedule[1]
+        self.static_noise = self.noise(self.batch_size)
 
     def get_models(self):
         return [self.G, self.D]
