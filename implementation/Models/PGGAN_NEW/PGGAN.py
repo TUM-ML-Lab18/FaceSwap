@@ -174,7 +174,7 @@ class PGGAN(CombinedModel):
             if not validate:
                 D_fake.backward()
                 self.G_optimizer.step()
-            G_loss = float(-D_fake)
+            G_loss = float(D_fake)
 
             # losses
             g_loss_summed += G_loss
