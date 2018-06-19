@@ -44,7 +44,7 @@ class PGGAN(CombinedModel):
 
         # noise generation and static noise for logging
         self.noise = RandomNoiseGenerator(self.latent_size - 56, 'gaussian')
-        self.static_noise = self.noise(4)  # smallest batch size
+        self.static_noise = self.noise(64)  # smallest batch size
 
         # variables for growing the network
         self.epochs_fade = 4
@@ -57,7 +57,7 @@ class PGGAN(CombinedModel):
         self.stabilization_phase = True
         self.level_with_multiple_gpus = 4
 
-        self.batch_size_schedule = {1: 4, 2: 2, 3: 1, 4: 64, 5: 32, 6: 24}
+        self.batch_size_schedule = {1: 64, 2: 64, 3: 64, 4: 64, 5: 16, 6: 16}
 
     def get_models(self):
         return [self.G, self.D]
@@ -99,7 +99,7 @@ class PGGAN(CombinedModel):
 
             # differentiate between validation and training
             if validate:
-                noise = self.static_noise
+                noise = self.static_noise[:self.batch_size]
             else:
                 noise = self.noise(self.batch_size)
 
