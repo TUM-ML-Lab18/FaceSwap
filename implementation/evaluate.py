@@ -9,9 +9,9 @@ from Evaluator.Evaluator import Evaluator
 if __name__ == '__main__':
 
     path1 = Path('/nfs/students/summer-term-2018/project_2/test_alex/original.jpg')
-    path2 = Path('/nfs/students/summer-term-2018/project_2/test_alex/original.jpg')
-    path3 = Path('/nfs/students/summer-term-2018/project_2/test_alex/original.jpg')
-    path4 = Path('/nfs/students/summer-term-2018/project_2/test_alex/original.jpg')
+    path2 = Path('/nfs/students/summer-term-2018/project_2/test_alex/1.jpg')
+    path3 = Path('/nfs/students/summer-term-2018/project_2/test_alex/2.jpg')
+    path4 = Path('/nfs/students/summer-term-2018/project_2/test_alex/3.jpg')
 
     img1 = Image.open(path1)
     img2 = Image.open(path2)
