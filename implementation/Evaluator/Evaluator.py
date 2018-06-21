@@ -30,7 +30,7 @@ class Evaluator:
         output_path = Path(output_path)
         model = config.model(**config.model_params)
         model.load_model(Path(model_folder))
-        extractor = FaceExtractor(mask_type=np.float, margin=0.05, mask_factor=10)
+        extractor = FaceExtractor(margin=0.05, mask_factor=10)
 
         print("The authors of the package recommend 0.6 as max distance for the same person.")
         scores = {}
