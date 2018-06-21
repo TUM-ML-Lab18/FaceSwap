@@ -15,10 +15,7 @@ from Preprocessor.FaceExtractor import FaceExtractor
 class Evaluator:
 
     @staticmethod
-    def evaluate_model(config, decoder=2,
-                       model_folder='/nfs/students/summer-term-2018/project_2/models/128x128_merkel_klum_beschde',
-                       image_folder='/nfs/students/summer-term-2018/project_2/test_alex/',
-                       output_path='/nfs/students/summer-term-2018/project_2/test_alex/'):
+    def evaluate_model(config, model_folder, image_folder, output_path, decoder=2):
         """
         Evaluates a model by comparing input images with output images
         :param config: the model configuration
