@@ -15,12 +15,11 @@ from Preprocessor.FaceExtractor import FaceExtractor
 class Evaluator:
 
     @staticmethod
-    def evaluate_model(config, model_folder, image_folder, output_path, decoder=2):
+    def evaluate_model(config, model_folder, image_folder, output_path):
         """
         Evaluates a model by comparing input images with output images
         :param config: the model configuration
         :param model_folder: folder of the saved model
-        :param decoder: which decoder to use (1,2)
         :param image_folder: path images used to evaluate the model
         :param output_path: path where anonymized images should be stored
         :return: list of distances
@@ -46,14 +45,8 @@ class Evaluator:
             if extracted_face is None:
                 print('Face could not be extracted')
                 continue
-            latent_information = model.img2latent_bridge(extracted_face, extracted_info, config['img_size'])
 
-            face_out = None
-            if decoder == 1:
-                face_out = model.anonymize(latent_information).squeeze(0)
-            else:
-                face_out = model.anonymize_2(latent_information).squeeze(0)
-
+            face_out = model.anonymize(extracted_face, extracted_info).squeeze(0)
             face_out = ToPILImage()(face_out.cpu().detach())
             face_out = face_out.resize(extracted_face.size, resample=BICUBIC)
 
