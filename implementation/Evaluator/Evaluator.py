@@ -31,7 +31,7 @@ class Evaluator:
 
         image_folder = Path(image_folder)
         output_path = Path(output_path)
-        model = config['model'](config['img_size'])
+        model = config.model(**config.model_params)
         model.load_model(Path(model_folder))
         extractor = FaceExtractor(mask_type=np.float, margin=0.05, mask_factor=10)
 

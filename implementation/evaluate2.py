@@ -4,7 +4,6 @@ from Configuration.config_model import current_config
 from Evaluator.Evaluator import Evaluator
 
 if __name__ == '__main__':
-    model = current_config['model'](current_config['img_size'])
     scores = Evaluator.evaluate_model(current_config)
 
     sim = [s['sim'] for _, s in scores.items()]
