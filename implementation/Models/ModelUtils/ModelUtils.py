@@ -76,16 +76,15 @@ class CombinedModel(metaclass=ABCMeta):
         raise NotImplementedError
 
     def __str__(self):
-        string = str()
+        # tensorbord uses markup to display text, we use two tabs in front of each line to mark it as code
+        string = "\t\t"
         for model in self.get_models():
             string += str(model) + '\n'
 
         for module in self.get_remaining_modules():
             string += str(module) + '\n'
 
-        # tensorbord uses markup to display text
-        string = string.replace('\n', '\n\n')
-
+        string = string.replace('\n', '\n\t\t')
         return string
 
     def set_train_mode(self, mode):
