@@ -54,7 +54,7 @@ class Evaluator:
             try:
                 face_out.save(output_path / ('anonymized_' + image_file.name.__str__()))
                 score, sim, emo = Evaluator.evaluate_image_pair(extracted_face, face_out)
-                scores[image_file] = {'score': score, 'sim': sim, 'emo': emo}
+                scores[image_file] = {'score': score, 'sim': sim, 'emo': emo, 'img': image_file.name}
             except Exception as ex:
                 print(ex)
                 continue
