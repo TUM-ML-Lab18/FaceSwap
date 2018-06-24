@@ -68,6 +68,10 @@ class RetrainConfig(LowResConfig):
 
 
 class GAN_CONFIG(Config):
+    @staticmethod
+    def data_set():
+        raise NotImplementedError()
+
     validation_size = 0.005
     validation_frequencies = [1, 1, 1]
     save_model_every_nth = 2
@@ -81,6 +85,8 @@ class CGAN_CONFIG(GAN_CONFIG):
                     'ndf': 128,
                     'lrG': 0.0002,
                     'lrD': 0.00005,
+                    'beta1': 0.5,
+                    'beta2': 0.999,
                     'lm_mean': ARRAY_CELEBA_LANDMARKS_28_MEAN,
                     'lm_cov': ARRAY_CELEBA_LANDMARKS_28_COV,
                     }
@@ -109,9 +115,19 @@ class LGAN_CONFIG(GAN_CONFIG):
 
 class DCGAN_CONFIG(GAN_CONFIG):
     model = DCGAN
+    model_params = {
+        'image_size': (64, 64, 3),
+        'nz': 100,
+        'ngf': 64,
+        'ndf': 64,
+        'lrG': 0.0002,
+        'lrD': 0.0002,
+        'beta1': 0.5,
+        'beta2': 0.999
+    }
 
     @staticmethod
-    def dataset():
+    def data_set():
         return ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_5)
 
 
@@ -128,6 +144,8 @@ class PGGAN_CONFIG(GAN_CONFIG):
                     'latent_size': 512,
                     'lrG': 0.001,
                     'lrD': 0.001,
+                    'beta1': .0,
+                    'beta2': 0.99,
                     'epochs_fade': epochs_fade,
                     'epochs_stab': epochs_stab,
                     'level_with_multiple_gpus': 4,
@@ -154,4 +172,4 @@ class CPGGAN_CONFIG(PGGAN_CONFIG):
         return ProgressiveFeatureDataset(ARRAY_CELEBA_LANDMARKS_28, initial_resolution=2)
 
 
-current_config = CPGGAN_CONFIG
+current_config = DCGAN_CONFIG

@@ -277,7 +277,7 @@ class PGGAN(CombinedModel):
                                    torch.ones(D_interpolate.size()),
                                    create_graph=True, retain_graph=True, only_inputs=True)[0]
 
-        _lambda = 10  # CelebA TF Code
+        _lambda = 10  # CelebA TF Code (NVIDIA PAPER)
         gradient_penalty = ((grad.norm(2, dim=1) - 1) ** 2).mean() * _lambda
 
         return gradient_penalty

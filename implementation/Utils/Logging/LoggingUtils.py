@@ -1,4 +1,5 @@
 import datetime
+import inspect
 import json
 
 import torch
@@ -58,11 +59,21 @@ class Logger:
             self.model.save_model(self.shared_model_path)
 
     def log_config(self, config):
-        text = f"batchsize: {config.batch_size}\n\nnum_gpus: {torch.cuda.device_count()}"
-        self.writer.add_text("hyperparameters",
-                             text)
+        base_tag = 'config'
+        # log batch size and device count
+        text = f"batch size: {config.batch_size}\n\nnum gpus: {torch.cuda.device_count()}"
+        self.writer.add_text(base_tag + "/hyperparameters", text)
+        # log model
         text = str(self.model)
-        self.writer.add_text("config", text)
+        self.writer.add_text(base_tag + "/model", text)
+        # log complete config
+        text = inspect.getsource(config)
+        self.writer.add_text(base_tag + '/config', '\t' + text.replace('\n', '\n\t'))
+
+        # log rest of the config file for all params
+        file = inspect.getfile(config)
+        with open(file) as f:
+            self.writer.add_text('rest', '\t' + f.read().replace('\n', '\n\t'))
 
 
 def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):

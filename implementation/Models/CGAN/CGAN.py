@@ -12,7 +12,13 @@ from Preprocessor.FaceExtractor import extract_landmarks
 
 
 class CGAN(CombinedModel):
+    """
+    Standard GAN implementation but enhanced with condition on some feature
+    https://github.com/eriklindernoren/PyTorch-GAN/blob/master/implementations/cgan/cgan.py
+    """
+
     def __init__(self, **kwargs):
+        # get params from kwargs
         self.z_dim = kwargs.get('z_dim', 100)
         self.y_dim = kwargs.get('y_dim', 10)
         self.img_dim = kwargs.get('img_dim', (64, 64, 3))
@@ -25,13 +31,13 @@ class CGAN(CombinedModel):
         beta1 = kwargs.get('beta1', 0.5)
         beta2 = kwargs.get('beta2', 0.999)
 
-        # self.G = LatentDecoderGAN(input_dim=self.z_dim + self.y_dim)
+        # setup generator and discriminator
         self.G = Generator(input_dim=(self.z_dim, self.y_dim), output_dim=self.img_dim, ngf=ngf)
         self.D = Discriminator(y_dim=self.y_dim, input_dim=self.img_dim, ndf=ndf)
-
         self.G_optimizer = optim.Adam(self.G.parameters(), lr=lrG, betas=(beta1, beta2))
         self.D_optimizer = optim.Adam(self.D.parameters(), lr=lrD, betas=(beta1, beta2))
 
+        # as loss we use standard bce loss to minimize the KL-divergence -> better use the wasserstein distance
         self.BCE_loss = nn.BCELoss()
 
         # gaussian distribution of our landmarks
@@ -44,7 +50,6 @@ class CGAN(CombinedModel):
 
         # Fixed noise for validation
         self.anonym_noise = torch.randn((1, self.z_dim))
-        self.fixed_noise = None
 
         if torch.cuda.is_available():
             self.cuda = True
@@ -56,6 +61,8 @@ class CGAN(CombinedModel):
         current_epoch = kwargs.get('current_epoch', 100)
 
         # Instance noise annealing scheme
+        # http://www.inference.vc/instance-noise-a-trick-for-stabilising-gan-training/
+        # shouldn't be necessary for wasserstein distance
         if 0 <= current_epoch < 10:
             instance_noise_factor = 1 - (current_epoch - 0) * (1 - 0.25) / 10
         elif 10 <= current_epoch < 20:
@@ -81,7 +88,8 @@ class CGAN(CombinedModel):
             landmarks_gen = self.distribution_landmarks.sample((batch_size,)).type(torch.float32)
 
             feature_gen = landmarks_gen
-            # feature_gen = torch.cat((landmarks_gen, lowres_gen), dim=1)
+            # feature_gen = torch.cat((landmarks_gen, lowres_gen), dim=1)   # use this for combination of landmarks and
+            # lowres information
             feature_gen = (feature_gen - 0.5) * 2.0
             # transfer everything to the gpu
             if self.cuda:
@@ -116,7 +124,7 @@ class CGAN(CombinedModel):
             generated_images = self.G(z, features)
             fake_images_predictions = self.D(
                 generated_images.detach() + torch.randn_like(generated_images) * instance_noise_factor,
-                features)  # todo what happens if we detach the output of the Discriminator
+                features)
             d_fake_images_loss = self.BCE_loss(fake_images_predictions,
                                                label_fake) / 2  # face corresponds to log(1-D_fake)
 
@@ -127,7 +135,6 @@ class CGAN(CombinedModel):
             d_loss = d_real_predictions_loss + d_fake_labels_loss + d_fake_images_loss
 
             if not validate:
-                # D_loss.backward()
                 self.D_optimizer.step()
 
             ############################

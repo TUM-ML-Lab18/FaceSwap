@@ -32,9 +32,11 @@ class Generator(CustomModule):
         )
         self.apply(self.weights_init)
 
-    def forward(self, input):
-        if input.is_cuda and self.ngpu > 1:
-            output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
+    def forward(self, x):
+        bs = x.shape[0]
+        x = x.view((bs, -1, 1, 1))
+        if x.is_cuda and self.ngpu > 1:
+            output = nn.parallel.data_parallel(self.main, x, range(self.ngpu))
         else:
-            output = self.main(input)
+            output = self.main(x)
         return output

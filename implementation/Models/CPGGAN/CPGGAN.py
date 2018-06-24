@@ -10,6 +10,7 @@ from Preprocessor.FaceExtractor import extract_landmarks
 class CPGGAN(PGGAN):
     def __init__(self, **kwargs):
         super(CPGGAN, self).__init__(**kwargs)
+        # path to numpy arrays containing the calculated mean and cov matrices for calculating a multivariate gaussian
         path_to_lm_mean = kwargs.get('lm_mean', ARRAY_CELEBA_LANDMARKS_28_MEAN)
         path_to_lm_cov = kwargs.get('lm_cov', ARRAY_CELEBA_LANDMARKS_28_COV)
 
@@ -23,7 +24,7 @@ class CPGGAN(PGGAN):
         self.landmarks_cov = torch.from_numpy(self.landmarks_cov)
         self.distribution_landmarks = MultivariateNormal(loc=self.landmarks_mean.type(torch.float64),
                                                          covariance_matrix=self.landmarks_cov.type(torch.float64))
-
+        # static noise for calculating the validation
         self.static_landmarks = 2 * (self.distribution_landmarks.sample((self.batch_size,)).type(torch.float32) - 0.5)
         self.anonymization_noise = self.noise(1)
 
