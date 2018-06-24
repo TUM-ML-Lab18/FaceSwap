@@ -5,6 +5,9 @@ from Models.ModelUtils.ModelUtils import View, UpscaleBlockBlock, CustomModule
 
 
 class LatentDecoder(CustomModule):
+    """
+    It's the same decoder used in the deepfakes repository
+    """
     def __init__(self, input_dim):
         super().__init__()
         self.ngpu = torch.cuda.device_count()

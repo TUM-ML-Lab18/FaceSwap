@@ -50,7 +50,8 @@ class Deep_Fakes_Config(Config):
 class LowResConfig(Config):
     batch_size = 256
     model = LowResModel
-    model_params = {'decoder': lambda: LatentDecoder(72 * 2 + 8 * 8 * 3)}
+    model_params = {'decoder': lambda: LatentDecoder(72 * 2 + 8 * 8 * 3),
+                    'lr': 1e-4}
 
     @staticmethod
     def data_set():
@@ -172,4 +173,4 @@ class CPGGAN_CONFIG(PGGAN_CONFIG):
         return ProgressiveFeatureDataset(ARRAY_CELEBA_LANDMARKS_28, initial_resolution=2)
 
 
-current_config = DCGAN_CONFIG
+current_config = LowResConfig

@@ -126,12 +126,14 @@ class DCGAN(CombinedModel):
 
         if not validate:
             log_info = {'loss': {'lossG': g_loss_summed,
-                                 'lossD': d_loss_summed,
-                                 'meanG': float(D_G_z1), 'meanD': float(D_G_z2)}}
+                                 'lossD': d_loss_summed},
+                        'loss/meanG': float(D_G_z1),
+                        'loss/meanD': float(D_G_z2)}
         else:
             log_info = {'loss': {'lossG_val': g_loss_summed,
-                                 'lossD_val': d_loss_summed,
-                                 'meanG_val': float(D_G_z1), 'meanD_val': float(D_G_z2)}}
+                                 'lossD_val': d_loss_summed},
+                        'loss/meanG/val': float(D_G_z1),
+                        'loss/meanD/val': float(D_G_z2)}
 
         return log_info, fake
 
