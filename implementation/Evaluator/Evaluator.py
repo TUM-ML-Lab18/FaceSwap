@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import face_recognition
+import json
 import io
 import numpy as np
 import requests
@@ -15,7 +16,7 @@ from Preprocessor.FaceExtractor import FaceExtractor
 class Evaluator:
 
     @staticmethod
-    def evaluate_model(config, model_folder, image_folder, output_path):
+    def evaluate_model(config, model_folder, image_folder, output_path, save_json=True):
         """
         Evaluates a model by comparing input images with output images
         :param config: the model configuration
@@ -53,12 +54,17 @@ class Evaluator:
             try:
                 face_out.save(output_path / ('anonymized_' + image_file.name.__str__()))
                 score, sim, emo = Evaluator.evaluate_image_pair(extracted_face, face_out)
-                scores[image_file] = {'score': score, 'sim': sim, 'emo': emo}
+                scores[image_file] = {'score': score, 'sim': sim, 'emo': emo, 'img': str(image_file.name)}
             except Exception as ex:
                 print(ex)
                 continue
 
             print('Current image score:', scores[image_file])
+
+        if save_json:
+            with open(output_path / 'scores.json', 'w') as f:
+                json.dump(scores, f)
+
         return scores
 
     @staticmethod
