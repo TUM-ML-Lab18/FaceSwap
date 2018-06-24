@@ -259,6 +259,10 @@ class PGGAN(CombinedModel):
     def calculate_gradient_penalty(self, real_data, fake_data, cur_level):
         """
         https://github.com/caogang/wgan-gp/
+        :param real_data: todo
+        :param fake_data: todo
+        :param cur_level: todo
+        :return:
         """
         # Interpolation between real & fake data
         alpha = torch.rand(self.batch_size, 1, 1, 1)

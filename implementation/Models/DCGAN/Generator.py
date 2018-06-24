@@ -6,6 +6,11 @@ from Models.ModelUtils.ModelUtils import CustomModule
 
 class Generator(CustomModule):
     def __init__(self, nc=3, nz=100, ngf=64):
+        """
+        :param nc: number of output filter
+        :param nz: length of random input vector
+        :param ngf: number of filter for fist convolution | rest is relative to this number
+        """
         super(Generator, self).__init__()
         self.ngpu = torch.cuda.device_count()
         self.main = nn.Sequential(
@@ -33,6 +38,10 @@ class Generator(CustomModule):
         self.apply(self.weights_init)
 
     def forward(self, x):
+        """
+        :param x: random input vector
+        :return: generated image (nc x 64 x 64)
+        """
         bs = x.shape[0]
         x = x.view((bs, -1, 1, 1))
         if x.is_cuda and self.ngpu > 1:

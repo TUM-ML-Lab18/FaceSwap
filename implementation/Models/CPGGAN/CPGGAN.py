@@ -8,6 +8,10 @@ from Preprocessor.FaceExtractor import extract_landmarks
 
 
 class CPGGAN(PGGAN):
+    """
+    This model is a combination of PGGAN (Progressive GAN) and CGAN (Conditional GAN)
+    """
+
     def __init__(self, **kwargs):
         super(CPGGAN, self).__init__(**kwargs)
         # path to numpy arrays containing the calculated mean and cov matrices for calculating a multivariate gaussian
