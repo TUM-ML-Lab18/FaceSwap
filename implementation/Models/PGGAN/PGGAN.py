@@ -1,7 +1,7 @@
 from torch import optim
 
 from Models.ModelUtils.ModelUtils import CombinedModel, RandomNoiseGenerator
-from Models.PGGAN.model import Generator, Discriminator, torch
+from Models.PGGAN.model import Generator, Discriminator, torch, np
 
 
 class PGGAN(CombinedModel):
@@ -208,6 +208,10 @@ class PGGAN(CombinedModel):
             print('Scheduling... level update, level:', self.level,
                   'epochs in stage:', self.epochs_in_stage,
                   'batch size:', self.batch_size)
+            max_level = int(np.log2(self.target_resolution)) - 1
+            if self.level == max_level:
+                # Additional stabilization
+                self.epochs_stage += self.epochs_stab
 
         if self.epochs_in_stage < self.epochs_fade:
             # Fade in

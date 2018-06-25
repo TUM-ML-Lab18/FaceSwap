@@ -1,6 +1,7 @@
 from torch.distributions import MultivariateNormal
 
-from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_28_MEAN, ARRAY_CELEBA_LANDMARKS_28_COV
+from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_28_MEAN, ARRAY_CELEBA_LANDMARKS_28_COV, \
+    ARRAY_CELEBA_ULTRA_LOWRES_MEAN, ARRAY_CELEBA_ULTRA_LOWRES_COV
 from Models.ModelUtils.ModelUtils import norm_img
 from Models.PGGAN.PGGAN import PGGAN
 from Models.PGGAN.model import torch, np
@@ -12,6 +13,8 @@ class CPGGAN(PGGAN):
         super(CPGGAN, self).__init__(**kwargs)
         path_to_lm_mean = kwargs.get('lm_mean', ARRAY_CELEBA_LANDMARKS_28_MEAN)
         path_to_lm_cov = kwargs.get('lm_cov', ARRAY_CELEBA_LANDMARKS_28_COV)
+        path_to_lr_mean = kwargs.get('lr_mean', ARRAY_CELEBA_ULTRA_LOWRES_MEAN)
+        path_to_lr_cov = kwargs.get('lr_cov', ARRAY_CELEBA_ULTRA_LOWRES_COV)
 
         # ==================================================
         # Currently only preparation for extensions
@@ -23,8 +26,16 @@ class CPGGAN(PGGAN):
         self.landmarks_cov = torch.from_numpy(self.landmarks_cov)
         self.distribution_landmarks = MultivariateNormal(loc=self.landmarks_mean.type(torch.float64),
                                                          covariance_matrix=self.landmarks_cov.type(torch.float64))
+        # gaussian distribution of our low res pixel map
+        self.lowres_mean = np.load(path_to_lr_mean)
+        self.lowres_cov = np.load(path_to_lr_cov)
+        self.lowres_mean = torch.from_numpy(self.lowres_mean)
+        self.lowres_cov = torch.from_numpy(self.lowres_cov)
+        self.distribution_lowres = MultivariateNormal(loc=self.lowres_mean.type(torch.float64),
+                                                      covariance_matrix=self.lowres_cov.type(torch.float64))
 
         self.static_landmarks = 2 * (self.distribution_landmarks.sample((self.batch_size,)).type(torch.float32) - 0.5)
+        self.static_lowres = 2 * (self.distribution_lowres.sample((self.batch_size,)).type(torch.float32) - 0.5)
         self.anonymization_noise = self.noise(1)
 
     def train(self, train_data_loader, batch_size, validate, **kwargs):
@@ -59,7 +70,7 @@ class CPGGAN(PGGAN):
             # differentiate between validation and training
             if validate:
                 noise = self.static_noise[:self.batch_size]
-                features = self.static_landmarks[:self.batch_size]
+                features = torch.cat([self.static_landmarks[:self.batch_size], self.static_lowres[:self.batch_size]], 1)
             else:
                 noise = self.noise(self.batch_size)
 
