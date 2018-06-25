@@ -1,7 +1,6 @@
 from torch.distributions import MultivariateNormal
 
-from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_28_MEAN, ARRAY_CELEBA_LANDMARKS_28_COV, \
-    ARRAY_CELEBA_ULTRA_LOWRES_MEAN, ARRAY_CELEBA_ULTRA_LOWRES_COV
+from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_28_MEAN, ARRAY_CELEBA_LANDMARKS_28_COV
 from Models.ModelUtils.ModelUtils import norm_img
 from Models.PGGAN.PGGAN import PGGAN
 from Models.PGGAN.model import torch, np
@@ -9,8 +8,13 @@ from Preprocessor.FaceExtractor import extract_landmarks
 
 
 class CPGGAN(PGGAN):
+    """
+    This model is a combination of PGGAN (Progressive GAN) and CGAN (Conditional GAN)
+    """
+
     def __init__(self, **kwargs):
         super(CPGGAN, self).__init__(**kwargs)
+        # path to numpy arrays containing the calculated mean and cov matrices for calculating a multivariate gaussian
         path_to_lm_mean = kwargs.get('lm_mean', ARRAY_CELEBA_LANDMARKS_28_MEAN)
         path_to_lm_cov = kwargs.get('lm_cov', ARRAY_CELEBA_LANDMARKS_28_COV)
         path_to_lr_mean = kwargs.get('lr_mean', ARRAY_CELEBA_ULTRA_LOWRES_MEAN)
@@ -33,7 +37,7 @@ class CPGGAN(PGGAN):
         self.lowres_cov = torch.from_numpy(self.lowres_cov)
         self.distribution_lowres = MultivariateNormal(loc=self.lowres_mean.type(torch.float64),
                                                       covariance_matrix=self.lowres_cov.type(torch.float64))
-
+        # static noise for calculating the validation
         self.static_landmarks = 2 * (self.distribution_landmarks.sample((self.batch_size,)).type(torch.float32) - 0.5)
         self.static_lowres = 2 * (self.distribution_lowres.sample((self.batch_size,)).type(torch.float32) - 0.5)
         self.anonymization_noise = self.noise(1)
@@ -61,10 +65,10 @@ class CPGGAN(PGGAN):
 
             if self.stabilization_phase:
                 fade_in_factor = 0
-                cur_level = self.level
+                cur_level = self.resolution_level
             else:
-                fade_in_factor = self.imgs_faded_in / self.images_per_fading
-                cur_level = self.level - 1 + (
+                fade_in_factor = self.images_faded_in / self.images_per_fading_phase
+                cur_level = self.resolution_level - 1 + (
                     fade_in_factor if fade_in_factor != 0 else 1e-10)  # FuckUp implementation...
 
             # differentiate between validation and training
@@ -154,7 +158,7 @@ class CPGGAN(PGGAN):
 
             if not self.stabilization_phase and not validate:
                 # Count only images during training
-                self.imgs_faded_in += self.batch_size
+                self.images_faded_in += self.batch_size
 
         if not validate:
             g_loss_summed /= iterations
@@ -163,7 +167,7 @@ class CPGGAN(PGGAN):
                                  'lossD': d_loss_summed},
                         'info/WassersteinDistance': Wasserstein_D,
                         'info/FadeInFactor': fade_in_factor,
-                        'info/Level': self.level}
+                        'info/Level': self.resolution_level}
             log_img = G_fake
         else:
             log_info = {}

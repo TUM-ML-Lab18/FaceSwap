@@ -6,6 +6,10 @@ from Models.ModelUtils.ModelUtils import CustomModule
 
 class Discriminator(CustomModule):
     def __init__(self, nc=3, ndf=64):
+        """
+        :param nc: number of input filter
+        :param ndf: number of filter for fist convolution | rest is relative to this number
+        """
         super(Discriminator, self).__init__()
         self.ngpu = torch.cuda.device_count()
         self.main = nn.Sequential(
@@ -31,9 +35,13 @@ class Discriminator(CustomModule):
 
         self.apply(self.weights_init)
 
-    def forward(self, input):
-        if input.is_cuda and self.ngpu > 1:
-            output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
+    def forward(self, x):
+        """
+        :param x: image to discriminate
+        :return: probability that the image is real or fake
+        """
+        if x.is_cuda and self.ngpu > 1:
+            output = nn.parallel.data_parallel(self.main, x, range(self.ngpu))
         else:
-            output = self.main(input)
+            output = self.main(x)
         return output.view(-1, 1).squeeze(1)

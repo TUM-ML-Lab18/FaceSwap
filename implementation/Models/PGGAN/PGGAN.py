@@ -6,24 +6,24 @@ from Models.PGGAN.model import Generator, Discriminator, torch, np
 
 class PGGAN(CombinedModel):
     def __init__(self, **kwargs):
-        # get values from args
-        self.dataset = kwargs.get('dataset', None)
-        if self.dataset is None:
-            raise FileNotFoundError()
+        # the data loader is used to change resolution of input images
         self.data_loader = kwargs.get('data_loader', None)
         if self.data_loader is None:
             raise FileNotFoundError()
+
+        # the maximum resolution we will train
         self.target_resolution = kwargs.get('target_resolution', 64)
 
         # Features size in classic PGGAN always 0 -> Ensure compatibility with C-PGGAN
         self.feature_size = kwargs.get('feature_size', 0)
+        # this latent_size is used as channels for generator and discriminator
         self.latent_size = kwargs.get('latent_size', 512)
 
         # Modules with parameters
         self.G = Generator(num_channels=3, latent_size=self.latent_size, resolution=self.target_resolution,
-                           fmap_max=self.latent_size, fmap_base=8192, tanh_at_end=True, ngpu=1).cuda()
+                           fmap_max=self.latent_size, fmap_base=8192, tanh_at_end=True, ngpu=1)
         self.D = Discriminator(num_channels=3 + self.feature_size, mbstat_avg='all', resolution=self.target_resolution,
-                               fmap_max=self.latent_size, fmap_base=8192, sigmoid_at_end=False, ngpu=1).cuda()
+                               fmap_max=self.latent_size, fmap_base=8192, sigmoid_at_end=False, ngpu=1)
 
         # move to gpu if available
         if torch.cuda.is_available():
@@ -39,20 +39,43 @@ class PGGAN(CombinedModel):
         self.G_optimizer = optim.Adam(self.G.parameters(), lr=lrG, betas=(beta1, beta2))
         self.D_optimizer = optim.Adam(self.D.parameters(), lr=lrD, betas=(beta1, beta2))
 
+        ############################
         # variables for growing the network
-        self.epochs_fade = kwargs.get('epochs_fade', None)
-        self.epochs_stab = kwargs.get('epochs_stab', None)
-        self.epochs_stage = self.epochs_fade + self.epochs_stab
-        self.epochs_in_stage = self.epochs_fade  # Trick for stage 1
-        self.level = 1
-        self.images_per_fading = len(self.dataset) * self.epochs_fade
-        self.imgs_faded_in = 0
+        ###########################
+
+        # fading phase: interpolation between two resolutions: (increasing the resolution bit by bit)
+        self.fading_epochs = kwargs.get('epochs_fade', None)
+        # stabilizing phase: just normal training with one constant resolution (after fading)
+        self.stabilizing_epochs = kwargs.get('epochs_stab', None)
+        # how many epochs correspond to one stage?
+        self.epochs_per_stage = self.fading_epochs + self.stabilizing_epochs
+        # how many epochs are trained allready in the current stage?
+        # by setting it initially to fading_epochs we ensure that we don't fade in but only "stabilize"
+        self.epochs_in_current_stage = self.fading_epochs  # Trick for stage 1
+
+        # the level of the current resolution, we start with 4x4 | res = 2**(1+resolution_level)
+        # 1     2       3       4       5       6
+        # 4x4   8x8     16x16   32x32   64x64   128x128
+        self.resolution_level = 1
+
+        # the number of images shown to the network until completion of the fading phase
+        self.images_per_fading_phase = len(self.data_loader.get_train_data_loader()) * self.fading_epochs
+        # current number of images shown to the network during fading phase
+        self.images_faded_in = 0
+        # indicates the current phase
         self.stabilization_phase = True
+
+        # we start training with only one gpu because the broadcasting operations consume on the lower resolution a lot
+        # of time; but when reaching this level, switch to training with all available gpus
         self.level_with_multiple_gpus = kwargs.get('level_with_multiple_gpus', 4)
 
+        # batch sizes for each level | be careful with changing them independent from the learning rate | original prams
+        # from the paper
+        # todo: what happens with the batchsize if using multiple gpus? maybe we should fix this
         self.batch_size_schedule = kwargs.get('batch_size_schedule',
                                               {1: 64, 2: 64, 3: 64, 4: 64, 5: 16, 6: 16})
-        self.batch_size = self.batch_size_schedule[1]
+        # current batch size is just the current levels batch size
+        self.batch_size = self.batch_size_schedule[self.resolution_level]
 
         # noise generation and static noise for logging
         self.noise = RandomNoiseGenerator(self.latent_size - self.feature_size, 'gaussian')
@@ -69,7 +92,10 @@ class PGGAN(CombinedModel):
 
     def train(self, train_data_loader, batch_size, validate, **kwargs):
 
+        # during training we adjust our current level if needed -> higher resolution -> we need to reload the
+        # data_loader
         if not validate:
+            # todo write with return statement -> we get a data loader from it
             self.schedule_resolution()
             train_data_loader = self.data_loader.get_train_data_loader()
 
@@ -78,6 +104,7 @@ class PGGAN(CombinedModel):
         iterations = 0
 
         for images in train_data_loader:
+            # todo move to self.schedule_resolution?
             # set the fade_in_factor:
             # during stabilizing phase we don't interpolate but use the current level=resolution
             # after increasing the resolution we interpolate between de lower and higher resolution
@@ -90,16 +117,18 @@ class PGGAN(CombinedModel):
 
             if self.stabilization_phase:
                 fade_in_factor = 0
-                cur_level = self.level
+                cur_level = self.resolution_level
             else:
-                fade_in_factor = self.imgs_faded_in / self.images_per_fading
-                cur_level = self.level - 1 + (
+                fade_in_factor = self.images_faded_in / self.images_per_fading_phase
+                cur_level = self.resolution_level - 1 + (
                     fade_in_factor if fade_in_factor != 0 else 1e-10)  # FuckUp implementation...
 
             # differentiate between validation and training
             if validate:
+                # for validation use always the same noise -> you can see how the face gets better in the tensorboard
                 noise = self.static_noise[:self.batch_size]
             else:
+                # generate new noise
                 noise = self.noise(self.batch_size)
 
             # Move to GPU
@@ -111,7 +140,6 @@ class PGGAN(CombinedModel):
             # (1) Update D network: minimize -D(x) + D(G(z)) + penalty instead of clipping
             ###########################
             if not validate:
-                # Avoid computations in Generator training
                 self.D.train(True)
                 self.D_optimizer.zero_grad()
 
@@ -128,7 +156,6 @@ class PGGAN(CombinedModel):
             if validate:
                 # Validate only generated image
                 break
-
             D_fake = self.D(G_fake.detach(), cur_level=cur_level)
 
             # Wasserstein Loss
@@ -153,6 +180,7 @@ class PGGAN(CombinedModel):
             # (2) Update G network: minimize -D(G(z)) (is same to maximise D(G(z)) / Discriminator makes an error)
             ###########################
             if not validate:
+                # Avoid computations in Generator training
                 self.D.train(False)
                 self.G_optimizer.zero_grad()
 
@@ -173,7 +201,7 @@ class PGGAN(CombinedModel):
 
             if not self.stabilization_phase and not validate:
                 # Count only images during training
-                self.imgs_faded_in += self.batch_size
+                self.images_faded_in += self.batch_size
 
         if not validate:
             g_loss_summed /= iterations
@@ -182,7 +210,7 @@ class PGGAN(CombinedModel):
                                  'lossD': d_loss_summed},
                         'info/WassersteinDistance': Wasserstein_D,
                         'info/FadeInFactor': fade_in_factor,
-                        'info/Level': self.level}
+                        'info/Level': self.resolution_level}
             log_img = G_fake
         else:
             log_info = {}
@@ -198,43 +226,47 @@ class PGGAN(CombinedModel):
         logger.log_images(epoch, images[:64], tag, 8)
 
     def schedule_resolution(self):
-        if self.epochs_in_stage >= self.epochs_stage:
+        if self.epochs_in_current_stage >= self.epochs_per_stage:
             # Enter new stage
-            self.level += 1
-            self.batch_size = int(self.batch_size_schedule[self.level])
+            self.resolution_level += 1
+            self.batch_size = int(self.batch_size_schedule[self.resolution_level])
             self.data_loader.adjusted_batch_size_and_increase_resolution(self.batch_size)
             self.static_noise = self.static_noise[:self.batch_size]
-            self.epochs_in_stage = 0
-            print('Scheduling... level update, level:', self.level,
-                  'epochs in stage:', self.epochs_in_stage,
+            self.epochs_in_current_stage = 0
+            print('Scheduling... level update, level:', self.resolution_level,
+                  'epochs in stage:', self.epochs_in_current_stage,
                   'batch size:', self.batch_size)
             max_level = int(np.log2(self.target_resolution)) - 1
             if self.level == max_level:
                 # Additional stabilization
                 self.epochs_stage += self.epochs_stab
 
-        if self.epochs_in_stage < self.epochs_fade:
+        if self.epochs_in_current_stage < self.fading_epochs:
             # Fade in
-            print('Scheduling... Fade-in phase, level:', self.level,
-                  'epochs in stage:', self.epochs_in_stage,
+            print('Scheduling... Fade-in phase, level:', self.resolution_level,
+                  'epochs in stage:', self.epochs_in_current_stage,
                   'batch size:', self.batch_size)
             self.stabilization_phase = False
         else:
             # Stabilization phase
-            print('Scheduling... Stabilization phase, level:', self.level,
-                  'epochs in stage:', self.epochs_in_stage,
+            print('Scheduling... Stabilization phase, level:', self.resolution_level,
+                  'epochs in stage:', self.epochs_in_current_stage,
                   'batch size:', self.batch_size)
             self.stabilization_phase = True
-            self.imgs_faded_in = 0
+            self.images_faded_in = 0
 
-        if self.level == self.level_with_multiple_gpus:
+        if self.resolution_level == self.level_with_multiple_gpus:
             self.G.ngpu = self.D.ngpu = torch.cuda.device_count()
 
-        self.epochs_in_stage += 1
+        self.epochs_in_current_stage += 1
 
     def calculate_gradient_penalty(self, real_data, fake_data, cur_level):
         """
         https://github.com/caogang/wgan-gp/
+        :param real_data: todo
+        :param fake_data: todo
+        :param cur_level: todo
+        :return:
         """
         # Interpolation between real & fake data
         alpha = torch.rand(self.batch_size, 1, 1, 1)
@@ -253,7 +285,7 @@ class PGGAN(CombinedModel):
                                    torch.ones(D_interpolate.size()),
                                    create_graph=True, retain_graph=True, only_inputs=True)[0]
 
-        _lambda = 10  # CelebA TF Code
+        _lambda = 10  # CelebA TF Code (NVIDIA PAPER)
         gradient_penalty = ((grad.norm(2, dim=1) - 1) ** 2).mean() * _lambda
 
         return gradient_penalty

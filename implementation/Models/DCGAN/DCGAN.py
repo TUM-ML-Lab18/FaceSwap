@@ -2,20 +2,42 @@ import torch
 from torch import optim, nn
 
 from Models.CGAN import CGAN
+from Models.DCGAN.Discriminator import Discriminator
+from Models.DCGAN.Generator import Generator
 from Models.ModelUtils.ModelUtils import CombinedModel
 
 
 class DCGAN(CombinedModel):
-    def __init__(self, **kwargs):
-        self.image_size = (64, 64, 3)
-        self.nz = 100
-        self.ngf = 64
-        self.ndf = 64
+    """
+    Standard DCGAN implementation with CGAN comparability
+    https://github.com/pytorch/examples/blob/master/dcgan/main.py
 
-        # self.g = Generator(nc=self.image_size[2], nz=self.nz, ngf=self.ngf)
-        self.g = CGAN.Generator(input_dim=(self.nz, 10), output_dim=self.image_size, ngf=self.ngf)
-        # self.d = Discriminator(nc=self.image_size[2], ndf=self.ndf)
-        self.d = CGAN.Discriminator(y_dim=10, input_dim=self.image_size, ndf=self.ndf)
+    For CGAN mode just uncomment the labeled lines and comment the line below
+    """
+
+    def __init__(self, **kwargs):
+        self.image_size = kwargs.get('image_size', (64, 64, 3))
+        # latent vector length
+        self.nz = kwargs.get('nz', 100)
+        # number of input filters for generator and discriminator
+        self.ngf = kwargs.get('ngf', 64)
+        self.ndf = kwargs.get('ndf', 64)
+        lrG = kwargs.get('lrG', 0.0002)
+        lrD = kwargs.get('lrD', 0.0002)
+        beta1 = kwargs.get('beta1', 0.5)
+        beta2 = kwargs.get('beta2', 0.999)
+        batch_size = kwargs.get('initial_batch_size', -1)
+
+        # this makes sure pycharm doesn't delete the import statements
+        if False:
+            CGAN
+            Discriminator
+            Generator
+
+        self.g = Generator(nc=self.image_size[2], nz=self.nz, ngf=self.ngf)  # comment
+        # self.g = CGAN.Generator(input_dim=(self.nz, 10), output_dim=self.image_size, ngf=self.ngf) # uncomment
+        self.d = Discriminator(nc=self.image_size[2], ndf=self.ndf)  # comment
+        # self.d = CGAN.Discriminator(y_dim=10, input_dim=self.image_size, ndf=self.ndf) # uncomment
 
         self.BCE_loss = nn.BCELoss()
 
@@ -25,14 +47,10 @@ class DCGAN(CombinedModel):
             self.d.cuda()
             self.BCE_loss.cuda()
 
-        lrG = 0.0002
-        lrD = 0.0002
-
-        beta1, beta2 = 0.5, 0.999
         self.G_optimizer = optim.Adam(self.g.parameters(), lr=lrG, betas=(beta1, beta2))
         self.D_optimizer = optim.Adam(self.d.parameters(), lr=lrD, betas=(beta1, beta2))
 
-        self.static_noise = torch.randn(64 * 4, self.nz)
+        self.static_noise = torch.randn(batch_size, self.nz)
 
     def train(self, data_loader, batch_size, validate, **kwargs):
         # Label vectors for loss function
@@ -61,15 +79,18 @@ class DCGAN(CombinedModel):
             if not validate:
                 self.d.zero_grad()
 
-            output = self.d(data, features)
+            output = self.d(data)  # comment
+            # output = self.d(data, features) # uncomment
             errD_real = self.BCE_loss(output, label_real)
 
             if not validate:
                 errD_real.backward()
 
             # train with fake
-            fake = self.g(noise, features)
-            output = self.d(fake.detach(), features)
+            fake = self.g(noise)  # comment
+            # fake = self.g(noise, features) # uncomment
+            output = self.d(fake.detach())  # comment
+            # output = self.d(fake.detach(), features) # uncomment
             errD_fake = self.BCE_loss(output, label_fake)
             if not validate:
                 errD_fake.backward()
@@ -83,7 +104,8 @@ class DCGAN(CombinedModel):
             ###########################
             if not validate:
                 self.g.zero_grad()
-            output = self.d(fake, features)
+            output = self.d(fake)  # comment
+            # output = self.d(fake, features) # uncomment
             errG = self.BCE_loss(output, label_real)
             if not validate:
                 errG.backward()
@@ -104,12 +126,14 @@ class DCGAN(CombinedModel):
 
         if not validate:
             log_info = {'loss': {'lossG': g_loss_summed,
-                                 'lossD': d_loss_summed,
-                                 'meanG': float(D_G_z1), 'meanD': float(D_G_z2)}}
+                                 'lossD': d_loss_summed},
+                        'loss/meanG': float(D_G_z1),
+                        'loss/meanD': float(D_G_z2)}
         else:
             log_info = {'loss': {'lossG_val': g_loss_summed,
-                                 'lossD_val': d_loss_summed,
-                                 'meanG_val': float(D_G_z1), 'meanD_val': float(D_G_z2)}}
+                                 'lossD_val': d_loss_summed},
+                        'loss/meanG/val': float(D_G_z1),
+                        'loss/meanD/val': float(D_G_z2)}
 
         return log_info, fake
 
@@ -122,7 +146,7 @@ class DCGAN(CombinedModel):
     def get_remaining_modules(self):
         return [self.G_optimizer, self.D_optimizer, self.BCE_loss]
 
-    def anonymize(self, x):
+    def anonymize(self, x, **kwargs):
         raise NotImplementedError
 
     def log_images(self, logger, epoch, images, validation=True):

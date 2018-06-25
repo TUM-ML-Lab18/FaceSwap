@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import face_recognition
+import json
 import io
 import numpy as np
 import requests
@@ -15,15 +16,11 @@ from Preprocessor.FaceExtractor import FaceExtractor
 class Evaluator:
 
     @staticmethod
-    def evaluate_model(config, decoder=2,
-                       model_folder='/nfs/students/summer-term-2018/project_2/models/128x128_merkel_klum_beschde',
-                       image_folder='/nfs/students/summer-term-2018/project_2/test_alex/',
-                       output_path='/nfs/students/summer-term-2018/project_2/test_alex/'):
+    def evaluate_model(config, model_folder, image_folder, output_path, save_json=True):
         """
         Evaluates a model by comparing input images with output images
         :param config: the model configuration
         :param model_folder: folder of the saved model
-        :param decoder: which decoder to use (1,2)
         :param image_folder: path images used to evaluate the model
         :param output_path: path where anonymized images should be stored
         :return: list of distances
@@ -31,9 +28,9 @@ class Evaluator:
 
         image_folder = Path(image_folder)
         output_path = Path(output_path)
-        model = config['model'](config['img_size'])
+        model = config.model(**config.model_params)
         model.load_model(Path(model_folder))
-        extractor = FaceExtractor(mask_type=np.float, margin=0.05, mask_factor=10)
+        extractor = FaceExtractor(margin=0.05, mask_factor=10)
 
         print("The authors of the package recommend 0.6 as max distance for the same person.")
         scores = {}
@@ -49,26 +46,25 @@ class Evaluator:
             if extracted_face is None:
                 print('Face could not be extracted')
                 continue
-            latent_information = model.img2latent_bridge(extracted_face, extracted_info, config['img_size'])
 
-            face_out = None
-            if decoder == 1:
-                face_out = model.anonymize(latent_information).squeeze(0)
-            else:
-                face_out = model.anonymize_2(latent_information).squeeze(0)
-
+            face_out = model.anonymize(extracted_face, extracted_info).squeeze(0)
             face_out = ToPILImage()(face_out.cpu().detach())
             face_out = face_out.resize(extracted_face.size, resample=BICUBIC)
 
             try:
                 face_out.save(output_path / ('anonymized_' + image_file.name.__str__()))
                 score, sim, emo = Evaluator.evaluate_image_pair(extracted_face, face_out)
-                scores[image_file] = {'score': score, 'sim': sim, 'emo': emo}
+                scores[image_file] = {'score': score, 'sim': sim, 'emo': emo, 'img': str(image_file.name)}
             except Exception as ex:
                 print(ex)
                 continue
 
             print('Current image score:', scores[image_file])
+
+        if save_json:
+            with open(output_path / 'scores.json', 'w') as f:
+                json.dump(scores, f)
+
         return scores
 
     @staticmethod

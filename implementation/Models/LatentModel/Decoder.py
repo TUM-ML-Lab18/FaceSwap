@@ -5,7 +5,14 @@ from Models.ModelUtils.ModelUtils import View, UpscaleBlockBlock, CustomModule
 
 
 class LatentDecoder(CustomModule):
+    """
+    It's the same decoder used in the deepfakes repository
+    """
+
     def __init__(self, input_dim):
+        """
+        :param input_dim: length of the latent input, i.e. 100
+        """
         super().__init__()
         self.ngpu = torch.cuda.device_count()
         self.sequ = nn.Sequential(nn.Linear(input_dim, 1024),
@@ -33,6 +40,9 @@ class LatentDecoder(CustomModule):
 
 class LatentReducedDecoder(CustomModule):
     def __init__(self, input_dim):
+        """
+        :param input_dim: length of the latent input, i.e. 100
+        """
         super().__init__()
         self.sequ = nn.Sequential(  # nn.Dropout(p=0.5),
             nn.Linear(input_dim, 512),
