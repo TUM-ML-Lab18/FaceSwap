@@ -12,7 +12,6 @@ class Discriminator(CustomModule):
         :param input_dim: Size of the input vectors
                           Tuple of integers - (W, H, C)
         :param ndf: Number of generator filters in the last conv layer
-                           TODO: Investigate relation to image size => Maybe ngf==W ?
         """
         super(Discriminator, self).__init__()
 
@@ -22,13 +21,15 @@ class Discriminator(CustomModule):
         self.ndf = ndf
         self.ngpu = torch.cuda.device_count()
         self.input_layer_dim = 32
+
+        # ========== Input image
         self.conv = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(self.C_in, ndf, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True)
         )
 
-        # ========== Input feature vector
+        # ========== Input self.conv output concatenated with feature vector
         self.main = nn.Sequential(
             # state size. (ndf + y_dim) x 32 x 32
             nn.Conv2d(ndf + self.y_dim, ndf * 2, 4, 2, 1, bias=False),
@@ -56,7 +57,6 @@ class Discriminator(CustomModule):
         :param y: Feature vector
         :return: Scalar
         """
-        # TODO: Make y_fill dynamic
         bs = x.shape[0]
         y_fill = y.view((bs, -1, 1, 1)).repeat((1, 1, self.input_layer_dim, self.input_layer_dim))
         if x.is_cuda and self.ngpu > 1:
@@ -67,5 +67,4 @@ class Discriminator(CustomModule):
             x = self.conv(x)
             x = torch.cat([x, y_fill], 1)
             x = self.main(x)
-
         return x

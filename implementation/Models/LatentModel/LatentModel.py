@@ -9,12 +9,25 @@ from Models.ModelUtils.ModelUtils import CombinedModel
 
 
 class LatentModel(CombinedModel):
-    def __init__(self, decoder):
-        self.decoder = decoder().cuda()
+    """
+    This model is designed to take some latent information as input and feed it through a generator.
+    The output of this generator is then compared with the corresponding image (that was used to extract that latent
+    information) via a L1 loss. This L1 loss is then used to update the parameters.
+    """
 
-        self.lossfn = torch.nn.L1Loss(size_average=True).cuda()
+    def __init__(self, **kwargs):
+        # the decoder aka generator
+        self.decoder = kwargs.get('decoder')()
+        lr = kwargs.get('lr', 1e-4)
 
-        self.optimizer = Adam(params=self.decoder.parameters(), lr=1e-4)
+        self.loss = torch.nn.L1Loss(size_average=True)
+
+        if torch.cuda.is_available():
+            self.cuda = True
+            self.decoder.cuda()
+            self.loss.cuda()
+
+        self.optimizer = Adam(params=self.decoder.parameters(), lr=lr)
         self.scheduler = ReduceLROnPlateau(self.optimizer, patience=100, cooldown=50)
 
     def train(self, train_data_loader, batch_size, validate, **kwargs):
@@ -26,14 +39,16 @@ class LatentModel(CombinedModel):
         current_epoch = kwargs.get('current_epoch', -1)
 
         for face, latent_information in train_data_loader:
-            face = face.cuda()
-            latent_information = latent_information.cuda()
+            if self.cuda:
+                face = face.cuda()
+                latent_information = latent_information.cuda()
 
             if not validate:
                 self.optimizer.zero_grad()
 
+            # just feed in the latent information and calculate the loss
             output = self.decoder(latent_information)
-            loss = self.lossfn(output, face)
+            loss = self.loss(output, face)
 
             if not validate:
                 loss.backward()
@@ -43,7 +58,6 @@ class LatentModel(CombinedModel):
             iterations += 1
 
         loss_mean /= iterations
-        loss_mean = loss_mean.cpu().data.numpy()
 
         if not validate:
             self.scheduler.step(loss_mean, current_epoch)
@@ -62,7 +76,7 @@ class LatentModel(CombinedModel):
         return ['decoder']
 
     def get_remaining_modules(self):
-        return [self.optimizer, self.scheduler, self.lossfn]
+        return [self.optimizer, self.scheduler, self.loss]
 
     def log_images(self, logger, epoch, images, validation=True):
 
@@ -101,6 +115,10 @@ class LowResModel(LatentModel):
 
 
 class RetrainLowResModel(LowResModel):
+    """
+    Just a simple model to retrain a LowResModel
+    """
+
     def __init__(self, decoder, model_path):
         super().__init__(decoder)
         self.load_model(model_path)

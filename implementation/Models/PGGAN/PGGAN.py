@@ -259,6 +259,10 @@ class PGGAN(CombinedModel):
     def calculate_gradient_penalty(self, real_data, fake_data, cur_level):
         """
         https://github.com/caogang/wgan-gp/
+        :param real_data: todo
+        :param fake_data: todo
+        :param cur_level: todo
+        :return:
         """
         # Interpolation between real & fake data
         alpha = torch.rand(self.batch_size, 1, 1, 1)
@@ -277,7 +281,7 @@ class PGGAN(CombinedModel):
                                    torch.ones(D_interpolate.size()),
                                    create_graph=True, retain_graph=True, only_inputs=True)[0]
 
-        _lambda = 10  # CelebA TF Code
+        _lambda = 10  # CelebA TF Code (NVIDIA PAPER)
         gradient_penalty = ((grad.norm(2, dim=1) - 1) ** 2).mean() * _lambda
 
         return gradient_penalty
