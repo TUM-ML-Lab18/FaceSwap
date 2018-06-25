@@ -146,8 +146,12 @@ class PGGAN(CombinedModel):
             # Train on real example with real features
             D_real = self.D(images, cur_level=cur_level)
 
+            # Epsilon loss => 4th loss term from Nvidia paper
+            eps_loss = D_real ** 2
+            eps_loss = 0.001 * eps_loss.mean()
+
             # Wasserstein Loss
-            D_real = -D_real.mean()
+            D_real = -D_real.mean() + eps_loss
             if not validate:
                 D_real.backward()
 
@@ -172,6 +176,7 @@ class PGGAN(CombinedModel):
             # Wasserstein loss
             D_loss = float(D_fake - D_real + gp)
             Wasserstein_D = float(D_real - D_fake)
+            eps_loss = float(eps_loss)
 
             if not validate:
                 self.D_optimizer.step()
@@ -209,6 +214,7 @@ class PGGAN(CombinedModel):
             log_info = {'loss': {'lossG': g_loss_summed,
                                  'lossD': d_loss_summed},
                         'info/WassersteinDistance': Wasserstein_D,
+                        'info/Eps_Loss': eps_loss,
                         'info/FadeInFactor': fade_in_factor,
                         'info/Level': self.resolution_level}
             log_img = G_fake
@@ -237,7 +243,7 @@ class PGGAN(CombinedModel):
                   'epochs in stage:', self.epochs_in_current_stage,
                   'batch size:', self.batch_size)
             max_level = int(np.log2(self.target_resolution)) - 1
-            if self.level == max_level:
+            if self.resolution_level == max_level:
                 # Additional stabilization
                 self.epochs_stage += self.epochs_stab
 
