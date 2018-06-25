@@ -100,7 +100,7 @@ class PGGAN(CombinedModel):
             train_data_loader = self.data_loader.get_train_data_loader()
 
         # sum the loss for logging
-        g_loss_summed, d_loss_summed = 0, 0
+        g_loss_summed, d_loss_summed, wasserstein_d_summed, eps_summed = 0, 0, 0, 0
         iterations = 0
 
         for images in train_data_loader:
@@ -146,8 +146,12 @@ class PGGAN(CombinedModel):
             # Train on real example with real features
             D_real = self.D(images, cur_level=cur_level)
 
+            # Epsilon loss => 4th loss term from Nvidia paper
+            eps_loss = D_real ** 2
+            eps_loss = 0.001 * eps_loss.mean()
+
             # Wasserstein Loss
-            D_real = -D_real.mean()
+            D_real = -D_real.mean() + eps_loss
             if not validate:
                 D_real.backward()
 
@@ -197,6 +201,8 @@ class PGGAN(CombinedModel):
             # losses
             g_loss_summed += G_loss
             d_loss_summed += D_loss
+            wasserstein_d_summed += Wasserstein_D
+            eps_summed += float(eps_loss)
             iterations += 1
 
             if not self.stabilization_phase and not validate:
@@ -206,9 +212,12 @@ class PGGAN(CombinedModel):
         if not validate:
             g_loss_summed /= iterations
             d_loss_summed /= iterations
+            wasserstein_d_summed /= iterations
+            eps_summed /= iterations
             log_info = {'loss': {'lossG': g_loss_summed,
                                  'lossD': d_loss_summed},
-                        'info/WassersteinDistance': Wasserstein_D,
+                        'info/WassersteinDistance': wasserstein_d_summed,
+                        'info/eps': eps_summed,
                         'info/FadeInFactor': fade_in_factor,
                         'info/Level': self.resolution_level}
             log_img = G_fake
