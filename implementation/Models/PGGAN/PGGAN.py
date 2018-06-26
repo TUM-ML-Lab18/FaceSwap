@@ -59,7 +59,8 @@ class PGGAN(CombinedModel):
         self.resolution_level = 1
 
         # the number of images shown to the network until completion of the fading phase
-        self.images_per_fading_phase = len(self.data_loader.get_train_data_loader()) * self.fading_epochs
+        self.images_per_fading_phase = (len(self.data_loader.get_train_data_loader()) * self.data_loader.batch_size *
+                                        self.fading_epochs)
         # current number of images shown to the network during fading phase
         self.images_faded_in = 0
         # indicates the current phase
