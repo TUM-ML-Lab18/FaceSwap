@@ -1,10 +1,11 @@
 from torch.distributions import MultivariateNormal
 
-from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_28_MEAN, ARRAY_CELEBA_LANDMARKS_28_COV
+from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_28_MEAN, ARRAY_CELEBA_LANDMARKS_28_COV, \
+    ARRAY_CELEBA_ULTRA_LOWRES_MEAN, ARRAY_CELEBA_ULTRA_LOWRES_COV
 from Models.ModelUtils.ModelUtils import norm_img
 from Models.PGGAN.PGGAN import PGGAN
 from Models.PGGAN.model import torch, np
-from Preprocessor.FaceExtractor import extract_landmarks
+from Preprocessor.FaceExtractor import extract_landmarks, extract_lowres
 
 
 class CPGGAN(PGGAN):
@@ -182,10 +183,14 @@ class CPGGAN(PGGAN):
         landmarks = landmarks.reshape(-1)
         # Extract needed landmarks
         landmarks = extract_landmarks(landmarks, n=28)
+        landmarks = torch.from_numpy(landmarks).type(torch.float32)
+
+        # ===== LowRes
+        lowres = extract_lowres(extracted_face, resolution=4)
+        lowres = torch.from_numpy(lowres).type(torch.float32)
 
         # ===== Creating feature vector
-        feature = landmarks
-        feature = torch.from_numpy(feature).type(torch.float32)
+        feature = torch.cat([landmarks, lowres], 1)
 
         # ===== Zero centering
         feature -= 0.5
