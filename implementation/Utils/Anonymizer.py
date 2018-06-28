@@ -8,6 +8,10 @@ from Preprocessor.FaceReconstructor import FaceReconstructor
 
 
 class Anonymizer:
+    """
+    This class is used to load a model with its corresponding config, an extractor and a reconstructor to anonymize an
+    incoming image
+    """
     def __init__(self, model_folder: str, config, video_mode=False, post_sharp=True) -> None:
         """
         :param model_folder: Path to models folder.

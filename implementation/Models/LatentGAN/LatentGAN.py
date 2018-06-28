@@ -135,7 +135,7 @@ class LatentGAN(CombinedModel):
         normalized = unnormalized / 2.0 + 0.5
         return normalized
 
-    def get_models(self):
+    def get_modules(self):
         return [self.discriminator, self.decoder]
 
     def get_model_names(self):

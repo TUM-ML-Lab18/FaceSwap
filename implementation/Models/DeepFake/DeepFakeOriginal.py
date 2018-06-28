@@ -68,7 +68,7 @@ class DeepFakeOriginal(CombinedModel):
                 self.optimizer1.step()
 
             ############################
-            # (1) train the second autoencoder
+            # (2) train the second autoencoder
             ###########################
 
             if not validate:
@@ -100,7 +100,7 @@ class DeepFakeOriginal(CombinedModel):
 
         return log_info, [face1_warped, output1, face1, face2_warped, output2, face2]
 
-    def get_models(self):
+    def get_modules(self):
         return [self.encoder, self.decoder1, self.decoder2]
 
     def get_model_names(self):

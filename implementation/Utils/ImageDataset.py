@@ -12,7 +12,13 @@ from Preprocessor.Transforms import RandomWarp, TupleToTensor, TupleResize
 
 
 class ImageDatesetCombined(Dataset):
+    """
+    Special dataset class used for the deepfakes approach
+    internally it uses two ImageFolders with the two persons but returns one batch containing data for both autoencoders
+    """
+
     def __init__(self, root_folder: Path, size_multiplicator=1, img_size=(64, 64)):
+        # use this if your dataset is too little for the batchsize
         self.size_multiplicator = size_multiplicator
 
         self.random_transforms = transforms.Compose([
@@ -113,6 +119,10 @@ class ImageFeatureDataset(Dataset):
 
 
 class ProgressiveFeatureDataset(Dataset):
+    """
+    Adds progressiveness to the ImageFeatureDataset by loading a higher resolution if needed
+    """
+
     def __init__(self, paths_to_feature_arrays, initial_resolution=2):
         """
         :param initial_resolution: 2^initial_resolution = width(image)

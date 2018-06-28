@@ -171,7 +171,7 @@ class CGAN(CombinedModel):
 
         return log_info, log_img
 
-    def get_models(self):
+    def get_modules(self):
         return [self.G, self.D]
 
     def get_model_names(self):

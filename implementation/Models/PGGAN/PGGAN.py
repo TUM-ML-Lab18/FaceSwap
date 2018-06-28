@@ -83,7 +83,7 @@ class PGGAN(CombinedModel):
         self.noise = RandomNoiseGenerator(self.latent_size - self.feature_size, 'gaussian')
         self.static_noise = self.noise(self.batch_size)
 
-    def get_models(self):
+    def get_modules(self):
         return [self.G, self.D]
 
     def get_model_names(self):
