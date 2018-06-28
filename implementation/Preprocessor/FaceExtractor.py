@@ -305,8 +305,8 @@ def extract_28_landmarks(landmarks_array):
     # Nose
     nose_X, nose_Y = np.mean(landmarks_X[:, 31:36], axis=1)[:, None], np.mean(landmarks_Y[:, 31:36], axis=1)[:, None]
     # Mouth
-    mouth_X, mouth_Y = landmarks_X[:, [48, 50, 52, 56, 58, 60, 62, 64, 68, 70]], \
-                       landmarks_Y[:, [48, 50, 52, 56, 58, 60, 62, 64, 68, 70]]
+    mouth_X, mouth_Y = (landmarks_X[:, [48, 50, 52, 56, 58, 60, 62, 64, 68, 70]],
+                        landmarks_Y[:, [48, 50, 52, 56, 58, 60, 62, 64, 68, 70]])
 
     # Unify X & Y coordinates
     landmarks_28_X = np.hstack((right_eye_X, left_eye_X, face_contour_X, nose_X, mouth_X))
@@ -624,15 +624,15 @@ class FaceAligner(object):
         return Rotation(angle=angle, center=tuple(center))
 
     @staticmethod
-    def apply_rotation(image, R):
+    def apply_rotation(image, rot_matrix):
         """
         Apply the given rotation to the image
         :param image: np.array / cv2 image
-        :param R: cv2 rotation matrix
+        :param rot_matrix: cv2 rotation matrix
         :return: The rotated image
         """
         H, W = image.shape[:2]
-        return cv2.warpAffine(image, R, (W, H))
+        return cv2.warpAffine(image, rot_matrix, (W, H))
 
 
 class FaceCropperFine(object):
