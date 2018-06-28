@@ -8,20 +8,21 @@ CAR = '/nfs/students/summer-term-2018/project_2/data/YT_CAR_DRIVING/'
 MEGA_MERKEL_TRUMP = "/nfs/students/summer-term-2018/project_2/data/MEGA_Merkel_Trump"
 SIMONE_MERKEL = "/nfs/students/summer-term-2018/project_2/data/Simone_Merkel"
 
-
-# ==================================================
-# =====
-# ===== Set here the directory you want to use
-# =====
-# ==================================================
-ROOT = Path(CELEBA)
-
 # Preprocessing
 CONVERTER_BASE = "/nfs/students/summer-term-2018/project_2/data/converter"
 CONVERTER_INPUT = "/test_converter_images"
 CONVERTER_OUTPUT = "/converter_output"
 IMAGE_DOWNLOADER = "/nfs/students/summer-term-2018/project_2/data/ImageDownloader"
 VIDEO_DOWNLOADER = "/nfs/students/summer-term-2018/project_2/data/VideoDownloader"
+
+
+# ==================================================
+# =====
+# ===== Set here the directory you want to use
+# =====
+# ==================================================
+DATASET = "/path_to/dataset"
+ROOT = Path(CELEBA)
 
 # ===== Settings for preprocessing
 RESOLUTIONS = [2, 4, 8, 16, 32, 64, 128]
