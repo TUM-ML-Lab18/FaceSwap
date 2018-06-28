@@ -5,7 +5,7 @@ from Models.PGGAN.model import Generator, Discriminator, torch, np
 
 
 class PGGAN(CombinedModel):
-    def __init__(self, **kwargs):
+    def __init__(self, eval_mode=False, **kwargs):
         # the data loader is used to change resolution of input images
         self.data_loader = kwargs.get('data_loader', None)
         if self.data_loader is None:
@@ -58,9 +58,11 @@ class PGGAN(CombinedModel):
         # 4x4   8x8     16x16   32x32   64x64   128x128
         self.resolution_level = 1
 
-        # the number of images shown to the network until completion of the fading phase
-        self.images_per_fading_phase = (len(self.data_loader.get_train_data_loader()) * self.data_loader.batch_size *
-                                        self.fading_epochs)
+        if not eval_mode:
+            # the number of images shown to the network until completion of the fading phase
+            self.images_per_fading_phase = (
+                    len(self.data_loader.get_train_data_loader()) * self.data_loader.batch_size *
+                    self.fading_epochs)
         # current number of images shown to the network during fading phase
         self.images_faded_in = 0
         # indicates the current phase

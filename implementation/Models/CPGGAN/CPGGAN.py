@@ -197,7 +197,7 @@ class CPGGAN(PGGAN):
         feature *= 2.0
 
         # ===== Create input vector & move to GPU
-        input_vec = torch.cat([self.anonymization_noise, feature], 1)
+        input_vec = torch.cat([self.noise(1), feature], 1)
         if self.cuda:
             input_vec = input_vec.cuda()
 

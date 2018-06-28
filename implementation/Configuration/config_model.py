@@ -161,7 +161,7 @@ class PGGAN_CONFIG(GAN_CONFIG):
 
 class CPGGAN_CONFIG(PGGAN_CONFIG):
     model = CPGGAN
-    model_params = {'feature_size': 2 * 28,
+    model_params = {'feature_size': 2 * 28 + 3 * 4 * 4,
                     'lm_mean': ARRAY_CELEBA_LANDMARKS_28_MEAN,
                     'lm_cov': ARRAY_CELEBA_LANDMARKS_28_COV,
                     }
@@ -173,4 +173,10 @@ class CPGGAN_CONFIG(PGGAN_CONFIG):
         return ProgressiveFeatureDataset(ARRAY_CELEBA_LANDMARKS_28, initial_resolution=2)
 
 
-current_config = LowResConfig
+class CPGGAN_CONFIG_EVAL(CPGGAN_CONFIG):
+    model_params = {'eval_mode': True,
+                    'data_loader': 1}
+    model_params.update(CPGGAN_CONFIG.model_params)
+
+
+current_config = CPGGAN_CONFIG_EVAL
