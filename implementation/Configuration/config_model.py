@@ -55,8 +55,8 @@ class LowResConfig(Config):
 
     @staticmethod
     def data_set():
-        return ImageFeatureDataset(ARRAY_CELEBA_IMAGES_128,
-                                   [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_LOWRES])
+        return ImageFeatureDataset(ARRAY_IMAGES_128,
+                                   [ARRAY_LANDMARKS, ARRAY_LOWRES_8])
 
 
 class RetrainConfig(LowResConfig):
@@ -64,8 +64,8 @@ class RetrainConfig(LowResConfig):
     model_params = {'model_path': '/nfs/students/summer-term-2018/project_2/models/latent_model/model',
                     }
     model_params.update(LowResConfig.model_params)
-    dataset = lambda: ImageFeatureDataset(ARRAY_CAR_IMAGES_128,
-                                          [ARRAY_CAR_LANDMARKS, ARRAY_CAR_LOWRES])
+    dataset = lambda: ImageFeatureDataset(ARRAY_IMAGES_128,
+                                          [ARRAY_LANDMARKS, ARRAY_LOWRES_8])
 
 
 class GAN_CONFIG(Config):
@@ -88,13 +88,13 @@ class CGAN_CONFIG(GAN_CONFIG):
                     'lrD': 0.00005,
                     'beta1': 0.5,
                     'beta2': 0.999,
-                    'lm_mean': ARRAY_CELEBA_LANDMARKS_28_MEAN,
-                    'lm_cov': ARRAY_CELEBA_LANDMARKS_28_COV,
+                    'lm_mean': ARRAY_LANDMARKS_28_MEAN,
+                    'lm_cov': ARRAY_LANDMARKS_28_COV,
                     }
 
     @staticmethod
     def data_set():
-        return ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, [ARRAY_CELEBA_LANDMARKS_28, ])
+        return ImageFeatureDataset(ARRAY_IMAGES_64, [ARRAY_LANDMARKS_28, ])
 
 
 class LGAN_CONFIG(GAN_CONFIG):
@@ -111,7 +111,7 @@ class LGAN_CONFIG(GAN_CONFIG):
 
     @staticmethod
     def data_set():
-        return ImageFeatureDataset(ARRAY_CELEBA_IMAGES_128, [ARRAY_CELEBA_LANDMARKS, ARRAY_CELEBA_LOWRES])
+        return ImageFeatureDataset(ARRAY_IMAGES_128, [ARRAY_LANDMARKS, ARRAY_LOWRES_8])
 
 
 class DCGAN_CONFIG(GAN_CONFIG):
@@ -129,7 +129,7 @@ class DCGAN_CONFIG(GAN_CONFIG):
 
     @staticmethod
     def data_set():
-        return ImageFeatureDataset(ARRAY_CELEBA_IMAGES_64, ARRAY_CELEBA_LANDMARKS_5)
+        return ImageFeatureDataset(ARRAY_IMAGES_64, ARRAY_LANDMARKS_5)
 
 
 class PGGAN_CONFIG(GAN_CONFIG):
@@ -140,7 +140,9 @@ class PGGAN_CONFIG(GAN_CONFIG):
     max_level = int(np.log2(target_resolution)) - 1
     epochs_fade = 4
     epochs_stab = 4
-    max_epochs = max_level * epochs_stab + (max_level - 1) * epochs_fade
+    # No fading on first layer
+    # Additional stabilization at the end
+    max_epochs = (max_level + 1) * epochs_stab + (max_level - 1) * epochs_fade
     model_params = {'target_resolution': target_resolution,
                     'latent_size': 512,
                     'lrG': 0.001,
@@ -162,15 +164,17 @@ class PGGAN_CONFIG(GAN_CONFIG):
 class CPGGAN_CONFIG(PGGAN_CONFIG):
     model = CPGGAN
     model_params = {'feature_size': 2 * 28 + 3 * 4 * 4,
-                    'lm_mean': ARRAY_CELEBA_LANDMARKS_28_MEAN,
-                    'lm_cov': ARRAY_CELEBA_LANDMARKS_28_COV,
+                    'lm_mean': ARRAY_LANDMARKS_28_MEAN,
+                    'lm_cov': ARRAY_LANDMARKS_28_COV,
+                    'lr_mean': ARRAY_LOWRES_4_MEAN,
+                    'lr_cov': ARRAY_LOWRES_4_COV
                     }
     model_params.update(PGGAN_CONFIG.model_params)
-    model_params['latent_size'] = 512 + 128
+    model_params['latent_size'] = 512
 
     @staticmethod
     def data_set():
-        return ProgressiveFeatureDataset(ARRAY_CELEBA_LANDMARKS_28, initial_resolution=2)
+        return ProgressiveFeatureDataset(ARRAY_LANDMARKS_28, initial_resolution=2)
 
 
 class CPGGAN_CONFIG_EVAL(CPGGAN_CONFIG):

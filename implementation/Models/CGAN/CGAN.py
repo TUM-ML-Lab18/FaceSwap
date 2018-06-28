@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import MultivariateNormal
 
-from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_28_MEAN, ARRAY_CELEBA_LANDMARKS_28_COV
+from Configuration.config_general import ARRAY_LANDMARKS_28_MEAN, ARRAY_LANDMARKS_28_COV
 from Models.CGAN.Discriminator import Discriminator
 from Models.CGAN.Generator import Generator
 from Models.ModelUtils.ModelUtils import CombinedModel, norm_img
@@ -22,8 +22,8 @@ class CGAN(CombinedModel):
         self.z_dim = kwargs.get('z_dim', 100)
         self.y_dim = kwargs.get('y_dim', 10)
         self.img_dim = kwargs.get('img_dim', (64, 64, 3))
-        path_to_lm_mean = kwargs.get('lm_mean', ARRAY_CELEBA_LANDMARKS_28_MEAN)
-        path_to_lm_cov = kwargs.get('lm_cov', ARRAY_CELEBA_LANDMARKS_28_COV)
+        path_to_lm_mean = kwargs.get('lm_mean', ARRAY_LANDMARKS_28_MEAN)
+        path_to_lm_cov = kwargs.get('lm_cov', ARRAY_LANDMARKS_28_COV)
         ngf = kwargs.get('ngf', 64)
         ndf = kwargs.get('ndf', 64)
         lrG = kwargs.get('lrG', 0.0002)

@@ -188,6 +188,19 @@ def update_landmarks(landmarks_dict, transformation):
         landmarks_dict[feature] = landmarks
 
 
+def normalize_landmarks(extracted_information):
+    """
+    Normalize the landmarks with the size of the image
+    After normalization all landmarks lie between [0-1]
+    :param extracted_information: Extracted information provided by FaceExtractor module
+    :return: Normalized landmarks
+    """
+    landmarks_normalized = np.array(extracted_information.landmarks) / extracted_information.size_fine
+    landmarks_normalized = landmarks_normalized.reshape(-1)
+
+    return landmarks_normalized
+
+
 def extract_landmarks(landmarks_array, n=28):
     """
     Extracts n handcrafted landmarks from an array with all landmarks

@@ -1,7 +1,7 @@
 from torch.distributions import MultivariateNormal
 
-from Configuration.config_general import ARRAY_CELEBA_LANDMARKS_28_MEAN, ARRAY_CELEBA_LANDMARKS_28_COV, \
-    ARRAY_CELEBA_ULTRA_LOWRES_MEAN, ARRAY_CELEBA_ULTRA_LOWRES_COV
+from Configuration.config_general import ARRAY_LANDMARKS_28_MEAN, ARRAY_LANDMARKS_28_COV, \
+    ARRAY_LOWRES_4_MEAN, ARRAY_LOWRES_4_COV
 from Models.ModelUtils.ModelUtils import norm_img
 from Models.PGGAN.PGGAN import PGGAN
 from Models.PGGAN.model import torch, np
@@ -16,10 +16,10 @@ class CPGGAN(PGGAN):
     def __init__(self, **kwargs):
         super(CPGGAN, self).__init__(**kwargs)
         # path to numpy arrays containing the calculated mean and cov matrices for calculating a multivariate gaussian
-        path_to_lm_mean = kwargs.get('lm_mean', ARRAY_CELEBA_LANDMARKS_28_MEAN)
-        path_to_lm_cov = kwargs.get('lm_cov', ARRAY_CELEBA_LANDMARKS_28_COV)
-        path_to_lr_mean = kwargs.get('lr_mean', ARRAY_CELEBA_ULTRA_LOWRES_MEAN)
-        path_to_lr_cov = kwargs.get('lr_cov', ARRAY_CELEBA_ULTRA_LOWRES_COV)
+        path_to_lm_mean = kwargs.get('lm_mean', ARRAY_LANDMARKS_28_MEAN)
+        path_to_lm_cov = kwargs.get('lm_cov', ARRAY_LANDMARKS_28_COV)
+        path_to_lr_mean = kwargs.get('lr_mean', ARRAY_LOWRES_4_MEAN)
+        path_to_lr_cov = kwargs.get('lr_cov', ARRAY_LOWRES_4_COV)
 
         # ==================================================
         # Currently only preparation for extensions
