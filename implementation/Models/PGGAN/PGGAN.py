@@ -1,7 +1,7 @@
 from torch import optim
 
 from Models.ModelUtils.ModelUtils import CombinedModel, RandomNoiseGenerator
-from Models.PGGAN.model import Generator, Discriminator, torch
+from Models.PGGAN.model import Generator, Discriminator, torch, np
 
 
 class PGGAN(CombinedModel):
@@ -59,7 +59,8 @@ class PGGAN(CombinedModel):
         self.resolution_level = 1
 
         # the number of images shown to the network until completion of the fading phase
-        self.images_per_fading_phase = len(self.data_loader.get_train_data_loader()) * self.fading_epochs
+        self.images_per_fading_phase = (len(self.data_loader.get_train_data_loader()) * self.data_loader.batch_size *
+                                        self.fading_epochs)
         # current number of images shown to the network during fading phase
         self.images_faded_in = 0
         # indicates the current phase
@@ -245,6 +246,10 @@ class PGGAN(CombinedModel):
             print('Scheduling... level update, level:', self.resolution_level,
                   'epochs in stage:', self.epochs_in_current_stage,
                   'batch size:', self.batch_size)
+            max_level = int(np.log2(self.target_resolution)) - 1
+            if self.resolution_level == max_level:
+                # Additional stabilization
+                self.epochs_stage += self.epochs_stab
 
         if self.epochs_in_current_stage < self.fading_epochs:
             # Fade in

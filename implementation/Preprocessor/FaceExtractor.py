@@ -310,7 +310,7 @@ def extract_lowres(image, resolution=8):
     :param resolution: Resolution of the pixelmap
     :return: np.array with lowres feature
     """
-    lowres = np.array(image.resize((resolution, resolution)), resample=Image.BILINEAR)
+    lowres = np.array(image.resize((resolution, resolution), resample=Image.BILINEAR))
     lowres = lowres.transpose((2, 0, 1))
     lowres = lowres.reshape((-1, 3 * resolution * resolution))
     lowres = lowres.astype(np.float32)
