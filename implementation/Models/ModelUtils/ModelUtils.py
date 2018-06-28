@@ -7,6 +7,11 @@ import torch.nn as nn
 
 
 class CustomModule(nn.Module):
+    """
+    Use this custom module class in combination with the combined model class below to enable auto loading and saving.
+    You can use this class just like a normal nn.Module.
+    """
+
     @abstractmethod
     def forward(self, *input):
         raise NotImplementedError
@@ -51,6 +56,16 @@ class CustomModule(nn.Module):
 
 
 class CombinedModel(metaclass=ABCMeta):
+    """
+    Use this abstract class for your whole model for integration in our framework.
+    This enables:
+        auto save/load
+        logging of the architecture
+        logging of images
+        logging of losses and other values
+        automatic validation/train mode
+    """
+
     @abstractmethod
     def get_models(self):
         raise NotImplementedError
@@ -207,7 +222,6 @@ class UpscaleBlock(nn.Module):
                               padding=(kernel_size - 1) // 2)
         self.leaky = nn.LeakyReLU(negative_slope=0.1,
                                   inplace=True)
-        # TODO: Compare pixelshuffle from FaceSwap to the one from PyTorch
         self.pixel_shuffle = nn.PixelShuffle(2)
 
     def forward(self, x):
@@ -246,6 +260,10 @@ class View(nn.Module):
 
 
 class ConvBlockBlock(nn.Sequential):
+    """
+    Just a wrapper arround the ConvBlock to stack multiples blocks
+    """
+
     def __init__(self, channels_in, num_channels_first_layer=128, depth=4):
         block_list = [ConvBlock(channels_in, num_channels_first_layer)]
         for i in range(1, depth):
@@ -255,6 +273,10 @@ class ConvBlockBlock(nn.Sequential):
 
 
 class UpscaleBlockBlock(nn.Sequential):
+    """
+    Just a wrapper arround the UpscaleBlock to stack multiples blocks
+    """
+
     def __init__(self, channels_in, num_channels_first_layer=256, depth=3):
         block_list = [UpscaleBlock(channels_in, num_channels_first_layer)]
         for i in range(1, depth):
@@ -264,6 +286,11 @@ class UpscaleBlockBlock(nn.Sequential):
 
 
 class RandomNoiseGenerator:
+    """
+    This class can be used to generate gaussian and uniform noise directly as tensor with the correct batchsize
+    https://github.com/github-pengge/PyTorch-progressive_growing_of_gans/blob/master/utils/data.py
+    """
+
     def __init__(self, size, noise_type='gaussian'):
         self.size = size
         self.noise_type = noise_type.lower()
@@ -275,6 +302,11 @@ class RandomNoiseGenerator:
             self.generator = lambda s: np.random.uniform(-1, 1, size=s)
 
     def __call__(self, batch_size):
+        """
+        returns random tensor
+        :param batch_size: the size of the resulting random tensor
+        :return: random float32 tensor
+        """
         return torch.from_numpy(self.generator([batch_size, self.size]).astype(np.float32))
 
 

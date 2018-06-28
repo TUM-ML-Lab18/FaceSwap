@@ -4,6 +4,9 @@ from torch.nn import Module
 
 
 class AutoEncoder(Module):
+    """
+    This class is just a wrapper around a encoder and decoder
+    """
 
     def __init__(self, encoder, decoder):
         super().__init__()

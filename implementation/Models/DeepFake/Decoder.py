@@ -1,10 +1,14 @@
-import torch
 import torch.nn as nn
 
 from Models.ModelUtils.ModelUtils import UpscaleBlockBlock, CustomModule
 
 
 class Decoder(CustomModule):
+    """
+    This is just a simple decoder with some upscaling convolutions.
+    The last layer ends with a sigmoid to compress the output between 0 and 1 for a RGB image.
+    """
+
     def __init__(self, input_dim, num_convblocks=3):
         """
         Initialize a new decoder network.
