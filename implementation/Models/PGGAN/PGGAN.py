@@ -1,7 +1,7 @@
 from torch import optim
 
 from Models.ModelUtils.ModelUtils import CombinedModel, RandomNoiseGenerator
-from Models.PGGAN.model import Generator, Discriminator, torch, np
+from Models.PGGAN.model import Generator, Discriminator, torch
 
 
 class PGGAN(CombinedModel):
@@ -61,7 +61,7 @@ class PGGAN(CombinedModel):
         if not eval_mode:
             # the number of images shown to the network until completion of the fading phase
             self.images_per_fading_phase = (
-                    len(self.data_loader.get_train_data_loader()) * self.data_loader.batch_size *
+                    (len(self.data_loader.get_train_data_loader()) + 1) * self.data_loader.batch_size *
                     self.fading_epochs)
         # current number of images shown to the network during fading phase
         self.images_faded_in = 0
@@ -74,7 +74,6 @@ class PGGAN(CombinedModel):
 
         # batch sizes for each level | be careful with changing them independent from the learning rate | original prams
         # from the paper
-        # todo: what happens with the batchsize if using multiple gpus? maybe we should fix this
         self.batch_size_schedule = kwargs.get('batch_size_schedule',
                                               {1: 64, 2: 64, 3: 64, 4: 64, 5: 16, 6: 16})
         # current batch size is just the current levels batch size
@@ -125,7 +124,6 @@ class PGGAN(CombinedModel):
                 fade_in_factor = self.images_faded_in / self.images_per_fading_phase
                 cur_level = self.resolution_level - 1 + (
                     fade_in_factor if fade_in_factor != 0 else 1e-10)  # FuckUp implementation...
-
             # differentiate between validation and training
             if validate:
                 # for validation use always the same noise -> you can see how the face gets better in the tensorboard
@@ -222,7 +220,8 @@ class PGGAN(CombinedModel):
                         'info/WassersteinDistance': wasserstein_d_summed,
                         'info/eps': eps_summed,
                         'info/FadeInFactor': fade_in_factor,
-                        'info/Level': self.resolution_level}
+                        'info/Level': self.resolution_level,
+                        'info/curr_level': cur_level}
             log_img = G_fake
         else:
             log_info = {}
@@ -248,10 +247,6 @@ class PGGAN(CombinedModel):
             print('Scheduling... level update, level:', self.resolution_level,
                   'epochs in stage:', self.epochs_in_current_stage,
                   'batch size:', self.batch_size)
-            max_level = int(np.log2(self.target_resolution)) - 1
-            if self.resolution_level == max_level:
-                # Additional stabilization
-                self.epochs_stage += self.epochs_stab
 
         if self.epochs_in_current_stage < self.fading_epochs:
             # Fade in

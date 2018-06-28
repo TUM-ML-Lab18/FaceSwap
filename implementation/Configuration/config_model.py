@@ -134,7 +134,7 @@ class DCGAN_CONFIG(GAN_CONFIG):
 
 class PGGAN_CONFIG(GAN_CONFIG):
     model = PGGAN
-    target_resolution = 64
+    target_resolution = 128
     if not np.log2(target_resolution).is_integer():
         raise ValueError
     max_level = int(np.log2(target_resolution)) - 1
@@ -179,4 +179,4 @@ class CPGGAN_CONFIG_EVAL(CPGGAN_CONFIG):
     model_params.update(CPGGAN_CONFIG.model_params)
 
 
-current_config = CPGGAN_CONFIG_EVAL
+current_config = PGGAN_CONFIG

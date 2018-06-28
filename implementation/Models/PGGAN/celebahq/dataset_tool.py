@@ -5,19 +5,19 @@
 # http://creativecommons.org/licenses/by-nc/4.0/ or send a letter to
 # Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 
+import argparse
+import glob
 import os
 import sys
-import glob
-import argparse
 import threading
-import six.moves.queue as Queue
 import traceback
-import numpy as np
-import tensorflow as tf
-import PIL.Image
 
-import tfutil
+import PIL.Image
+# import tfutil
 import dataset
+import numpy as np
+import six.moves.queue as Queue
+import tensorflow as tf
 
 
 # ----------------------------------------------------------------------------
@@ -472,6 +472,7 @@ def create_celeba(tfrecord_dir, celeba_dir, cx=89, cy=121):
 def create_celebahq(tfrecord_dir, celeba_dir, delta_dir, num_threads=4, num_tasks=100):
     print('Loading CelebA from "%s"' % celeba_dir)
     expected_images = 202599
+    print(len(glob.glob(os.path.join(celeba_dir, 'img_celeba', '*.jpg'))))
     if len(glob.glob(os.path.join(celeba_dir, 'img_celeba', '*.jpg'))) != expected_images:
         error('Expected to find %d images' % expected_images)
     with open(os.path.join(celeba_dir, 'Anno', 'list_landmarks_celeba.txt'), 'rt') as file:
