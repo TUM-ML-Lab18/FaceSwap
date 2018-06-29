@@ -13,14 +13,19 @@ class FaceReconstructor(object):
     4. Invert coarse cropping of the ROI
     """
 
-    def __init__(self, mask_factor=-10, sharpening=True):
+    def __init__(self, mask_factor=-10, postprocessing='blur'):
         """
         :param mask_factor: Increase or decrease region to insert
-        :param sharpening: Enable sharpening
+        :param postprocessing: Enable sharpening or blurring
+                    * None: No postprocessing
+                    * 'blur': blur image
+                    * 'sharp': sharpen image
         """
-        self.sharpening = sharpening
-        if self.sharpening:
+        self.postprocessing = postprocessing
+        if self.postprocessing == 'sharp':
             self.face_sharpener = FaceSharpener()
+        if self.postprocessing == 'blur':
+            self.face_blurer = FaceBlurer()
         self.face_decropper_fine = FaceDecropperFine()
         self.face_dealigner = FaceDealigner()
         self.face_demasker = FaceDemasker(mask_factor)
@@ -50,11 +55,13 @@ class FaceReconstructor(object):
         original_image = np.array(extraction_information.image_original)
         coarse_cropped_image = np.array(extraction_information.image_cropped)
 
-        if self.sharpening:
-            sharpened_image = self.face_sharpener(processed_image)
+        if self.postprocessing == 'sharp':
+            post_processed_image = self.face_sharpener(processed_image)
+        elif self.postprocessing == 'blur':
+            post_processed_image = self.face_blurer(processed_image)
         else:
-            sharpened_image = processed_image
-        decropped_image = self.face_decropper_fine(sharpened_image,
+            post_processed_image = processed_image
+        decropped_image = self.face_decropper_fine(post_processed_image,
                                                    extraction_information.bounding_box_fine,
                                                    extraction_information.offsets_fine,
                                                    extraction_information.size_coarse)
@@ -94,6 +101,32 @@ class FaceSharpener(object):
         L_sharp = cv2.addWeighted(L_blur, -1, L, 2, 0)
         # Substitute L channel with sharpened L channel
         image[:, :, 0] = L_sharp
+        image = cv2.cvtColor(image, cv2.COLOR_Lab2RGB)
+
+        return image
+
+
+class FaceBlurer(object):
+    """
+    Blur the given image
+    Blur via gaussian filtering on the
+    L channel of the image in the CIELab color space
+    """
+
+    def __init__(self, blur_factor=1):
+        """
+        :param blur_factor: Blurring degree
+        """
+        self.blur_factor = blur_factor
+
+    def __call__(self, image):
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2Lab)
+        # Extract L channel
+        L = image[:, :, 0]
+        # Gaussian blurring
+        L_blur = cv2.GaussianBlur(L, (0, 0), self.blur_factor)
+        # Substitute L channel with blurred L channel
+        image[:, :, 0] = L_blur
         image = cv2.cvtColor(image, cv2.COLOR_Lab2RGB)
 
         return image
