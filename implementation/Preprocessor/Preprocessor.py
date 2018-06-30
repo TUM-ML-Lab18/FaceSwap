@@ -34,6 +34,7 @@ class Preprocessor:
         # Check root path
         if not RAW_FOLDER.exists():
             raise FileNotFoundError('No RAW folder with images to process: ' + str(RAW_FOLDER))
+        print('Processing folder:', str(ROOT))
         # Check preprocessed folders
         PREPROCESSED_FOLDER.mkdir(exist_ok=True)
         for size in RESOLUTIONS:
@@ -140,10 +141,11 @@ class Preprocessor:
 
         # ===== Images in different resolutions and lowres pixel maps
         for size in RESOLUTIONS:
+            print(size)
             subdir_res = ROOT / (PREPROCESSED + str(size))
             data = np.array([np.array(Image.open(fname)) for fname in subdir_res.iterdir()])
             data = data.transpose((0, 3, 1, 2))
-            np.save(ROOT / ('data' + str(size) + '.npy'), data)
+            np.save(ROOT / ('images' + str(size) + '.npy'), data)
             if size in LOW_RESOLUTIONS:
                 lowres = data.reshape((-1, 3 * size * size)) / 255.0
                 lowres = lowres.astype(np.float32)
