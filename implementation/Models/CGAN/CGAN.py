@@ -48,21 +48,27 @@ class CGAN(CombinedModel):
         self.distribution_landmarks = MultivariateNormal(loc=self.landmarks_mean.type(torch.float64),
                                                          covariance_matrix=self.landmarks_cov.type(torch.float64))
 
-        # Fixed noise for validation
+        # Fixed noise for anonymization
         self.anonym_noise = torch.randn((1, self.z_dim))
+        # Fixed noise for validation
+        n_val_samples = 64
+        self.static_noise = torch.randn((n_val_samples, self.z_dim))
+        self.static_landmarks = 2 * (self.distribution_landmarks.sample((n_val_samples,)).type(torch.float32) - 0.5)
 
         if torch.cuda.is_available():
             self.cuda = True
             self.G.cuda()
             self.D.cuda()
             self.BCE_loss.cuda()
+            self.static_noise = self.static_noise.cuda()
+            self.static_landmarks = self.static_landmarks.cuda()
 
     def train(self, data_loader, batch_size, validate, **kwargs):
         current_epoch = kwargs.get('current_epoch', 100)
 
         # Instance noise annealing scheme
         # http://www.inference.vc/instance-noise-a-trick-for-stabilising-gan-training/
-        # shouldn't be necessary for wasserstein distance
+        # shouldn't be necessary for wasserstein distance => Wasserstein distance currently only in C-PGGAN implemented
         if 0 <= current_epoch < 10:
             instance_noise_factor = 1 - (current_epoch - 0) * (1 - 0.25) / 10
         elif 10 <= current_epoch < 20:
@@ -80,93 +86,77 @@ class CGAN(CombinedModel):
         for images, features in data_loader:
             # Label vectors for loss function
             label_real, label_fake = (torch.ones(batch_size, 1, 1, 1), torch.zeros(batch_size, 1, 1, 1))
-            # generate random vector
-            z = torch.randn((batch_size, self.z_dim))
-            # TODO: RuntimeError: Lapack Error in potrf : the leading minor of order 122 is not
-            # TODO: positive definite at /pytorch/aten/src/TH/generic/THTensorLapack.c:617
-            # => Works for 28 landmarks
-            landmarks_gen = self.distribution_landmarks.sample((batch_size,)).type(torch.float32)
+            # differentiate between validation and training
+            if validate:
+                noise = self.static_noise
+                features = self.static_landmarks
+                generated_images = self.G(noise, features)
+                break
+            else:
+                noise = torch.randn((batch_size, self.z_dim))
+                # Generate landmarks
+                features_gen = 2 * (self.distribution_landmarks.sample((batch_size,)).type(torch.float32) - 0.5)
 
-            feature_gen = landmarks_gen
-            # feature_gen = torch.cat((landmarks_gen, lowres_gen), dim=1)   # use this for combination of landmarks and
-            # lowres information
-            feature_gen = (feature_gen - 0.5) * 2.0
             # transfer everything to the gpu
             if self.cuda:
                 label_real, label_fake = label_real.cuda(), label_fake.cuda()
-                images, features, z = images.cuda(), features.cuda(), z.cuda()
-                feature_gen = feature_gen.cuda()
+                images, features, noise = images.cuda(), features.cuda(), noise.cuda()
+                features_gen = features_gen.cuda()
 
             ############################
-            # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
+            # (1) Update D network: maximize log(D(x)) + log(1 - D(G(noise)))
             ###########################
-            if not validate:
-                self.D_optimizer.zero_grad()
+            self.D_optimizer.zero_grad()
 
-            # Train on real example with real features
+            # === Train on real example with real features
             real_predictions = self.D(images + torch.randn_like(images) * instance_noise_factor, features)
-            d_real_predictions_loss = self.BCE_loss(real_predictions,
-                                                    label_real)  # real corresponds to log(D_real)
+            d_real_predictions_loss = self.BCE_loss(real_predictions, label_real)  # corresponds to log(D_real)
+            # make backward instantly
+            d_real_predictions_loss.backward()
 
-            if not validate:
-                # make backward instantly
-                d_real_predictions_loss.backward()
-
-            # Train on real example with fake features
-            fake_labels_predictions = self.D(images + torch.randn_like(images) * instance_noise_factor, feature_gen)
+            # === Train on real example with fake features
+            fake_labels_predictions = self.D(images + torch.randn_like(images) * instance_noise_factor, features_gen)
             d_fake_labels_loss = self.BCE_loss(fake_labels_predictions, label_fake) / 2
+            # make backward instantly
+            d_fake_labels_loss.backward()
 
-            if not validate:
-                # make backward instantly
-                d_fake_labels_loss.backward()
-
-            # Train on fake example from generator
-            generated_images = self.G(z, features)
-            fake_images_predictions = self.D(
-                generated_images.detach() + torch.randn_like(generated_images) * instance_noise_factor,
-                features)
-            d_fake_images_loss = self.BCE_loss(fake_images_predictions,
-                                               label_fake) / 2  # face corresponds to log(1-D_fake)
-
-            if not validate:
-                # make backward instantly
-                d_fake_images_loss.backward()
+            # === Train on fake example from generator
+            generated_images = self.G(noise, features_gen)
+            fake_images_predictions = self.D(generated_images.detach() + torch.randn_like(generated_images) *
+                                             instance_noise_factor, features_gen)
+            d_fake_images_loss = self.BCE_loss(fake_images_predictions, label_fake) / 2  # corresponds to log(1-D_fake)
+            # make backward instantly
+            d_fake_images_loss.backward()
 
             d_loss = d_real_predictions_loss + d_fake_labels_loss + d_fake_images_loss
-
-            if not validate:
-                self.D_optimizer.step()
+            self.D_optimizer.step()
 
             ############################
-            # (2) Update G network: maximize log(D(G(z)))
+            # (2) Update G network: maximize log(D(G(noise)))
             ###########################
-            if not validate:
-                self.G_optimizer.zero_grad()
+            self.G_optimizer.zero_grad()
 
-            # Train on fooling the Discriminator
-            fake_images_predictions = self.D(generated_images +
-                                             torch.randn_like(generated_images) * instance_noise_factor, features)
+            # === Train on fooling the Discriminator
+            fake_images_predictions = self.D(generated_images + torch.randn_like(generated_images) *
+                                             instance_noise_factor, features_gen)
             g_loss = self.BCE_loss(fake_images_predictions, label_real)
 
-            if not validate:
-                g_loss.backward()
-                self.G_optimizer.step()
+            g_loss.backward()
+            self.G_optimizer.step()
 
             # losses
             g_loss_summed += float(g_loss)
             d_loss_summed += float(d_loss)
             iterations += 1
 
-        g_loss_summed /= iterations
-        d_loss_summed /= iterations
-
         if not validate:
+            g_loss_summed /= iterations
+            d_loss_summed /= iterations
             log_info = {'loss': {'lossG': g_loss_summed,
                                  'lossD': d_loss_summed}}
             log_img = generated_images + torch.randn_like(generated_images) * instance_noise_factor
         else:
-            log_info = {'loss': {'lossG_val': g_loss_summed,
-                                 'lossD_val': d_loss_summed}}
+            log_info = {}
             log_img = generated_images
 
         return log_info, log_img
@@ -186,7 +176,7 @@ class CGAN(CombinedModel):
         landmarks = np.array(extracted_information.landmarks) / extracted_information.size_fine
         landmarks = landmarks.reshape(-1)
         # Extract needed landmarks
-        landmarks = extract_landmarks(landmarks, n=28)
+        landmarks = extract_landmarks(landmarks, n=10)
 
         # ===== Creating feature vector
         feature = landmarks
