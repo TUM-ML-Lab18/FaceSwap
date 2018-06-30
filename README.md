@@ -44,3 +44,8 @@ be modeled using our neural nets. The second part of that pipeline fits generate
 This module is built using classical computer vision methods. For the extraction of facial landmarks we used the great
 face recognition package from [Adam Geitgey](https://github.com/ageitgey/face_recognition). We use those landmarks to determine the
 position of faces in images, but also as input features for our networks.
+
+## Models
+### Conditional GAN - CGAN
+![CGAN](images/CGAN.jpg "Conditional GAN; image: https://www.abtosoftware.com/blog/image-to-image-translation")
+*https://www.abtosoftware.com/blog/image-to-image-translation*

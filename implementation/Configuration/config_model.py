@@ -80,21 +80,22 @@ class GAN_CONFIG(Config):
 
 class CGAN_CONFIG(GAN_CONFIG):
     model = CGAN
-    model_params = {'y_dim': 56,
+    batch_size = 16
+    model_params = {'y_dim': 2 * 10,
                     'z_dim': 100,
-                    'ngf': 128,
-                    'ndf': 128,
+                    'ngf': 64,
+                    'ndf': 64,
                     'lrG': 0.0002,
                     'lrD': 0.00005,
                     'beta1': 0.5,
                     'beta2': 0.999,
-                    'lm_mean': ARRAY_LANDMARKS_28_MEAN,
-                    'lm_cov': ARRAY_LANDMARKS_28_COV,
+                    'lm_mean': ARRAY_LANDMARKS_10_MEAN,
+                    'lm_cov': ARRAY_LANDMARKS_10_COV,
                     }
 
     @staticmethod
     def data_set():
-        return ImageFeatureDataset(ARRAY_IMAGES_64, [ARRAY_LANDMARKS_28, ])
+        return ImageFeatureDataset(ARRAY_IMAGES_64, [ARRAY_LANDMARKS_10, ])
 
 
 class LGAN_CONFIG(GAN_CONFIG):
@@ -183,4 +184,4 @@ class CPGGAN_CONFIG_EVAL(CPGGAN_CONFIG):
     model_params.update(CPGGAN_CONFIG.model_params)
 
 
-current_config = PGGAN_CONFIG
+current_config = CGAN_CONFIG
