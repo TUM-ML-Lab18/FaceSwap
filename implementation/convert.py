@@ -30,8 +30,9 @@ def convert_images():
 
 
 def convert_video():
-    anonymizer = Anonymizer(model_folder='model',
-                            config=current_config, video_mode=True, post_sharp=False)
+    anonymizer = Anonymizer(
+        model_folder='/home/stromaxi/ml-lab-summer-18-project-2/implementation/logs/__CGAN_10Landmarks/model/',
+        config=current_config, video_mode=True, postprocessing='blur')
     path = Path('/nfs/students/summer-term-2018/project_2/test_max/')
     result_path = path / 'result'
     result_path.mkdir(exist_ok=True)
@@ -71,4 +72,4 @@ def convert_video():
 
 
 if __name__ == '__main__':
-    convert_images()
+    convert_video()

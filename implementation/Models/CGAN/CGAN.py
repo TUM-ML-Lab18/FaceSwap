@@ -8,13 +8,16 @@ from Configuration.config_general import ARRAY_LANDMARKS_28_MEAN, ARRAY_LANDMARK
 from Models.CGAN.Discriminator import Discriminator
 from Models.CGAN.Generator import Generator
 from Models.ModelUtils.ModelUtils import CombinedModel, norm_img
-from Preprocessor.FaceExtractor import extract_landmarks
+from Preprocessor.FaceExtractor import extract_landmarks, normalize_landmarks
 
 
 class CGAN(CombinedModel):
     """
     Standard GAN implementation but enhanced with condition on some feature
     https://github.com/eriklindernoren/PyTorch-GAN/blob/master/implementations/cgan/cgan.py
+
+    Training with conditioning on landmarks and low resolution pixel maps is instable
+    therefore, the corresponding options are commented
     """
 
     def __init__(self, **kwargs):
@@ -24,6 +27,8 @@ class CGAN(CombinedModel):
         self.img_dim = kwargs.get('img_dim', (64, 64, 3))
         path_to_lm_mean = kwargs.get('lm_mean', ARRAY_LANDMARKS_28_MEAN)
         path_to_lm_cov = kwargs.get('lm_cov', ARRAY_LANDMARKS_28_COV)
+        # path_to_lr_mean = kwargs.get('lr_mean', ARRAY_LOWRES_2_MEAN)
+        # path_to_lr_cov = kwargs.get('lr_cov', ARRAY_LOWRES_2_COV)
         ngf = kwargs.get('ngf', 64)
         ndf = kwargs.get('ndf', 64)
         lrG = kwargs.get('lrG', 0.0002)
@@ -47,6 +52,13 @@ class CGAN(CombinedModel):
         self.landmarks_cov = torch.from_numpy(self.landmarks_cov)
         self.distribution_landmarks = MultivariateNormal(loc=self.landmarks_mean.type(torch.float64),
                                                          covariance_matrix=self.landmarks_cov.type(torch.float64))
+        # gaussian distribution of our low res pixel map
+        # self.lowres_mean = np.load(path_to_lr_mean)
+        # self.lowres_cov = np.load(path_to_lr_cov)
+        # self.lowres_mean = torch.from_numpy(self.lowres_mean)
+        # self.lowres_cov = torch.from_numpy(self.lowres_cov)
+        # self.distribution_lowres = MultivariateNormal(loc=self.lowres_mean.type(torch.float64),
+        #                                               covariance_matrix=self.lowres_cov.type(torch.float64))
 
         # Fixed noise for anonymization
         self.anonym_noise = torch.randn((1, self.z_dim))
@@ -54,6 +66,7 @@ class CGAN(CombinedModel):
         n_val_samples = 64
         self.static_noise = torch.randn((n_val_samples, self.z_dim))
         self.static_landmarks = 2 * (self.distribution_landmarks.sample((n_val_samples,)).type(torch.float32) - 0.5)
+        # self.static_lowres = 2 * (self.distribution_lowres.sample((n_val_samples,)).type(torch.float32) - 0.5)
 
         if torch.cuda.is_available():
             self.cuda = True
@@ -62,6 +75,7 @@ class CGAN(CombinedModel):
             self.BCE_loss.cuda()
             self.static_noise = self.static_noise.cuda()
             self.static_landmarks = self.static_landmarks.cuda()
+            # self.static_lowres = self.static_lowres.cuda()
 
     def train(self, data_loader, batch_size, validate, **kwargs):
         current_epoch = kwargs.get('current_epoch', 100)
@@ -90,12 +104,16 @@ class CGAN(CombinedModel):
             if validate:
                 noise = self.static_noise
                 features = self.static_landmarks
+                # features = torch.cat([self.static_landmarks, self.static_lowres], 1)
                 generated_images = self.G(noise, features)
                 break
             else:
                 noise = torch.randn((batch_size, self.z_dim))
                 # Generate landmarks
-                features_gen = 2 * (self.distribution_landmarks.sample((batch_size,)).type(torch.float32) - 0.5)
+                landmarks_gen = self.distribution_landmarks.sample((batch_size,)).type(torch.float32)
+                # lowres_gen = self.distribution_lowres.sample((batch_size,)).type(torch.float32)
+                # features_gen = 2 * (torch.cat([landmarks_gen, lowres_gen], 1) - 0.5)
+                features_gen = 2 * (landmarks_gen - 0.5)
 
             # transfer everything to the gpu
             if self.cuda:
@@ -121,9 +139,9 @@ class CGAN(CombinedModel):
             d_fake_labels_loss.backward()
 
             # === Train on fake example from generator
-            generated_images = self.G(noise, features_gen)
+            generated_images = self.G(noise, features)
             fake_images_predictions = self.D(generated_images.detach() + torch.randn_like(generated_images) *
-                                             instance_noise_factor, features_gen)
+                                             instance_noise_factor, features)
             d_fake_images_loss = self.BCE_loss(fake_images_predictions, label_fake) / 2  # corresponds to log(1-D_fake)
             # make backward instantly
             d_fake_images_loss.backward()
@@ -138,7 +156,7 @@ class CGAN(CombinedModel):
 
             # === Train on fooling the Discriminator
             fake_images_predictions = self.D(generated_images + torch.randn_like(generated_images) *
-                                             instance_noise_factor, features_gen)
+                                             instance_noise_factor, features)
             g_loss = self.BCE_loss(fake_images_predictions, label_real)
 
             g_loss.backward()
@@ -171,16 +189,19 @@ class CGAN(CombinedModel):
         return [self.G_optimizer, self.D_optimizer, self.BCE_loss]
 
     def anonymize(self, extracted_face, extracted_information):
+        self.anonym_noise = torch.randn((1, self.z_dim))
         # ===== Landmarks
         # Normalize landmarks
-        landmarks = np.array(extracted_information.landmarks) / extracted_information.size_fine
-        landmarks = landmarks.reshape(-1)
+        landmarks = normalize_landmarks(extracted_information)
         # Extract needed landmarks
         landmarks = extract_landmarks(landmarks, n=10)
 
+        # ===== LowRes pixelmap
+        # lowres = extract_lowres(extracted_face, resolution=2)
+
         # ===== Creating feature vector
-        feature = landmarks
-        feature = torch.from_numpy(feature).type(torch.float32)
+        feature = torch.from_numpy(np.landmarks).type(torch.float32)
+        # feature = torch.from_numpy(np.hstack((landmarks, lowres))).type(torch.float32)
 
         # ===== Zero centering
         feature -= 0.5

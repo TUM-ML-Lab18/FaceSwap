@@ -79,23 +79,29 @@ class GAN_CONFIG(Config):
 
 
 class CGAN_CONFIG(GAN_CONFIG):
+    # Training with conditioning on landmarks and low resolution pixel maps is instable
+    # therefore, the corresponding options are commented
     model = CGAN
     batch_size = 16
     model_params = {'y_dim': 2 * 10,
+                    # 'y_dim': 2 * 10,  + 3 * 2 * 2,
                     'z_dim': 100,
                     'ngf': 64,
                     'ndf': 64,
                     'lrG': 0.0002,
-                    'lrD': 0.00005,
+                    'lrD': 0.0002,
                     'beta1': 0.5,
                     'beta2': 0.999,
                     'lm_mean': ARRAY_LANDMARKS_10_MEAN,
                     'lm_cov': ARRAY_LANDMARKS_10_COV,
+                    # 'lr_mean': ARRAY_LOWRES_2_MEAN,
+                    # 'lr_cov': ARRAY_LOWRES_2_COV,
                     }
 
     @staticmethod
     def data_set():
-        return ImageFeatureDataset(ARRAY_IMAGES_64, [ARRAY_LANDMARKS_10, ])
+        return ImageFeatureDataset(ARRAY_IMAGES_64, [ARRAY_LANDMARKS_10])
+        # return ImageFeatureDataset(ARRAY_IMAGES_64, [ARRAY_LANDMARKS_10, ARRAY_LOWRES_2])
 
 
 class LGAN_CONFIG(GAN_CONFIG):
@@ -156,6 +162,7 @@ class PGGAN_CONFIG(GAN_CONFIG):
                     'batch_size_schedule': {1: 64, 2: 64, 3: 64, 4: 64, 5: 16, 6: 16},
                     # Resolutions:          4      8     16     32     64    128
                     }
+    batch_size = model_params['batch_size_schedule'][1]
 
     @staticmethod
     def data_set():

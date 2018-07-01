@@ -1,3 +1,4 @@
+import numpy as np
 from torch import optim
 
 from Models.ModelUtils.ModelUtils import CombinedModel, RandomNoiseGenerator
@@ -13,7 +14,7 @@ class PGGAN(CombinedModel):
 
         # the maximum resolution we will train
         self.target_resolution = kwargs.get('target_resolution', 64)
-
+        self.max_level = int(np.log2(self.target_resolution)) - 1
         # Features size in classic PGGAN always 0 -> Ensure compatibility with C-PGGAN
         self.feature_size = kwargs.get('feature_size', 0)
         # this latent_size is used as channels for generator and discriminator
@@ -261,6 +262,9 @@ class PGGAN(CombinedModel):
                   'batch size:', self.batch_size)
             self.stabilization_phase = True
             self.images_faded_in = 0
+        if self.resolution_level == self.max_level:
+            # Double stabilization phase on last level
+            self.epochs_per_stage += self.stabilizing_epochs
 
         if self.resolution_level == self.level_with_multiple_gpus:
             self.G.ngpu = self.D.ngpu = torch.cuda.device_count()

@@ -24,7 +24,7 @@ class Anonymizer:
 
         # use extractor and transform later get correct input for network
         self.extractor = FaceExtractor(sharp_edge=False, margin=0.05, mask_factor=10, video_mode=video_mode)
-        self.reconstructor = FaceReconstructor(mask_factor=-20, postprocessing=postprocessing)
+        self.reconstructor = FaceReconstructor(mask_factor=-12, postprocessing=postprocessing)
 
     def __call__(self, image):
         """
