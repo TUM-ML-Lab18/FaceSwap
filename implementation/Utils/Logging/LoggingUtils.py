@@ -8,6 +8,10 @@ from torchvision import utils as vutils
 
 
 class Logger:
+    """
+    wrapper for the tensorboardx | does some higher level logging
+    """
+
     def __init__(self, steps_per_epoch, model, save_model_every_nth=100, shared_model_path='.'):
         self.shared_model_path = shared_model_path
         self.loggin_path = "./logs/" + str(datetime.datetime.now())
@@ -19,13 +23,27 @@ class Logger:
 
     def log_values(self, epoch, values: dict = None):
         """
-        logs the loss of a model
+        logs the loss of a model, can also log arbitrary values but if the dict contains a key named 'loss' the value
+        of this key is printed
         :param epoch: current epoch
         :param values: dict containing different dicts containing values (i.e.: {'loss':{'lossA': 10, 'lossB': 12}, ...}
+        If the value of a key is a dict itself use the add_scalars function to log all these values to one graph.
+        Be aware that this leads to multiple entries in the runs section of the tensorboard.
+        Otherwise log the information into a separate graph.
+        PGGAN logging is a good example:
+        {'loss': {'lossG': g_loss_summed, ####These values are logged into one graph and printed to the commandline
+                  'lossD': d_loss_summed},
+        'info/WassersteinDistance': wasserstein_d_summed, ####These values are all logged to different graphs
+        'info/eps': eps_summed,
+        'info/FadeInFactor': fade_in_factor,
+        'info/Level': self.resolution_level,
+        'info/curr_level': cur_level}
+
         """
         if values is None:
             values = {}
         for k, v in values.items():
+
             if type(v) is dict:
                 self.writer.add_scalars(k, v, epoch)
             else:

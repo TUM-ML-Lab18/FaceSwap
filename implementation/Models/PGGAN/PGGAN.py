@@ -5,7 +5,7 @@ from Models.PGGAN.model import Generator, Discriminator, torch
 
 
 class PGGAN(CombinedModel):
-    def __init__(self, **kwargs):
+    def __init__(self, eval_mode=False, **kwargs):
         # the data loader is used to change resolution of input images
         self.data_loader = kwargs.get('data_loader', None)
         if self.data_loader is None:
@@ -58,8 +58,11 @@ class PGGAN(CombinedModel):
         # 4x4   8x8     16x16   32x32   64x64   128x128
         self.resolution_level = 1
 
-        # the number of images shown to the network until completion of the fading phase
-        self.images_per_fading_phase = len(self.data_loader.get_train_data_loader()) * self.fading_epochs
+        if not eval_mode:
+            # the number of images shown to the network until completion of the fading phase
+            self.images_per_fading_phase = (
+                    (len(self.data_loader.get_train_data_loader()) + 1) * self.data_loader.batch_size *
+                    self.fading_epochs)
         # current number of images shown to the network during fading phase
         self.images_faded_in = 0
         # indicates the current phase
@@ -71,7 +74,6 @@ class PGGAN(CombinedModel):
 
         # batch sizes for each level | be careful with changing them independent from the learning rate | original prams
         # from the paper
-        # todo: what happens with the batchsize if using multiple gpus? maybe we should fix this
         self.batch_size_schedule = kwargs.get('batch_size_schedule',
                                               {1: 64, 2: 64, 3: 64, 4: 64, 5: 16, 6: 16})
         # current batch size is just the current levels batch size
@@ -81,7 +83,7 @@ class PGGAN(CombinedModel):
         self.noise = RandomNoiseGenerator(self.latent_size - self.feature_size, 'gaussian')
         self.static_noise = self.noise(self.batch_size)
 
-    def get_models(self):
+    def get_modules(self):
         return [self.G, self.D]
 
     def get_model_names(self):
@@ -100,7 +102,7 @@ class PGGAN(CombinedModel):
             train_data_loader = self.data_loader.get_train_data_loader()
 
         # sum the loss for logging
-        g_loss_summed, d_loss_summed = 0, 0
+        g_loss_summed, d_loss_summed, wasserstein_d_summed, eps_summed = 0, 0, 0, 0
         iterations = 0
 
         for images in train_data_loader:
@@ -122,7 +124,6 @@ class PGGAN(CombinedModel):
                 fade_in_factor = self.images_faded_in / self.images_per_fading_phase
                 cur_level = self.resolution_level - 1 + (
                     fade_in_factor if fade_in_factor != 0 else 1e-10)  # FuckUp implementation...
-
             # differentiate between validation and training
             if validate:
                 # for validation use always the same noise -> you can see how the face gets better in the tensorboard
@@ -146,8 +147,12 @@ class PGGAN(CombinedModel):
             # Train on real example with real features
             D_real = self.D(images, cur_level=cur_level)
 
+            # Epsilon loss => 4th loss term from Nvidia paper
+            eps_loss = D_real ** 2
+            eps_loss = 0.001 * eps_loss.mean()
+
             # Wasserstein Loss
-            D_real = -D_real.mean()
+            D_real = -D_real.mean() + eps_loss
             if not validate:
                 D_real.backward()
 
@@ -197,6 +202,8 @@ class PGGAN(CombinedModel):
             # losses
             g_loss_summed += G_loss
             d_loss_summed += D_loss
+            wasserstein_d_summed += Wasserstein_D
+            eps_summed += float(eps_loss)
             iterations += 1
 
             if not self.stabilization_phase and not validate:
@@ -206,11 +213,15 @@ class PGGAN(CombinedModel):
         if not validate:
             g_loss_summed /= iterations
             d_loss_summed /= iterations
+            wasserstein_d_summed /= iterations
+            eps_summed /= iterations
             log_info = {'loss': {'lossG': g_loss_summed,
                                  'lossD': d_loss_summed},
-                        'info/WassersteinDistance': Wasserstein_D,
+                        'info/WassersteinDistance': wasserstein_d_summed,
+                        'info/eps': eps_summed,
                         'info/FadeInFactor': fade_in_factor,
-                        'info/Level': self.resolution_level}
+                        'info/Level': self.resolution_level,
+                        'info/curr_level': cur_level}
             log_img = G_fake
         else:
             log_info = {}

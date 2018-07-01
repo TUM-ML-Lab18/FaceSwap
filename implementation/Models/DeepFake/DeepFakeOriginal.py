@@ -14,15 +14,20 @@ class DeepFakeOriginal(CombinedModel):
     def __init__(self, encoder, decoder, auto_encoder=AutoEncoder, **kwargs):
         """
         Initialize a new DeepFakeOriginal.
+        The idea is to use one encoder for two different decoder. Both decoder are trained with this encoder but see
+        different input. Both are trained on one person but the shared encoder leads to a latentspace both can decode.
+        During runtime you switch the decoder and can thus switch the faces of those persons
         """
         self.encoder = encoder().cuda()
         self.decoder1 = decoder().cuda()
         self.decoder2 = decoder().cuda()
 
+        # this variable indicates witch autoencoder and thus decoder should be used for the anonymize function
         self.select_ae = kwargs.get('select_autoencoder', 1)
         self.autoencoder1 = auto_encoder(self.encoder, self.decoder1).cuda()
         self.autoencoder2 = auto_encoder(self.encoder, self.decoder2).cuda()
 
+        # standard l1 loss to calculate the difference between the input and output image
         self.lossfn = torch.nn.L1Loss(size_average=True).cuda()
 
         self.optimizer1 = Adam(self.autoencoder1.parameters(), lr=1e-4)
@@ -45,7 +50,12 @@ class DeepFakeOriginal(CombinedModel):
         for (face1_warped, face1), (face2_warped, face2) in train_data_loader:
             # face1 and face2 contain a batch of images of the first and second face, respectively
             face1, face2 = face1.cuda(), face2.cuda()
+            # the warped images are augmented to make the learning more robust
             face1_warped, face2_warped = face1_warped.cuda(), face2_warped.cuda()
+
+            ############################
+            # (1) train the first autoencoder
+            ###########################
 
             if not validate:
                 self.optimizer1.zero_grad()
@@ -56,6 +66,10 @@ class DeepFakeOriginal(CombinedModel):
             if not validate:
                 loss1.backward()
                 self.optimizer1.step()
+
+            ############################
+            # (2) train the second autoencoder
+            ###########################
 
             if not validate:
                 self.optimizer2.zero_grad()
@@ -86,7 +100,7 @@ class DeepFakeOriginal(CombinedModel):
 
         return log_info, [face1_warped, output1, face1, face2_warped, output2, face2]
 
-    def get_models(self):
+    def get_modules(self):
         return [self.encoder, self.decoder1, self.decoder2]
 
     def get_model_names(self):

@@ -8,7 +8,12 @@ from Preprocessor.FaceReconstructor import FaceReconstructor
 
 
 class Anonymizer:
-    def __init__(self, model_folder: str, config, video_mode=False, post_sharp=True) -> None:
+    """
+    This class is used to load a model with its corresponding config, an extractor and a reconstructor to anonymize an
+    incoming image
+    """
+
+    def __init__(self, model_folder: str, config, video_mode=False, postprocessing=None) -> None:
         """
         :param model_folder: Path to models folder.
         """
@@ -19,7 +24,7 @@ class Anonymizer:
 
         # use extractor and transform later get correct input for network
         self.extractor = FaceExtractor(sharp_edge=False, margin=0.05, mask_factor=10, video_mode=video_mode)
-        self.reconstructor = FaceReconstructor(mask_factor=-20, sharpening=post_sharp)
+        self.reconstructor = FaceReconstructor(mask_factor=-20, postprocessing=postprocessing)
 
     def __call__(self, image):
         """

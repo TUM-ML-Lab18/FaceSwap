@@ -188,6 +188,19 @@ def update_landmarks(landmarks_dict, transformation):
         landmarks_dict[feature] = landmarks
 
 
+def normalize_landmarks(extracted_information):
+    """
+    Normalize the landmarks with the size of the image
+    After normalization all landmarks lie between [0-1]
+    :param extracted_information: Extracted information provided by FaceExtractor module
+    :return: Normalized landmarks
+    """
+    landmarks_normalized = np.array(extracted_information.landmarks) / extracted_information.size_fine
+    landmarks_normalized = landmarks_normalized.reshape(-1)
+
+    return landmarks_normalized
+
+
 def extract_landmarks(landmarks_array, n=28):
     """
     Extracts n handcrafted landmarks from an array with all landmarks
@@ -292,8 +305,8 @@ def extract_28_landmarks(landmarks_array):
     # Nose
     nose_X, nose_Y = np.mean(landmarks_X[:, 31:36], axis=1)[:, None], np.mean(landmarks_Y[:, 31:36], axis=1)[:, None]
     # Mouth
-    mouth_X, mouth_Y = landmarks_X[:, [48, 50, 52, 56, 58, 60, 62, 64, 68, 70]], \
-                       landmarks_Y[:, [48, 50, 52, 56, 58, 60, 62, 64, 68, 70]]
+    mouth_X, mouth_Y = (landmarks_X[:, [48, 50, 52, 56, 58, 60, 62, 64, 68, 70]],
+                        landmarks_Y[:, [48, 50, 52, 56, 58, 60, 62, 64, 68, 70]])
 
     # Unify X & Y coordinates
     landmarks_28_X = np.hstack((right_eye_X, left_eye_X, face_contour_X, nose_X, mouth_X))
@@ -310,7 +323,7 @@ def extract_lowres(image, resolution=8):
     :param resolution: Resolution of the pixelmap
     :return: np.array with lowres feature
     """
-    lowres = np.array(image.resize((resolution, resolution)), resample=Image.BILINEAR)
+    lowres = np.array(image.resize((resolution, resolution), resample=Image.BILINEAR))
     lowres = lowres.transpose((2, 0, 1))
     lowres = lowres.reshape((-1, 3 * resolution * resolution))
     lowres = lowres.astype(np.float32)
@@ -611,15 +624,15 @@ class FaceAligner(object):
         return Rotation(angle=angle, center=tuple(center))
 
     @staticmethod
-    def apply_rotation(image, R):
+    def apply_rotation(image, rot_matrix):
         """
         Apply the given rotation to the image
         :param image: np.array / cv2 image
-        :param R: cv2 rotation matrix
+        :param rot_matrix: cv2 rotation matrix
         :return: The rotated image
         """
         H, W = image.shape[:2]
-        return cv2.warpAffine(image, R, (W, H))
+        return cv2.warpAffine(image, rot_matrix, (W, H))
 
 
 class FaceCropperFine(object):

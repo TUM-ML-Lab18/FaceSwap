@@ -7,6 +7,11 @@ from Models.ModelUtils.ModelUtils import UpscaleBlock, Flatten, View, ConvBlockB
 
 
 class Encoder(CustomModule):
+    """
+    Simple encoder, just some downconvolutions
+    But at the end one upscaleblock so that both autoencoder share a higher dimensional latent space
+    """
+
     def __init__(self, input_dim, latent_dim, num_convblocks=4):
         """
         Initialize a new encoder network.

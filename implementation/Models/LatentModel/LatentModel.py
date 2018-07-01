@@ -69,7 +69,7 @@ class LatentModel(CombinedModel):
 
         return log_info, [face, output]
 
-    def get_models(self):
+    def get_modules(self):
         return [self.decoder]
 
     def get_model_names(self):

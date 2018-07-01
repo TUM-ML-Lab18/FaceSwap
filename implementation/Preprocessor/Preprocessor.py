@@ -1,14 +1,11 @@
 import ast
-import json
 import os
-from pathlib import Path
 
-import cv2
-import face_recognition
 import numpy as np
 from PIL import Image
 
 from Configuration.config_general import *
+from Preprocessor.FaceExtractor import normalize_landmarks, extract_landmarks
 from Utils.Logging.LoggingUtils import print_progress_bar
 
 img_file_extensions = ['.jpg', '.JPG', '.png', '.PNG']
@@ -30,52 +27,38 @@ class Preprocessor:
         # Used extractor
         self.extractor = face_extractor
 
-    def __call__(self, root_folder: Path):
+    def __call__(self):
         """
         Processes all image classes in the raw folder and saves the results to the preprocessed folder.
-        :param root_folder: Path to the dataset that should be processed
         """
-        # ============================ Initializations
-        # Initialize paths
-        raw_folder = root_folder / RAW
-        preprocessed_folder = root_folder / PREPROCESSED
-        landmarks_buffer = root_folder / LANDMARKS_BUFFER
-        landmarks_json = root_folder / LANDMARKS_JSON
-        landmarks_npy = root_folder / LANDMARKS_NPY
-        histo_buffer = root_folder / HISTO_BUFFER
-        histo_json = root_folder / HISTO_JSON
-        histo_npy = root_folder / HISTO_NPY
-        embeddings_buffer = root_folder / FACE_EMBEDDINGS_BUFFER
-        embeddings_json = root_folder / FACE_EMBEDDINGS_JSON
-        embeddings_npy = root_folder / FACE_EMBEDDINGS_NPY
-
         # Check root path
-        if not raw_folder.exists():
-            raise FileNotFoundError('No RAW folder with images to process: ' + str(raw_folder))
+        if not RAW_FOLDER.exists():
+            raise FileNotFoundError('No RAW folder with images to process: ' + str(RAW_FOLDER))
+        print('Processing folder:', str(ROOT))
         # Check preprocessed folders
-        preprocessed_folder.mkdir(exist_ok=True)
+        PREPROCESSED_FOLDER.mkdir(exist_ok=True)
         for size in RESOLUTIONS:
-            resolution_folder = root_folder / ('preprocessed' + str(size))
+            resolution_folder = ROOT / (PREPROCESSED + str(size))
             resolution_folder.mkdir(exist_ok=True)
 
         # Count files recursively for logging
-        total_files_count = sum([len(files) for r, d, files in os.walk(raw_folder)])
+        total_files_count = sum([len(files) for r, d, files in os.walk(RAW_FOLDER)])
         files_count = 0
 
-        # ============================ Process images
+        # ========== Process images
         # Iterate recursively over RAW directory
-        for root, dirs, files in os.walk(raw_folder):
+        for root, dirs, files in os.walk(RAW_FOLDER):
             root = Path(root)
 
             # Create subdirectories
             for subdir in dirs:
                 # Create paths for subdirectories
                 subdir_raw = root / subdir
-                relative_path = subdir_raw.relative_to(raw_folder)
-                subdir_processed = preprocessed_folder / relative_path
+                relative_path = subdir_raw.relative_to(RAW_FOLDER)
+                subdir_processed = PREPROCESSED_FOLDER / relative_path
                 subdir_processed.mkdir(exist_ok=True)
                 for size in RESOLUTIONS:
-                    subdir_res = root_folder / ('preprocessed' + str(size)) / relative_path
+                    subdir_res = ROOT / (PREPROCESSED + str(size)) / relative_path
                     subdir_res.mkdir(exist_ok=True)
 
             # Convert images
@@ -85,9 +68,9 @@ class Preprocessor:
                 print_progress_bar(files_count, total_files_count)
                 # Create paths for image file
                 file_path_raw = root / file
-                relative_path = file_path_raw.relative_to(raw_folder)
+                relative_path = file_path_raw.relative_to(RAW_FOLDER)
                 # Check if image is already preprocessed
-                if (preprocessed_folder / relative_path).exists():
+                if (PREPROCESSED_FOLDER / relative_path).exists():
                     continue
                 if file_path_raw.suffix in img_file_extensions:
                     # open image and extract facial region
@@ -98,104 +81,81 @@ class Preprocessor:
                     # Convert image to RGB
                     if image.mode is not 'RGB':
                         image = image.convert('RGB')
-                    # Extract facial region in image
+                    # ===== Extract facial region in image
                     extracted_image, extracted_information = self.extractor(image)
                     # Check if extraction found a face
                     if extracted_image is None:
                         continue
-                    # Calculate histogram
-                    histo = self.calculate_masked_histogram(extracted_image)
-                    # Normalized landmarks as list
-                    landmarks = np.array(extracted_information.landmarks) / extracted_information.size_fine
-                    landmarks = landmarks.reshape(-1).tolist()
+                    # ===== Calculate features & store them in lists -> format to buffer
+                    # Calculate landmarks
+                    normalized_landmarks = normalize_landmarks(extracted_information)
+                    landmarks = normalized_landmarks.tolist()
 
-                    # calculate embeddings
-                    # (top, right, bottom, left)
-                    embedding = face_recognition.face_encodings(np.array(extracted_image), known_face_locations=[(
-                        0, extracted_information.size_fine, extracted_information.size_fine, 0)])[0].tolist()
-
-                    # Buffer histogram in CSV file
-                    with open(histo_buffer, 'a') as h_buffer:
-                        h_buffer.write(str(relative_path) + separator + str(histo) + '\n')
-                    # Buffer landmarks in CSV file
-                    with open(landmarks_buffer, 'a') as lm_buffer:
-                        lm_buffer.write(str(relative_path) + separator + str(landmarks) + '\n')
-                    # Buffer embeddings in CSV file
-                    with open(embeddings_buffer, 'a') as em_buffer:
-                        em_buffer.write(str(relative_path) + separator + str(embedding) + '\n')
-                    # Store different resolutions
+                    # ===== Save different resolutions of the extracted image
                     for size in RESOLUTIONS:
                         resized_img = extracted_image.resize((size, size), resample=Image.BILINEAR)
-                        resized_img.save(root_folder / ('preprocessed' + str(size)) / relative_path,
+                        resized_img.save(ROOT / (PREPROCESSED + str(size)) / relative_path,
                                          format='JPEG')
-                    # Save extraction result in PROCESSED folder
-                    extracted_image.save(preprocessed_folder / relative_path, format='JPEG')
 
-        # ============= Conversions / Storage
+                    # ===== Save extracted image in original resolution
+                    extracted_image.save(PREPROCESSED_FOLDER / relative_path, format='JPEG')
 
-        # Convert landmarks to json
-        landmarks_storage = convert_buffer_to_dict(landmarks_buffer)
-        # Save json file
-        with open(landmarks_json, 'w') as lm_json:
-            json.dump(landmarks_storage, lm_json)
-        # Save npy file
-        landmarks_array = np.array(list(landmarks_storage.values())).astype(np.float32)
-        np.save(landmarks_npy, landmarks_array)
+                    # ===== Buffer features in CSV files
+                    # Buffer landmarks in CSV file
+                    with open(LANDMARKS_BUFFER_PATH, 'a') as lm_buffer:
+                        lm_buffer.write(str(relative_path) + separator + str(landmarks) + '\n')
 
-        # Convert histo to json
-        histo_storage = convert_buffer_to_dict(histo_buffer)
-        # Save json file
-        with open(histo_json, 'w') as h_json:
-            json.dump(histo_storage, h_json)
-        # Save npy file
-        histo_array = np.array(list(histo_storage.values())).astype(np.float32)
-        np.save(histo_npy, histo_array)
+        print('All images processed. Storing results in NumPy arrays...')
+        # ========== Conversions / Storage
+        # ===== Save all extracted features as numpy array
+        # ===== Landmarks
+        landmarks_storage = convert_buffer_to_dict(LANDMARKS_BUFFER_PATH)
+        # All landmarks
+        landmarks = np.array(list(landmarks_storage.values())).astype(np.float32)
+        landmarks_mean = np.mean(landmarks, axis=0)
+        landmarks_cov = np.cov(landmarks, rowvar=False)
+        np.save(ARRAY_LANDMARKS, landmarks)
+        np.save(ARRAY_LANDMARKS_MEAN, landmarks_mean)
+        np.save(ARRAY_LANDMARKS_COV, landmarks_cov)
+        # 5 Landmarks
+        landmarks_5 = extract_landmarks(landmarks, n=5)
+        landmarks_5_mean = np.mean(landmarks_5, axis=0)
+        landmarks_5_cov = np.cov(landmarks_5, rowvar=False)
+        np.save(ARRAY_LANDMARKS_5, landmarks_5)
+        np.save(ARRAY_LANDMARKS_5_MEAN, landmarks_5_mean)
+        np.save(ARRAY_LANDMARKS_5_COV, landmarks_5_cov)
+        # 10 Landmarks
+        landmarks_10 = extract_landmarks(landmarks, n=10)
+        landmarks_10_mean = np.mean(landmarks_10, axis=0)
+        landmarks_10_cov = np.cov(landmarks_10, rowvar=False)
+        np.save(ARRAY_LANDMARKS_10, landmarks_10)
+        np.save(ARRAY_LANDMARKS_10_MEAN, landmarks_10_mean)
+        np.save(ARRAY_LANDMARKS_10_COV, landmarks_10_cov)
+        # 28 Landmarks
+        landmarks_28 = extract_landmarks(landmarks, n=28)
+        landmarks_28_mean = np.mean(landmarks_28, axis=0)
+        landmarks_28_cov = np.cov(landmarks_28, rowvar=False)
+        np.save(ARRAY_LANDMARKS_28, landmarks_28)
+        np.save(ARRAY_LANDMARKS_28_MEAN, landmarks_28_mean)
+        np.save(ARRAY_LANDMARKS_28_COV, landmarks_28_cov)
 
-        # Convert embeddings to json
-        embeddings_storage = convert_buffer_to_dict(embeddings_buffer)
-        # Save json file
-        with open(embeddings_json, 'w') as em_json:
-            json.dump(embeddings_storage, em_json)
-        # Save npy file
-        embeddings_array = np.array(list(embeddings_storage.values())).astype(np.float32)
-        np.save(embeddings_npy, embeddings_array)
-
-        # Convert images folder into arrays
+        # ===== Images in different resolutions and lowres pixel maps
         for size in RESOLUTIONS:
-            subdir_res = root_folder / ('preprocessed' + str(size))
+            print(size)
+            subdir_res = ROOT / (PREPROCESSED + str(size))
             data = np.array([np.array(Image.open(fname)) for fname in subdir_res.iterdir()])
             data = data.transpose((0, 3, 1, 2))
-            np.save(root_folder / ('data' + str(size) + '.npy'), data)
-            if size == 8:
-                lowres = data.reshape((-1, 192)) / 255.0
+            np.save(ROOT / ('images' + str(size) + '.npy'), data)
+            if size in LOW_RESOLUTIONS:
+                lowres = data.reshape((-1, 3 * size * size)) / 255.0
                 lowres = lowres.astype(np.float32)
-                np.save(root_folder / 'lowres.npy', lowres)
+                lowres_mean = np.mean(lowres, axis=0)
+                lowres_cov = np.cov(lowres, rowvar=False)
+                np.save(ROOT / ('lowres' + str(size) + '.npy'), lowres)
+                np.save(ROOT / ('lowres' + str(size) + '_mean.npy'), lowres_mean)
+                np.save(ROOT / ('lowres' + str(size) + '_cov.npy'), lowres_cov)
 
-    @staticmethod
-    def calculate_masked_histogram(image):
-        """
-        Calculates the histogram of the masked region
-        :param image: PIL image
-        :return:
-        """
-        image = np.array(image)
-        # Calculate histogram of the whole image
-        histo_r = cv2.calcHist([image], [0], None, [256], [0, 256])
-        histo_g = cv2.calcHist([image], [1], None, [256], [0, 256])
-        histo_b = cv2.calcHist([image], [2], None, [256], [0, 256])
-        # Remove masked pixels from histogram
-        histo_r[0] = 0
-        histo_g[0] = 0
-        histo_b[0] = 0
-        # Normalize histogram
-        histo_r /= np.sum(histo_r)
-        histo_g /= np.sum(histo_g)
-        histo_b /= np.sum(histo_b)
-
-        histo = np.vstack((histo_r, histo_g, histo_b))
-        histo = histo.reshape(-1).tolist()
-
-        return histo
+        print('Preprocessing finished! You can now start to train your models!')
 
 
 def convert_buffer_to_dict(buffer_file):

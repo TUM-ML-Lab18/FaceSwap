@@ -137,7 +137,7 @@ class DCGAN(CombinedModel):
 
         return log_info, fake
 
-    def get_models(self):
+    def get_modules(self):
         return [self.g, self.d]
 
     def get_model_names(self):
