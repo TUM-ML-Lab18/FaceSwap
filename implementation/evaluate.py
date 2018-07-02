@@ -1,39 +1,25 @@
-import os, json
-from pathlib import Path
-
 import numpy as np
-from PIL import Image
+import Configuration.config_model as config
 
 from Evaluator.Evaluator import Evaluator
 
+
 if __name__ == '__main__':
+    scores = Evaluator.evaluate_model(config.Deep_Fakes_Config,
+                        model_folder='/nfs/students/summer-term-2018/project_2/models/128x128_merkel_klum_beschde',
+                        image_folder='/nfs/students/summer-term-2018/project_2/data/evaluation/celebA',
+                        output_path='/nfs/students/summer-term-2018/project_2/data/evaluation/celebA/anonymized')
 
-    path1 = Path('/nfs/students/summer-term-2018/project_2/test_alex/original.jpg')
-    path2 = Path('/nfs/students/summer-term-2018/project_2/test_alex/1.jpg')
-    path3 = Path('/nfs/students/summer-term-2018/project_2/test_alex/2.jpg')
-    path4 = Path('/nfs/students/summer-term-2018/project_2/test_alex/3.jpg')
+    sim = [s['sim'] for _, s in scores.items()]
+    emo = [s['emo'] for _, s in scores.items()]
 
-    img1 = Image.open(path1)
-    img2 = Image.open(path2)
-    img3 = Image.open(path3)
-    img4 = Image.open(path4)
+    sim = np.array(sim)
+    emo = np.array(emo)
 
-    score, sim, emo = Evaluator.evaluate_image_pair(img1, img1, 6, 1)
+    alpha = 6
+    beta = 1
+    scores = 1 / (1 + np.exp(alpha * emo - beta * (sim - 0.6)))
 
-    print("1-1")
-    print(score)
-
-    score, sim, emo = Evaluator.evaluate_image_pair(img1, img2, 6, 1)
-
-    print("1-2")
-    print(score)
-
-    score, sim, emo = Evaluator.evaluate_image_pair(img1, img3, 6, 1)
-
-    print("1-3")
-    print(score)
-
-    score, sim, emo = Evaluator.evaluate_image_pair(img1, img4, 6, 1)
-
-    print("1-4")
-    print(score)
+    print("--- 6-1 score ---")
+    print(f"Average score: {scores.mean()}")
+    print(f"Std: {scores.std()}")
