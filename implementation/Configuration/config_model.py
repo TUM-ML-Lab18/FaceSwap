@@ -78,6 +78,25 @@ class GAN_CONFIG(Config):
     save_model_every_nth = 2
 
 
+class DCGAN_CONFIG(GAN_CONFIG):
+    model = DCGAN
+    batch_size = 16
+    model_params = {
+        'image_size': (64, 64, 3),
+        'nz': 100,
+        'ngf': 64,
+        'ndf': 64,
+        'lrG': 0.0002,
+        'lrD': 0.0002,
+        'beta1': 0.5,
+        'beta2': 0.999
+    }
+
+    @staticmethod
+    def data_set():
+        return ImageFeatureDataset(ARRAY_IMAGES_64, None)
+
+
 class CGAN_CONFIG(GAN_CONFIG):
     # Training with conditioning on landmarks and low resolution pixel maps is instable
     # therefore, the corresponding options are commented
@@ -185,10 +204,4 @@ class CPGGAN_CONFIG(PGGAN_CONFIG):
         return ProgressiveFeatureDataset(ARRAY_LANDMARKS_28, initial_resolution=2)
 
 
-class CPGGAN_CONFIG_EVAL(CPGGAN_CONFIG):
-    model_params = {'eval_mode': True,
-                    'data_loader': 1}
-    model_params.update(CPGGAN_CONFIG.model_params)
-
-
-current_config = CGAN_CONFIG
+current_config = PGGAN_CONFIG

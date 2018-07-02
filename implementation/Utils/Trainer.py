@@ -21,7 +21,7 @@ class Trainer:
         self.data_loader = DataSplitter(self.data_set, self.config.batch_size, validation_size=config.validation_size)
         self.model = config.model(**config.model_params, dataset=self.data_set,
                                   initial_batch_size=self.config.batch_size,
-                                  data_loader=self.data_loader)
+                                  data_loader=self.data_loader, mode='train')
 
         self.logger = Logger(len(self.data_set), self.model, save_model_every_nth=self.config.save_model_every_nth,
                              shared_model_path=MOST_RECENT_MODEL)

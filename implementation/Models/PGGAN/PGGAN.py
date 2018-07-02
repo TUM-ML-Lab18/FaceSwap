@@ -1,16 +1,12 @@
 import numpy as np
 from torch import optim
 
-from Models.ModelUtils.ModelUtils import CombinedModel, RandomNoiseGenerator
+from Models.ModelUtils.ModelUtils import CombinedModel, RandomNoiseGenerator, norm_img
 from Models.PGGAN.model import Generator, Discriminator, torch
 
 
 class PGGAN(CombinedModel):
     def __init__(self, eval_mode=False, **kwargs):
-        # the data loader is used to change resolution of input images
-        self.data_loader = kwargs.get('data_loader', None)
-        if self.data_loader is None:
-            raise FileNotFoundError()
 
         # the maximum resolution we will train
         self.target_resolution = kwargs.get('target_resolution', 64)
@@ -26,63 +22,69 @@ class PGGAN(CombinedModel):
         self.D = Discriminator(num_channels=3 + self.feature_size, mbstat_avg='all', resolution=self.target_resolution,
                                fmap_max=self.latent_size, fmap_base=8192, sigmoid_at_end=False, ngpu=1)
 
+        self.noise = RandomNoiseGenerator(self.latent_size - self.feature_size, 'gaussian')
+
         # move to gpu if available
         if torch.cuda.is_available():
             self.cuda = True
             self.G.cuda()
             self.D.cuda()
 
-        # optimizers
-        lrG = kwargs.get('lrG', 0.0002)
-        lrD = kwargs.get('lrD', 0.0002)
-        beta1 = kwargs.get('beta1', 0)
-        beta2 = kwargs.get('beta2', 0.99)
-        self.G_optimizer = optim.Adam(self.G.parameters(), lr=lrG, betas=(beta1, beta2))
-        self.D_optimizer = optim.Adam(self.D.parameters(), lr=lrD, betas=(beta1, beta2))
+        mode = kwargs.get('mode', 'validate')
+        if mode == 'train':
+            # the data loader is used to change resolution of input images
+            self.data_loader = kwargs.get('data_loader', None)
+            if self.data_loader is None:
+                raise FileNotFoundError()
+            # optimizers
+            lrG = kwargs.get('lrG', 0.0002)
+            lrD = kwargs.get('lrD', 0.0002)
+            beta1 = kwargs.get('beta1', 0)
+            beta2 = kwargs.get('beta2', 0.99)
+            self.G_optimizer = optim.Adam(self.G.parameters(), lr=lrG, betas=(beta1, beta2))
+            self.D_optimizer = optim.Adam(self.D.parameters(), lr=lrD, betas=(beta1, beta2))
 
-        ############################
-        # variables for growing the network
-        ###########################
+            ############################
+            # variables for growing the network
+            ###########################
 
-        # fading phase: interpolation between two resolutions: (increasing the resolution bit by bit)
-        self.fading_epochs = kwargs.get('epochs_fade', None)
-        # stabilizing phase: just normal training with one constant resolution (after fading)
-        self.stabilizing_epochs = kwargs.get('epochs_stab', None)
-        # how many epochs correspond to one stage?
-        self.epochs_per_stage = self.fading_epochs + self.stabilizing_epochs
-        # how many epochs are trained allready in the current stage?
-        # by setting it initially to fading_epochs we ensure that we don't fade in but only "stabilize"
-        self.epochs_in_current_stage = self.fading_epochs  # Trick for stage 1
+            # fading phase: interpolation between two resolutions: (increasing the resolution bit by bit)
+            self.fading_epochs = kwargs.get('epochs_fade', None)
+            # stabilizing phase: just normal training with one constant resolution (after fading)
+            self.stabilizing_epochs = kwargs.get('epochs_stab', None)
+            # how many epochs correspond to one stage?
+            self.epochs_per_stage = self.fading_epochs + self.stabilizing_epochs
+            # how many epochs are trained allready in the current stage?
+            # by setting it initially to fading_epochs we ensure that we don't fade in but only "stabilize"
+            self.epochs_in_current_stage = self.fading_epochs  # Trick for stage 1
 
-        # the level of the current resolution, we start with 4x4 | res = 2**(1+resolution_level)
-        # 1     2       3       4       5       6
-        # 4x4   8x8     16x16   32x32   64x64   128x128
-        self.resolution_level = 1
+            # the level of the current resolution, we start with 4x4 | res = 2**(1+resolution_level)
+            # 1     2       3       4       5       6
+            # 4x4   8x8     16x16   32x32   64x64   128x128
+            self.resolution_level = 1
 
-        if not eval_mode:
             # the number of images shown to the network until completion of the fading phase
             self.images_per_fading_phase = (
                     (len(self.data_loader.get_train_data_loader()) + 1) * self.data_loader.batch_size *
                     self.fading_epochs)
-        # current number of images shown to the network during fading phase
-        self.images_faded_in = 0
-        # indicates the current phase
-        self.stabilization_phase = True
+            # current number of images shown to the network during fading phase
+            self.images_faded_in = 0
+            # indicates the current phase
+            self.stabilization_phase = True
 
-        # we start training with only one gpu because the broadcasting operations consume on the lower resolution a lot
-        # of time; but when reaching this level, switch to training with all available gpus
-        self.level_with_multiple_gpus = kwargs.get('level_with_multiple_gpus', 4)
+            # we start training with only one gpu because the broadcasting operations consume on the lower resolution
+            #  a lot of time; but when reaching this level, switch to training with all available gpus
+            self.level_with_multiple_gpus = kwargs.get('level_with_multiple_gpus', 4)
 
-        # batch sizes for each level | be careful with changing them independent from the learning rate | original prams
-        # from the paper
-        self.batch_size_schedule = kwargs.get('batch_size_schedule',
-                                              {1: 64, 2: 64, 3: 64, 4: 64, 5: 16, 6: 16})
-        # current batch size is just the current levels batch size
-        self.batch_size = self.batch_size_schedule[self.resolution_level]
+            # batch sizes for each level | be careful with changing them independent from the learning rate |
+            # original prams from the paper
+            self.batch_size_schedule = kwargs.get('batch_size_schedule',
+                                                  {1: 64, 2: 64, 3: 64, 4: 64, 5: 16, 6: 16})
+            # current batch size is just the current levels batch size
+            self.batch_size = self.batch_size_schedule[self.resolution_level]
 
-        # noise generation and static noise for logging
-        self.noise = RandomNoiseGenerator(self.latent_size - self.feature_size, 'gaussian')
-        self.static_noise = self.noise(self.batch_size)
+            # noise generation and static noise for logging
+            self.static_noise = self.noise(self.batch_size)
 
     def get_modules(self):
         return [self.G, self.D]
@@ -230,8 +232,26 @@ class PGGAN(CombinedModel):
 
         return log_info, log_img
 
-    def anonymize(self, extracted_face, extracted_information):
-        raise NotImplementedError
+    def anonymize(self, *args, **kwargs):
+        """
+        No real anonymization - only random face
+        """
+        # Generate random input
+        noise = self.noise(1)
+        if self.cuda:
+            noise = noise.cuda()
+
+        # ===== Determine output resolution
+        level = int(np.log2(self.target_resolution)) - 1
+        # ===== Generate image
+        random_img = self.G(noise, cur_level=level - 1)
+
+        # ===== Denormalize generated image
+        norm_img(random_img)
+        random_img *= 255
+        random_img = random_img.type(torch.uint8)
+
+        return random_img
 
     def log_images(self, logger, epoch, images, validation):
         tag = 'validation_output' if validation else 'training_output'

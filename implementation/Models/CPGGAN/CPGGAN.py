@@ -190,8 +190,8 @@ class CPGGAN(PGGAN):
         lowres = torch.from_numpy(lowres).type(torch.float32)
 
         # ===== Creating feature vector
-        feature = torch.cat([landmarks, lowres], 1)
-
+        # feature = torch.cat([landmarks, lowres], 1)
+        feature = landmarks
         # ===== Zero centering
         feature -= 0.5
         feature *= 2.0
@@ -203,7 +203,6 @@ class CPGGAN(PGGAN):
 
         # ===== Determine output resolution
         level = int(np.log2(self.target_resolution)) - 1
-
         # ===== Generate image
         tensor_img = self.G(input_vec, cur_level=level)
 

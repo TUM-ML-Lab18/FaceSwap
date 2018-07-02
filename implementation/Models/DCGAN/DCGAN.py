@@ -4,7 +4,7 @@ from torch import optim, nn
 from Models.CGAN import CGAN
 from Models.DCGAN.Discriminator import Discriminator
 from Models.DCGAN.Generator import Generator
-from Models.ModelUtils.ModelUtils import CombinedModel
+from Models.ModelUtils.ModelUtils import CombinedModel, norm_img
 
 
 class DCGAN(CombinedModel):
@@ -54,7 +54,7 @@ class DCGAN(CombinedModel):
 
     def train(self, data_loader, batch_size, validate, **kwargs):
         # Label vectors for loss function
-        label_real, label_fake = (torch.ones(batch_size, 1, 1, 1), torch.zeros(batch_size, 1, 1, 1))
+        label_real, label_fake = (torch.ones(batch_size), torch.zeros(batch_size))
 
         if self.cuda:
             label_real, label_fake = label_real.cuda(), label_fake.cuda()
@@ -63,7 +63,8 @@ class DCGAN(CombinedModel):
         g_loss_summed, d_loss_summed = 0, 0
         iterations = 0
 
-        for data, features in data_loader:
+        # for data, features in data_loader:  # uncomment
+        for data in data_loader:  # comment
             if validate:
                 noise = self.static_noise
             else:
@@ -71,7 +72,7 @@ class DCGAN(CombinedModel):
             if self.cuda:
                 data = data.cuda()
                 noise = noise.cuda()
-                features = features.cuda()
+                # features = features.cuda()  # uncomment
             ############################
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
             ###########################
@@ -80,7 +81,7 @@ class DCGAN(CombinedModel):
                 self.d.zero_grad()
 
             output = self.d(data)  # comment
-            # output = self.d(data, features) # uncomment
+            # output = self.d(data, features)  # uncomment
             errD_real = self.BCE_loss(output, label_real)
 
             if not validate:
@@ -88,9 +89,9 @@ class DCGAN(CombinedModel):
 
             # train with fake
             fake = self.g(noise)  # comment
-            # fake = self.g(noise, features) # uncomment
+            # fake = self.g(noise, features)  # uncomment
             output = self.d(fake.detach())  # comment
-            # output = self.d(fake.detach(), features) # uncomment
+            # output = self.d(fake.detach(), features)  # uncomment
             errD_fake = self.BCE_loss(output, label_fake)
             if not validate:
                 errD_fake.backward()
@@ -105,7 +106,7 @@ class DCGAN(CombinedModel):
             if not validate:
                 self.g.zero_grad()
             output = self.d(fake)  # comment
-            # output = self.d(fake, features) # uncomment
+            # output = self.d(fake, features)  # uncomment
             errG = self.BCE_loss(output, label_real)
             if not validate:
                 errG.backward()
@@ -152,3 +153,22 @@ class DCGAN(CombinedModel):
     def log_images(self, logger, epoch, images, validation=True):
         tag = 'validation_output' if validation else 'training_output'
         logger.log_images(epoch, images, tag, 8)
+
+    def anonymize(self, *args, **kwargs):
+        """
+        No real anonymization - only random face
+        """
+        # Generate random input
+        noise = torch.randn(1, self.nz)
+        if self.cuda:
+            noise = noise.cuda()
+
+        # Generate face
+        random_img = self.g(noise)
+
+        # ===== Denormalize generated image
+        norm_img(random_img)
+        random_img *= 255
+        random_img = random_img.type(torch.uint8)
+
+        return random_img

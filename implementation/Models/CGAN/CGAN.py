@@ -200,7 +200,7 @@ class CGAN(CombinedModel):
         # lowres = extract_lowres(extracted_face, resolution=2)
 
         # ===== Creating feature vector
-        feature = torch.from_numpy(np.landmarks).type(torch.float32)
+        feature = torch.from_numpy(landmarks).type(torch.float32)
         # feature = torch.from_numpy(np.hstack((landmarks, lowres))).type(torch.float32)
 
         # ===== Zero centering
