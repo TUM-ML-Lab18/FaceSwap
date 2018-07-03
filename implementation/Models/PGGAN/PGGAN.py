@@ -222,8 +222,6 @@ class PGGAN(CombinedModel):
                                  'lossD': d_loss_summed},
                         'info/WassersteinDistance': wasserstein_d_summed,
                         'info/eps': eps_summed,
-                        'info/FadeInFactor': fade_in_factor,
-                        'info/Level': self.resolution_level,
                         'info/curr_level': cur_level}
             log_img = G_fake
         else:
