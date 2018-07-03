@@ -186,7 +186,13 @@ class CPGGAN(PGGAN):
 
         return log_info, log_img
 
-    def anonymize(self, extracted_face, extracted_information):
+    def anonymize(self, extracted_face, extracted_information, level_out=None):
+        """
+        :param extracted_face:
+        :param extracted_information:
+        level_out: Output layer
+        :return:
+        """
         # ===== Landmarks
         # Normalize landmarks
         landmarks = np.array(extracted_information.landmarks) / extracted_information.size_fine
@@ -200,8 +206,8 @@ class CPGGAN(PGGAN):
         lowres = torch.from_numpy(lowres).type(torch.float32)
 
         # ===== Creating feature vector
-        # feature = torch.cat([landmarks, lowres], 1)  # use landmarks & lowres
-        feature = landmarks  # use only landmarks
+        feature = torch.cat([landmarks, lowres], 1)  # use landmarks & lowres
+        # feature = landmarks  # use only landmarks
         # ===== Zero centering
         feature -= 0.5
         feature *= 2.0
@@ -212,8 +218,13 @@ class CPGGAN(PGGAN):
             input_vec = input_vec.cuda()
 
         # ===== Determine output resolution
-        level = int(np.log2(self.target_resolution)) - 1
+        if level_out is None:
+            level = int(np.log2(self.target_resolution)) - 1
+        else:
+            level = level_out
         # ===== Generate image
+        # Default: Generate image on highest resolution
+        # If images on a lower level should be generated, set the level manually
         tensor_img = self.G(input_vec, cur_level=level)
 
         # ===== Denormalize generated image

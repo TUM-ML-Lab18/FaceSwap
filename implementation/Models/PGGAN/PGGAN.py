@@ -230,9 +230,10 @@ class PGGAN(CombinedModel):
 
         return log_info, log_img
 
-    def anonymize(self, *args, **kwargs):
+    def anonymize(self, level_out=None, *args, **kwargs):
         """
         No real anonymization - only random face
+        level_out: Output layer
         """
         # Generate random input
         noise = self.noise(1)
@@ -240,7 +241,10 @@ class PGGAN(CombinedModel):
             noise = noise.cuda()
 
         # ===== Determine output resolution
-        level = int(np.log2(self.target_resolution)) - 1
+        if level_out is None:
+            level = int(np.log2(self.target_resolution)) - 1
+        else:
+            level = level_out
         # ===== Generate image
         random_img = self.G(noise, cur_level=level)
 
