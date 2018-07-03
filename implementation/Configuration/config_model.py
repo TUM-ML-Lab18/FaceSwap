@@ -73,7 +73,7 @@ class GAN_CONFIG(Config):
     def data_set():
         raise NotImplementedError()
 
-    validation_size = 0.005
+    validation_size = 0.005  # no validation in GAN models -> set very small value, s.t. splitting works
     validation_frequencies = [1, 1, 1]
     save_model_every_nth = 2
 
@@ -102,8 +102,8 @@ class CGAN_CONFIG(GAN_CONFIG):
     # therefore, the corresponding options are commented
     model = CGAN
     batch_size = 16
-    model_params = {'y_dim': 2 * 10,
-                    # 'y_dim': 2 * 10,  + 3 * 2 * 2,
+    model_params = {'y_dim': 2 * 10,  # only landmarks
+                    # 'y_dim': 2 * 10,  + 3 * 2 * 2,  # landmarks & lowres
                     'z_dim': 100,
                     'ngf': 64,
                     'ndf': 64,
@@ -125,12 +125,12 @@ class CGAN_CONFIG(GAN_CONFIG):
 
 class LGAN_CONFIG(GAN_CONFIG):
     model = LatentGAN
-    batch_size = 256
+    batch_size = 64
     model_params = {
         'input_dim': 72 * 2 + 8 * 8 * 3,
         'img_dim': (128, 128, 3),
         'z_dim': 44,
-        'ndf': 256,
+        'ndf': 64,
         'lrD': 0.00005,
         'alpha': 0.5
     }
@@ -138,24 +138,6 @@ class LGAN_CONFIG(GAN_CONFIG):
     @staticmethod
     def data_set():
         return ImageFeatureDataset(ARRAY_IMAGES_128, [ARRAY_LANDMARKS, ARRAY_LOWRES_8])
-
-
-class DCGAN_CONFIG(GAN_CONFIG):
-    model = DCGAN
-    model_params = {
-        'image_size': (64, 64, 3),
-        'nz': 100,
-        'ngf': 64,
-        'ndf': 64,
-        'lrG': 0.0002,
-        'lrD': 0.0002,
-        'beta1': 0.5,
-        'beta2': 0.999
-    }
-
-    @staticmethod
-    def data_set():
-        return ImageFeatureDataset(ARRAY_IMAGES_64, ARRAY_LANDMARKS_5)
 
 
 class PGGAN_CONFIG(GAN_CONFIG):
@@ -171,14 +153,14 @@ class PGGAN_CONFIG(GAN_CONFIG):
     max_epochs = (max_level + 1) * epochs_stab + (max_level - 1) * epochs_fade
     model_params = {'target_resolution': target_resolution,
                     'latent_size': 512,
-                    'lrG': 0.001,
-                    'lrD': 0.001,
+                    'lrG': 0.0001,
+                    'lrD': 0.0001,
                     'beta1': .0,
                     'beta2': 0.99,
                     'epochs_fade': epochs_fade,
                     'epochs_stab': epochs_stab,
                     'level_with_multiple_gpus': 4,
-                    'batch_size_schedule': {1: 64, 2: 64, 3: 64, 4: 64, 5: 16, 6: 16},
+                    'batch_size_schedule': {1: 64, 2: 64, 3: 64, 4: 32, 5: 16, 6: 16},
                     # Resolutions:          4      8     16     32     64    128
                     }
     batch_size = model_params['batch_size_schedule'][1]
@@ -190,18 +172,22 @@ class PGGAN_CONFIG(GAN_CONFIG):
 
 class CPGGAN_CONFIG(PGGAN_CONFIG):
     model = CPGGAN
-    model_params = {'feature_size': 2 * 28 + 3 * 4 * 4,
-                    'lm_mean': ARRAY_LANDMARKS_28_MEAN,
-                    'lm_cov': ARRAY_LANDMARKS_28_COV,
-                    'lr_mean': ARRAY_LOWRES_4_MEAN,
-                    'lr_cov': ARRAY_LOWRES_4_COV
+    target_resolution = 128
+    model_params = {'feature_size': 2 * 10 + 3 * 2 * 2,
+                    'lrG': 0.0001,
+                    'lrD': 0.0001,
+                    'lm_mean': ARRAY_LANDMARKS_10_MEAN,
+                    'lm_cov': ARRAY_LANDMARKS_10_COV,
+                    'lr_mean': ARRAY_LOWRES_2_MEAN,
+                    'lr_cov': ARRAY_LOWRES_2_COV,
                     }
     model_params.update(PGGAN_CONFIG.model_params)
-    model_params['latent_size'] = 512
+    model_params['target_resolution'] = target_resolution
+
 
     @staticmethod
     def data_set():
-        return ProgressiveFeatureDataset(ARRAY_LANDMARKS_28, initial_resolution=2)
+        return ProgressiveFeatureDataset([ARRAY_LANDMARKS_10, ARRAY_LOWRES_2], initial_resolution=2)
 
 
-current_config = PGGAN_CONFIG
+current_config = CPGGAN_CONFIG

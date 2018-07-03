@@ -186,16 +186,16 @@ class CPGGAN(PGGAN):
         landmarks = np.array(extracted_information.landmarks) / extracted_information.size_fine
         landmarks = landmarks.reshape(-1)
         # Extract needed landmarks
-        landmarks = extract_landmarks(landmarks, n=28)
+        landmarks = extract_landmarks(landmarks, n=10)  # adjust number of landmarks
         landmarks = torch.from_numpy(landmarks).type(torch.float32)
 
         # ===== LowRes
-        lowres = extract_lowres(extracted_face, resolution=4)
+        lowres = extract_lowres(extracted_face, resolution=2)  # adjust low resolution
         lowres = torch.from_numpy(lowres).type(torch.float32)
 
         # ===== Creating feature vector
-        # feature = torch.cat([landmarks, lowres], 1)
-        feature = landmarks
+        # feature = torch.cat([landmarks, lowres], 1)  # use landmarks & lowres
+        feature = landmarks  # use only landmarks
         # ===== Zero centering
         feature -= 0.5
         feature *= 2.0

@@ -244,7 +244,7 @@ class PGGAN(CombinedModel):
         # ===== Determine output resolution
         level = int(np.log2(self.target_resolution)) - 1
         # ===== Generate image
-        random_img = self.G(noise, cur_level=level - 1)
+        random_img = self.G(noise, cur_level=level)
 
         # ===== Denormalize generated image
         norm_img(random_img)
