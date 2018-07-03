@@ -196,9 +196,9 @@ def normalize_landmarks(extracted_information):
     :return: Normalized landmarks
     """
     landmarks_normalized = np.array(extracted_information.landmarks) / extracted_information.size_fine
-    landmarks_normalized = landmarks_normalized.reshape(-1)
+    landmarks_normalized = landmarks_normalized
 
-    return landmarks_normalized
+    return landmarks_normalized.reshape((-1))
 
 
 def extract_landmarks(landmarks_array, n=28):
