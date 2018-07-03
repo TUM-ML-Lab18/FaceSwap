@@ -15,32 +15,36 @@ class CPGGAN(PGGAN):
 
     def __init__(self, **kwargs):
         super(CPGGAN, self).__init__(**kwargs)
-        # path to numpy arrays containing the calculated mean and cov matrices for calculating a multivariate gaussian
-        path_to_lm_mean = kwargs.get('lm_mean', ARRAY_LANDMARKS_28_MEAN)
-        path_to_lm_cov = kwargs.get('lm_cov', ARRAY_LANDMARKS_28_COV)
-        path_to_lr_mean = kwargs.get('lr_mean', ARRAY_LOWRES_4_MEAN)
-        path_to_lr_cov = kwargs.get('lr_cov', ARRAY_LOWRES_4_COV)
+        if self.mode == 'train':
+            # path to numpy arrays containing the calculated mean and cov matrices for calculating a multivariate gaussian
+            path_to_lm_mean = kwargs.get('lm_mean', ARRAY_LANDMARKS_28_MEAN)
+            path_to_lm_cov = kwargs.get('lm_cov', ARRAY_LANDMARKS_28_COV)
+            path_to_lr_mean = kwargs.get('lr_mean', ARRAY_LOWRES_4_MEAN)
+            path_to_lr_cov = kwargs.get('lr_cov', ARRAY_LOWRES_4_COV)
 
-        # ==================================================
-        # Currently only preparation for extensions
-        # ==================================================
-        # gaussian distribution of our landmarks
-        self.landmarks_mean = np.load(path_to_lm_mean)
-        self.landmarks_cov = np.load(path_to_lm_cov)
-        self.landmarks_mean = torch.from_numpy(self.landmarks_mean)
-        self.landmarks_cov = torch.from_numpy(self.landmarks_cov)
-        self.distribution_landmarks = MultivariateNormal(loc=self.landmarks_mean.type(torch.float64),
-                                                         covariance_matrix=self.landmarks_cov.type(torch.float64))
-        # gaussian distribution of our low res pixel map
-        self.lowres_mean = np.load(path_to_lr_mean)
-        self.lowres_cov = np.load(path_to_lr_cov)
-        self.lowres_mean = torch.from_numpy(self.lowres_mean)
-        self.lowres_cov = torch.from_numpy(self.lowres_cov)
-        self.distribution_lowres = MultivariateNormal(loc=self.lowres_mean.type(torch.float64),
-                                                      covariance_matrix=self.lowres_cov.type(torch.float64))
-        # static noise for calculating the validation
-        self.static_landmarks = 2 * (self.distribution_landmarks.sample((self.batch_size,)).type(torch.float32) - 0.5)
-        self.static_lowres = 2 * (self.distribution_lowres.sample((self.batch_size,)).type(torch.float32) - 0.5)
+            # ==================================================
+            # Currently only preparation for extensions
+            # ==================================================
+            # gaussian distribution of our landmarks
+            self.landmarks_mean = np.load(path_to_lm_mean)
+            self.landmarks_cov = np.load(path_to_lm_cov)
+            self.landmarks_mean = torch.from_numpy(self.landmarks_mean)
+            self.landmarks_cov = torch.from_numpy(self.landmarks_cov)
+            self.distribution_landmarks = MultivariateNormal(loc=self.landmarks_mean.type(torch.float64),
+                                                             covariance_matrix=self.landmarks_cov.type(torch.float64))
+            # gaussian distribution of our low res pixel map
+            self.lowres_mean = np.load(path_to_lr_mean)
+            self.lowres_cov = np.load(path_to_lr_cov)
+            self.lowres_mean = torch.from_numpy(self.lowres_mean)
+            self.lowres_cov = torch.from_numpy(self.lowres_cov)
+            self.distribution_lowres = MultivariateNormal(loc=self.lowres_mean.type(torch.float64),
+                                                          covariance_matrix=self.lowres_cov.type(torch.float64))
+            # static noise for calculating the validation
+            self.static_landmarks = 2 * (
+                    self.distribution_landmarks.sample((self.batch_size,)).type(torch.float32) - 0.5)
+            self.static_lowres = 2 * (self.distribution_lowres.sample((self.batch_size,)).type(torch.float32) - 0.5)
+
+        # Static noise for anonymization
         self.anonymization_noise = self.noise(1)
 
     def train(self, train_data_loader, batch_size, validate, **kwargs):
