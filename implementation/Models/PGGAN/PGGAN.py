@@ -6,7 +6,7 @@ from Models.PGGAN.model import Generator, Discriminator, torch
 
 
 class PGGAN(CombinedModel):
-    def __init__(self, eval_mode=False, **kwargs):
+    def __init__(self, **kwargs):
 
         # the maximum resolution we will train
         self.target_resolution = kwargs.get('target_resolution', 64)
@@ -30,8 +30,8 @@ class PGGAN(CombinedModel):
             self.G.cuda()
             self.D.cuda()
 
-        mode = kwargs.get('mode', 'validate')
-        if mode == 'train':
+        self.mode = kwargs.get('mode', 'validate')
+        if self.mode == 'train':
             # the data loader is used to change resolution of input images
             self.data_loader = kwargs.get('data_loader', None)
             if self.data_loader is None:
@@ -242,7 +242,7 @@ class PGGAN(CombinedModel):
         # ===== Determine output resolution
         level = int(np.log2(self.target_resolution)) - 1
         # ===== Generate image
-        random_img = self.G(noise, cur_level=level - 1)
+        random_img = self.G(noise, cur_level=level)
 
         # ===== Denormalize generated image
         norm_img(random_img)

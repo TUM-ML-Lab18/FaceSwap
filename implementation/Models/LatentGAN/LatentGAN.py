@@ -7,6 +7,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from Models.LatentModel.Decoder import LatentDecoder
 from Models.ModelUtils.ModelUtils import CombinedModel
+from Preprocessor.FaceExtractor import normalize_landmarks, extract_lowres
 from .Discriminator import Discriminator
 
 
@@ -117,19 +118,21 @@ class LatentGAN(CombinedModel):
         return log_info, [faces, output]
 
     def anonymize(self, extracted_face, extracted_information):
-        resized_image_flat = np.array(extracted_face.resize((8, 8))).transpose((2, 0, 1))
+        # ===== Landmarks
+        # Normalize landmarks
+        landmarks = normalize_landmarks(extracted_information).reshape((1, -1))
 
-        resized_image_flat = resized_image_flat.reshape((1, -1)) / 255.0
+        # ===== LowRes pixelmap
+        lowres = extract_lowres(extracted_face, resolution=8)
 
-        landmarks_normalized_flat = np.reshape(
-            (np.array(extracted_information.landmarks) / extracted_information.size_fine), (1, -1))
+        # ===== Merge latent features
+        latent_vector = torch.from_numpy(np.hstack((landmarks, lowres))).type(torch.float32).reshape((1, -1))
 
-        latent_vector = np.hstack([landmarks_normalized_flat, resized_image_flat, ])
-        latent_vector = torch.from_numpy(latent_vector).type(torch.float32)
         latent_vector -= 0.5
         latent_vector *= 2.0
 
-        latent_vector = latent_vector.cuda()
+        if self.cuda:
+            latent_vector = latent_vector.cuda()
 
         unnormalized = self.decoder(latent_vector)
         normalized = unnormalized / 2.0 + 0.5

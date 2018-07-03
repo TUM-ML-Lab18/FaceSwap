@@ -96,7 +96,7 @@ class LowResModel(LatentModel):
     def anonymize(self, extracted_face, extracted_information):
         # ===== Landmarks
         # Normalize landmarks
-        landmarks = normalize_landmarks(extracted_information)
+        landmarks = normalize_landmarks(extracted_information).reshape((1, -1))
 
         # ===== LowRes pixelmap
         lowres = extract_lowres(extracted_face, resolution=8)
