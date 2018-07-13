@@ -46,6 +46,13 @@ face recognition package from [Adam Geitgey](https://github.com/ageitgey/face_re
 position of faces in images, but also as input features for our networks.
 
 ## Models
+
+### DeepFakes
+DeepFakes uses deep convolutional auto encoders to swap the face of two people, preserving the facial expression. It is publicly available via GitHub and caught our attention through an excellent article on hackernoon.com (https://hackernoon.com/exploring-deepfakes-20c9947c22d9). The architecture can be depicted as follows:
+![DeepFakes](images/deepfakes.png "DeepFakes; image: https://hackernoon.com/exploring-deepfakes-20c9947c22d9")
+https://hackernoon.com/exploring-deepfakes-20c9947c22d9
+
+
 ### Conditional GAN - CGAN
 ![CGAN](images/CGAN.jpg "Conditional GAN; image: https://www.abtosoftware.com/blog/image-to-image-translation")
-*https://www.abtosoftware.com/blog/image-to-image-translation*
+https://www.abtosoftware.com/blog/image-to-image-translation
