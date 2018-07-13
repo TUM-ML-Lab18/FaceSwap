@@ -69,7 +69,7 @@ The "LatentGAN" is an architecture which combines our latent model with a discri
 
 ### Conditional GAN
 Deep convolutional GANs were proposed in 'Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks' from Radford et. al (https://arxiv.org/pdf/1511.06434.pdf). They combine the classic GAN approach with deep convolutional neural networks. By the means of CNNs as high capable function approximators, the performance of GANs should be increased. In this model, we have also introduced condition on facial key points to preserve the facial expression of an input image. However, this conditioning can be unstable to some extend due to the high dimensionality of our conditioning vector.
-![CGAN](images/cgan.jpg "Conditional GAN; image: https://www.abtosoftware.com/blog/image-to-image-translation")
+![CGAN](images/CGAN.jpg "Conditional GAN; image: https://www.abtosoftware.com/blog/image-to-image-translation")
 
 https://www.abtosoftware.com/blog/image-to-image-translation
 
