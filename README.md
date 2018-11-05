@@ -55,6 +55,7 @@ DeepFakes uses deep convolutional auto encoders to swap the face of two people, 
 
 ### LatentModel
 The idea behind our "Latent Model" is to use already extracted features as input for a simple decoder network. The network is trained end to end with an image as target and features extracted from it as input. If the features have a higher dimensionality we reduced it by flattening it. Several features were just concatenated to one input vector. As features we experimented with several representations of landmarks (i.e. combine all landmarks of the nose to one), low resolution image, histogram and a deep face encoding.
+
 ![LatentModel](images/latentmodel.png "LatentModel; image partly from: https://hackernoon.com/exploring-deepfakes-20c9947c22d9")
 
 *https://hackernoon.com/exploring-deepfakes-20c9947c22d9*
