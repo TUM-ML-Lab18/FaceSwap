@@ -49,6 +49,7 @@ position of faces in images, but also as input features for our networks.
 
 ### DeepFakes
 DeepFakes uses deep convolutional auto encoders to swap the face of two people, preserving the facial expression. It is publicly available via GitHub and caught our attention through an excellent article on hackernoon.com (https://hackernoon.com/exploring-deepfakes-20c9947c22d9). The architecture can be depicted as follows:
+
 ![DeepFakes](images/deepfakes.png "DeepFakes; image: https://hackernoon.com/exploring-deepfakes-20c9947c22d9")
 
 *https://hackernoon.com/exploring-deepfakes-20c9947c22d9*
@@ -64,12 +65,14 @@ For the decoder we just reused the decoder from the Deepfakes architecture. We a
 
 ### LatentGAN
 The "LatentGAN" is an architecture which combines our latent model with a discriminator, forming an architecture similar to a generative adversarial network. The motivation behind this architecture was the fact that our latent model already produced quite decent results. However, we wanted to make them look even more realistic and came up with the idea of integrating a discriminator into the model.
+
 ![LatentGAN](images/latentgan.png "LatentGAN; image partly from: https://hackernoon.com/exploring-deepfakes-20c9947c22d9")
 
 *https://hackernoon.com/exploring-deepfakes-20c9947c22d9*
 
 ### Conditional GAN
 Deep convolutional GANs were proposed in 'Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks' from Radford et. al (https://arxiv.org/pdf/1511.06434.pdf). They combine the classic GAN approach with deep convolutional neural networks. By the means of CNNs as high capable function approximators, the performance of GANs should be increased. In this model, we have also introduced condition on facial key points to preserve the facial expression of an input image. However, this conditioning can be unstable to some extend due to the high dimensionality of our conditioning vector.
+
 ![CGAN](images/CGAN.jpg "Conditional GAN; image: https://www.abtosoftware.com/blog/image-to-image-translation")
 
 https://www.abtosoftware.com/blog/image-to-image-translation
