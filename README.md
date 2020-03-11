@@ -1,9 +1,9 @@
 # General
-If you use Pycharm for developing mark the `implementation` folder as root.
+If you use PyCharm for developing, mark the `implementation` folder as root.
 
 # Preprocessing
 Before you are able to train models, you have to preprocess your data. Therefore, you have to store all the images of
-your dataset in a subfolder called 'raw'. Place all images __directly__ in the raw folder and __do not use subfolders__.
+your dataset in a subfolder called `raw`. Preprocessing preserves the directory structure of your `raw` directory. However, for most models you want to store all images at the root level:
 
 ```
 dataset/
